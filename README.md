@@ -10,6 +10,8 @@ Deleting a key is taught as the same lesson as searching for it: the key is firs
 
 The user interface is in **Spanish**, the language of the course.
 
+![Inserting key 1028 into a hash table with quadratic probing: the side panel works out the address and each probe, and the key lands in cell 1](docs/captura.png)
+
 ---
 
 ## What you can do
