@@ -279,8 +279,15 @@
 /* El control de elisión se fija arriba y la estructura se centra en el resto,
    para que no se desplace verticalmente al cambiar de paso. */
 .pantalla-tema__lienzo {
+  /* Posicionado: el aviso flota sobre él (ver `.pantalla-tema__alertas`). */
+  position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* La fila de arriba mide siempre al menos lo que el control «Ver estructura
+     completa», esté o no: es la fila donde flota el aviso, y si colapsaba a
+     cero cuando el control se ocultaba, una tabla que llena el lienzo subía
+     hasta montarse debajo del aviso (lo destapó la prueba de humo a 700 px,
+     2026-09-27). Cuando el control está, no cambia nada. */
+  grid-template-rows: minmax(20px, auto) minmax(0, 1fr);
   gap: var(--espacio-3);
   background: var(--superficie-hundida);
   border: 1px solid var(--borde);
@@ -315,21 +322,37 @@
   padding-right: var(--espacio-2);
 }
 
-/* La alerta se ancla arriba del panel lateral y no se va con el desplazamiento
-   (pedido del usuario, 2026-08-29): con la columna abajo, en operaciones o en
-   la bitácora, un aviso en el borde superior quedaba fuera de la vista y había
-   que subir a buscarlo. No va al pie de la ventana ni sobre el lienzo porque
-   el alto del lienzo es el recurso escaso —una tabla dispersa ya no cabe en
-   una ventana de 700 px— y la lateral no le quita nada. */
+/* El aviso flota sobre el lienzo, arriba a la izquierda, en la fila del
+   control «Ver estructura completa», que hoy solo usa su lado derecho
+   (opción B de la maqueta, 2026-09-27; CLAUDE.md 6.2).
+
+   Hasta entonces se anclaba arriba del panel lateral (pedido del usuario,
+   2026-08-29: abajo en la columna quedaba fuera de la vista). Ahí empujaba
+   todos los paneles, y en un portátil (1366×640) dejaba las métricas bajo el
+   borde justo al terminar cada operación. Se había descartado el lienzo
+   porque su alto es el recurso escaso y una banda que aparece y desaparece
+   haría saltar la estructura; flotando no ocupa alto y no mueve nada. Se deja
+   libre el ancho del control a la derecha, y la sombra lo separa de lo que
+   haya debajo. */
 .pantalla-tema__alertas {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  /* Opaca: los paneles pasan por debajo al desplazarse. */
-  background: var(--superficie-hundida);
+  position: absolute;
+  top: var(--espacio-4);
+  left: var(--espacio-4);
+  max-width: calc(100% - 2 * var(--espacio-4) - 220px);
+  z-index: 3;
 }
 
-/* Sin mensaje no ocupa ni su hueco del `gap` de la columna. */
+.pantalla-tema__alertas .alerta {
+  padding: 6px var(--espacio-3);
+  box-shadow: var(--elev-1);
+}
+
+.pantalla-tema__alertas .alerta .texto-nivel-4 {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* Sin mensaje no se dibuja: ni su sombra queda sobre el lienzo. */
 .pantalla-tema__alertas:empty {
   display: none;
 }

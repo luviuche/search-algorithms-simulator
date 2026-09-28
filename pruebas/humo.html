@@ -975,19 +975,20 @@
         'retroceder devuelve el aviso que correspondía a ese punto: la colisión'
       );
 
-      // El aviso está anclado: no se va con el desplazamiento de la columna.
-      const lateral = document.querySelector('.pantalla-tema__panel-lateral');
-      lateral.scrollTop = lateral.scrollHeight;
-      const cajaLateral = lateral.getBoundingClientRect();
+      // El aviso flota sobre el lienzo, arriba a la izquierda (2026-09-27):
+      // no depende del desplazamiento del panel lateral, no se sale del
+      // lienzo y no se monta sobre la tabla, que es la estructura que empieza
+      // más arriba.
+      const lienzo = document.querySelector('.pantalla-tema__lienzo');
+      const cajaLienzo = lienzo.getBoundingClientRect();
       const cajaAviso = aviso().getBoundingClientRect();
-      registro.push(
-        `  panel desplazado ${Math.round(lateral.scrollTop)} px de ${lateral.scrollHeight};`
-        + ` aviso en ${Math.round(cajaAviso.top)}, panel de ${Math.round(cajaLateral.top)} a ${Math.round(cajaLateral.bottom)}`
-      );
       afirmar(
-        cajaAviso.top >= cajaLateral.top - 1 && cajaAviso.bottom <= cajaLateral.bottom,
-        'el aviso sigue a la vista con el panel lateral desplazado hasta abajo'
+        lienzo.contains(aviso()) && cajaAviso.top >= cajaLienzo.top && cajaAviso.right <= cajaLienzo.right,
+        'el aviso va sobre el lienzo, dentro de su borde'
       );
+      const primeraCasilla = document.querySelector('.estructura-vertical .casilla').getBoundingClientRect();
+      registro.push(`  aviso de ${Math.round(cajaAviso.top)} a ${Math.round(cajaAviso.bottom)}; la tabla empieza en ${Math.round(primeraCasilla.top)}`);
+      afirmar(cajaAviso.bottom <= primeraCasilla.top, 'y no se monta sobre la tabla');
 
       // Los pasos de trámite no avisan: sin eso el aviso parpadearía en cada
       // clic y dejaría de leerse como una noticia.
@@ -2046,6 +2047,12 @@
       for (const clave of [10, 12, 15, 18, 20, 22, 25, 27, 30, 33, 35, 38, 40, 42, 45, 48, 50, 53, 55, 58, 60, 63, 67]) {
         operar(formularios, 'insertar', clave);
       }
+
+      // El resumen más largo de la aplicación —«N = 23 · 5 bloques de 5»—
+      // no se sale de su panel: «Editar» quedaba cortado en un portátil.
+      const editar = document.querySelector('[data-accion="editar-configuracion"]').getBoundingClientRect();
+      const panelOperaciones = formularios[1].getBoundingClientRect();
+      afirmar(editar.right <= panelOperaciones.right, `el resumen de la estructura cabe en su panel («Editar» termina en ${Math.round(editar.right)}, el panel en ${Math.round(panelOperaciones.right)})`);
 
       const bloques = () => [...document.querySelectorAll('.bloque')];
       const rotulo = (b) => bloques()[b - 1].querySelector('.bloque__etiqueta');

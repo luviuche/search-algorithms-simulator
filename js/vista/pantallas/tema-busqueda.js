@@ -2993,8 +2993,14 @@
     // botón «Crear estructura» que no elige nada. El árbol se crea al entrar
     // al tema, y para vaciarlo está el botón de reiniciar (pedido del usuario,
     // 2026-08-29).
+    // **El aviso va sobre el lienzo**, arriba a la izquierda, en la fila del
+    // control «Ver estructura completa» (opción B de la maqueta, 2026-09-27).
+    // Arriba del panel lateral empujaba todo hacia abajo, y en un portátil
+    // dejaba las métricas bajo el borde justo al terminar cada operación.
+    // Flota —no ocupa alto en el lienzo—, así que al aparecer o irse no
+    // mueve la estructura.
+    lienzo.appendChild(dom.alertas);
     panelLateral.append(
-      dom.alertas,
       ...(config.sinConfiguracion ? [] : [(dom.configuracion = crearFormularioConfiguracion())]),
       // Índices no inserta, ni busca, ni elimina: su panel sería un campo de
       // clave que no opera sobre nada (CLAUDE.md 5.x). Crear la estructura

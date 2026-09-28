@@ -181,7 +181,11 @@ form input[type="checkbox"] {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--espacio-2);
+  /* Si el resumen no cabe junto al título baja entero a su renglón, en vez de
+     salirse del panel: en las búsquedas externas —«N = 23 · 5 bloques de 5
+     Editar»— el «Editar» quedaba cortado en un portátil (2026-09-27). */
+  flex-wrap: wrap;
+  gap: 0 var(--espacio-2);
 }
 
 .panel__resumen {
