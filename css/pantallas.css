@@ -25,16 +25,63 @@
 }
 
 .pantalla-menu__cuerpo {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: var(--espacio-6);
-  align-items: start;
+  display: block;
 }
 
-/* Sin estructuras recientes no hay panel, y el índice se queda con el ancho
-   entero en vez de dejar una columna de 320 px ocupada por un aviso. */
-.pantalla-menu__cuerpo--solo-catalogo {
-  grid-template-columns: 1fr;
+/* Las recientes, en una tira bajo la barra (2026-09-27): cada una es una
+   pastilla, y si no caben todas se desvanece el borde derecho, como en el
+   lienzo. Antes eran un panel de 320 px a la derecha que se quedaba con el
+   ancho del catálogo. */
+.tira-recientes {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+.tira-recientes__titulo {
+  margin: 0;
+  flex: none;
+  font-family: var(--fuente-condensada);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.tira-recientes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--espacio-2);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__item {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--espacio-1);
+  padding: 3px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  font-size: 12px;
+}
+
+.tira-recientes__tema {
+  font-weight: 500;
+  color: var(--tinta);
+}
+
+.tira-recientes__detalle {
+  color: var(--tinta-suave);
 }
 
 .pantalla-menu__catalogo {
@@ -43,11 +90,6 @@
   gap: var(--espacio-4);
 }
 
-.pantalla-menu__recientes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-}
 
 /* El catálogo se lee como el índice de un libro (CLAUDE.md 2): todo a la
    vista, sin tarjetas ni navegación por niveles. La jerarquía la dicen la
@@ -68,17 +110,54 @@
    solas. */
 .indice--columnas {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 620px));
-  justify-content: start;
+  /* Búsquedas se lleva el ancho y Grafos, sin temas construidos, va angosto
+     (2026-09-27). El menú se dibuja al ancho de un portátil y se escala con la
+     ventana (`escalarAlaVentana` en menu.js), así que estas medidas son las
+     de 1366 px: el tope evita que en una ventana sin escalar la guía de
+     puntos se estire hasta perder el renglón. */
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  max-width: 1300px;
   gap: var(--espacio-6);
   align-items: start;
+}
+
+/* Una parte con varias categorías las pone lado a lado, cada una entera en
+   su columna, con el título de la parte encima de todas: en Búsquedas,
+   internas y externas. */
+/* Con las dos clases: `.indice__parte { display: flex }` viene después en el
+   archivo y, a igual especificidad, ganaba. */
+.indice__parte.indice__parte--en-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  column-gap: var(--espacio-6);
+  align-items: start;
+}
+
+.indice__parte.indice__parte--en-columnas > .indice__parte-titulo {
+  grid-column: 1 / -1;
+}
+
+/* Una parte sin temas construidos (hoy, Grafos): solo los nombres, y el
+   «En desarrollo» una vez en su cabecera. */
+.indice__parte--pendiente .indice__tema .indice__estado,
+.indice__parte--pendiente .indice__guia,
+.indice__parte--pendiente .indice__parte-descripcion {
+  display: none;
+}
+
+.indice__parte--pendiente .indice__parte-titulo {
+  flex-wrap: wrap;
+}
+
+.indice__parte-titulo > .indice__estado {
+  font-weight: 400;
 }
 
 .indice__parte,
 .indice__grupo {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-2);
+  gap: var(--espacio-1);
 }
 
 .indice__parte {
@@ -111,6 +190,9 @@
 }
 
 .indice__grupo-titulo {
+  /* Sin el margen que el navegador da a h3 y h4: eran ~40 px de aire vacío
+     por subgrupo, y el índice no cabía en un portátil (2026-09-27). */
+  margin: 0;
   font-family: var(--fuente-condensada);
   font-size: 13px;
   font-weight: 600;
@@ -124,11 +206,12 @@
 .indice__subgrupo {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-2);
+  gap: 2px;
   margin-left: var(--espacio-4);
 }
 
 .indice__subgrupo-titulo {
+  margin: var(--espacio-2) 0 0;
   font-size: 13px;
   font-weight: 500;
   color: var(--tinta);
@@ -150,7 +233,7 @@
   /* Renglón apretado, como el de un índice: con el aire de un botón normal el
      catálogo entero medía 1067 px y Grafos se salía de la ventana de
      proyección, que es justo lo que este menú viene a arreglar. */
-  padding: var(--espacio-1) var(--espacio-3);
+  padding: 1px var(--espacio-3);
   border: 1px solid transparent;
   border-radius: var(--radio-control);
   background: none;
@@ -179,6 +262,7 @@
 }
 
 .indice__tema-descripcion {
+  min-width: 0;
   text-align: right;
 }
 
@@ -203,35 +287,6 @@
   min-width: var(--espacio-5);
   border-bottom: 1px dotted var(--borde-fuerte);
   transform: translateY(-3px);
-}
-
-/* Recientes */
-.lista-recientes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-}
-
-.reciente-item {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: var(--espacio-3);
-  border-bottom: 1px solid var(--borde);
-}
-
-.reciente-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.reciente-item__fila {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--espacio-2);
 }
 
 /* Tema (pantalla de trabajo de un algoritmo) */

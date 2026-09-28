@@ -256,7 +256,14 @@ El estado (`estructura`, `reproductor`, `pasoActual`) vive en el closure de cada
 
 **Un renglón de tema es: título · guía de puntos · descripción.** La guía es la línea que en un libro lleva del título al número de página; aquí lleva a lo que hay que saber del tema, y por eso **ningún renglón la deja colgando sin nada al otro lado**: si el tema no está construido, al final va su marca «En desarrollo» en lugar de la descripción. Los temas sin construir **siguen respondiendo al clic** con el aviso de «en construcción», como antes (decisión del usuario, 2026-09-11): la marca dice qué hay y qué no, y el aviso explica por qué no pasa nada.
 
-**Las dos partes van una al lado de la otra** (`indice--columnas`). No es decoración: medido sobre la maqueta, el índice en una sola columna mide 1439 px y a dos columnas 1045, así que en una sola columna Grafos quedaba fuera de la ventana y había que desplazarse para verlo — justo lo que el índice viene a evitar. Por lo mismo el renglón va apretado (`--espacio-1` de relleno vertical): con el aire de un botón normal, el catálogo medía 1067 px y con él 947. **Cabe entero en una ventana de 1080 px; en una de 950 se desplaza un poco.**
+**Las dos partes van una al lado de la otra** (`indice--columnas`). No es decoración: medido sobre la maqueta, el índice en una sola columna mide 1439 px y a dos columnas 1045, así que en una sola columna Grafos quedaba fuera de la ventana y había que desplazarse para verlo — justo lo que el índice viene a evitar.
+
+**Desde el 2026-09-27, tres columnas y un menú que crece con la pantalla** (repaso de diseño contra las tres pantallas de referencia: portátil 1366×640, la del usuario 1920×950 y 1440p 2560×1310). En el portátil, el índice de dos columnas dejaba Huffman y todas las externas bajo el borde; y en 1440p ocupaba la mitad izquierda de la pantalla.
+
+- **Búsquedas pone sus categorías lado a lado, cada una entera en su columna**: internas | externas (`indice__parte--en-columnas`, para toda parte con más de una categoría). Se probó equilibrar las alturas pasando los árboles a la columna de externas, y el usuario no quiso: Búsquedas se divide en internas y externas, y cada mitad va junta. Bajo externas queda un hueco; es el precio.
+- **Una parte sin ningún tema construido va angosta** (`indice__parte--pendiente`, hoy Grafos): solo los nombres, y el «En desarrollo» una vez en su cabecera en vez de en cada renglón. Es lo que le deja a Búsquedas el ancho para que sus descripciones quepan. Cuando Grafos tenga temas volverá a llevar descripciones, y el menú habrá que repensarlo.
+- **Los títulos de grupo y subgrupo no llevan el margen del navegador**: `h3` y `h4` traían unos 40 px de aire vacío por subgrupo que nunca se anularon. El renglón, además, va más apretado (1 px de relleno vertical).
+- **El menú se dibuja al ancho de un portátil y se escala para llenar la ventana** (`escalarAlaVentana` en `menu.js`; opción A de la maqueta, elegida sobre una variante adaptable que cambiaba de diseño a los 1600 px y aun así dejaba media pantalla vacía). Letra, renglones y espacios crecen juntos, con `zoom` —que sí cambia el espacio ocupado, a diferencia de `transform`—, desde 1× en el portátil hasta un tope de 2×; se recalcula al cambiar la ventana. El `min-height` de la pantalla se divide por la escala, o `100vh` con zoom 1,4 mediría 140 vh. **Solo en el menú**: en las pantallas de tema, escalarlo todo le quitaría ancho a las estructuras anchas como índices, y eso se decide aparte (punto pendiente del repaso).
 
 **Las categorías ya no llevan estado propio.** Con todo a la vista, cada tema dice el suyo y una insignia en la categoría solo repetiría —o mentiría, como en búsquedas externas, que hoy tiene dos temas construidos y tres por construir—.
 
@@ -1226,7 +1233,11 @@ Consecuencia: **una estructura reciente se identifica por su tema y por los dato
 
 ### Estructuras recientes
 
-**El panel solo existe si hay recientes** (2026-09-11). Vacío decía «Para crear una estructura, seleccione un tema del catálogo» —una obviedad, ahora que el catálogo entero está a la vista (§4)— y se quedaba con una columna de 320 px del mejor sitio de la pantalla. Sin recientes no hay columna y el índice se reparte el ancho, con tope de 620 px por columna: sin el tope, la guía de puntos se estira tanto que el ojo pierde el renglón entre el título y su descripción.
+**Van en una tira bajo la barra del menú** (2026-09-27): cada una es una pastilla con su tema y los datos con que se creó —la fecha, en el `title`—, y si no caben todas se desvanece el borde derecho, como en el lienzo. Hasta entonces eran un panel de 320 px a la derecha que se quedaba con el ancho del catálogo; en un portátil las descripciones del índice acababan en columnas de una palabra. Sin recientes no hay tira.
+
+**No se pueden abrir**: guardan el nombre del tema y un resumen, no la estructura. Son un recordatorio. Hacerlas útiles —abrir el tema con la misma estructura— exigiría guardar también las claves, un autoguardado local del `.cc2`; queda como idea, no decidida.
+
+`captura.html` las siembra con `?recientes=5` (y las borra con `?recientes=0`): el navegador sin interfaz no tiene ninguna guardada, y sin eso las capturas del menú salían siempre sin la tira, que es como casi nunca se ve de verdad.
 
 Hasta 5, en almacenamiento del navegador. **No son la copia real**: si el estudiante borra datos de navegación, desaparecen. La interfaz debe dejar claro que el archivo `.cc2` es la copia real.
 

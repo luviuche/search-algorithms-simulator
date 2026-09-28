@@ -83,6 +83,26 @@
   <script src="../js/vista/animacion.js"></script>
   <script src="../js/vista/pantallas/menu.js"></script>
   <script src="../js/vista/pantallas/tema-busqueda.js"></script>
+  <script>
+    // ?recientes=5 siembra estructuras recientes de ejemplo antes de que se
+    // monte el menú, y ?recientes=0 las borra. Sin esto las capturas del
+    // menú salían siempre sin la tira: el navegador sin interfaz no tiene
+    // ninguna guardada, y el menú real casi siempre las muestra.
+    (function () {
+      const cuantas = new URLSearchParams(location.search).get('recientes');
+      if (cuantas === null) return;
+      const ejemplo = [
+        { temaTitulo: 'Búsqueda binaria externa', detalle: 'N = 23 · 5 bloques de 5' },
+        { temaTitulo: 'Función módulo', detalle: 'n = 12 · l = 4' },
+        { temaTitulo: 'Índices primarios, secundarios y multinivel', detalle: 'r = 500000 · B = 4096' },
+        { temaTitulo: 'Búsqueda binaria', detalle: 'n = 24 · l = 2' },
+        { temaTitulo: 'Árbol de Huffman', detalle: 'árbol de Huffman' }
+      ].slice(0, Number(cuantas)).map((item) => Object.assign({ fecha: new Date().toISOString() }, item));
+      try {
+        window.localStorage.setItem('cc2:recientes', JSON.stringify(ejemplo));
+      } catch (error) { /* sin almacenamiento, la captura sale sin recientes */ }
+    })();
+  </script>
   <script src="../js/app.js"></script>
 
   <script>

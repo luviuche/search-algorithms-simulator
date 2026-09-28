@@ -62,6 +62,10 @@
   // siempre tenga tres niveles.
   const CLASES_POR_PROFUNDIDAD = ['parte', 'grupo', 'subgrupo'];
 
+  function tieneTemaDisponible(nodo) {
+    return nodo.hijos ? nodo.hijos.some(tieneTemaDisponible) : Boolean(nodo.disponible);
+  }
+
   function crearSeccion(nodo, profundidad, alSeleccionarTema) {
     const nivel = CLASES_POR_PROFUNDIDAD[Math.min(profundidad, CLASES_POR_PROFUNDIDAD.length - 1)];
     const seccion = document.createElement('section');
@@ -80,6 +84,25 @@
       titulo.appendChild(descripcion);
     }
     seccion.appendChild(titulo);
+
+    // Dos rasgos de la parte que cambian cómo se dibuja (menú en columnas,
+    // 2026-09-27; CLAUDE.md 4):
+    //
+    //   · **Sus categorías, cada una en su columna.** Búsquedas se divide en
+    //     internas y externas, y cada mitad va entera en la suya: partir
+    //     internas para equilibrar alturas no convenció al usuario.
+    //   · **Una parte sin ningún tema construido va angosta**: sin
+    //     descripciones, y el «En desarrollo» una sola vez, en su cabecera, en
+    //     vez de en cada renglón. Es lo que hoy le pasa a Grafos, y lo que le
+    //     deja a Búsquedas el ancho para que sus descripciones quepan.
+    if (profundidad === 0) {
+      const categorias = (nodo.hijos || []).filter((hijo) => hijo.hijos);
+      if (categorias.length > 1) seccion.classList.add('indice__parte--en-columnas');
+      if (!tieneTemaDisponible(nodo)) {
+        seccion.classList.add('indice__parte--pendiente');
+        titulo.appendChild(crearEstado());
+      }
+    }
 
     // Los temas seguidos se juntan en una sola lista y las categorías abren su
     // propia sección, **respetando el orden del catálogo**: en búsquedas
@@ -101,56 +124,64 @@
     return seccion;
   }
 
-  function crearItemReciente(item) {
-    const li = document.createElement('li');
-    li.className = 'reciente-item';
-
-    const fila = document.createElement('div');
-    fila.className = 'reciente-item__fila';
-
-    const nombre = document.createElement('span');
-    nombre.className = 'reciente-item__nombre texto-nivel-3 texto-mono';
-    nombre.textContent = item.temaTitulo;
-
-    const fecha = document.createElement('span');
-    fecha.className = 'reciente-item__fecha texto-nivel-5';
-    fecha.textContent = formatearFecha(item.fecha);
-
-    fila.append(nombre, fecha);
-
-    const detalle = document.createElement('span');
-    detalle.className = 'reciente-item__detalle texto-nivel-5';
-    detalle.textContent = item.detalle;
-
-    li.append(fila, detalle);
-    return li;
-  }
-
-  // Las estructuras ya no llevan nombre propio: era el nombre por defecto del
-  // archivo .cc2 y guardar quedó para el final del proyecto (CLAUDE.md 10.3),
-  // así que una reciente se reconoce por su tema y por los datos con que se
-  // creó, que es lo que el estudiante recuerda de ella.
-  // **Solo existe si hay recientes** (2026-09-11). Vacío decía "para crear una
-  // estructura, seleccione un tema del catálogo" —una obviedad, ahora que el
-  // catálogo entero está a la vista— y se quedaba con una columna de 320 px
-  // del mejor sitio de la pantalla. Sin recientes no hay columna, y el índice
-  // se reparte el ancho.
-  function crearPanelRecientes(recientes) {
-    const aside = document.createElement('aside');
-    aside.className = 'panel pantalla-menu__recientes';
+  // **Las recientes van en una tira bajo la barra** y no en un panel a la
+  // derecha (2026-09-27). El panel se quedaba con 320 px del ancho del
+  // catálogo, y en un portátil las descripciones del índice acababan en
+  // columnas de una palabra. En la tira cada una es una pastilla —tema y los
+  // datos con que se creó—, y si no caben todas se desvanece el borde, como
+  // en el lienzo. La fecha pasa al `title`.
+  //
+  // No se pueden abrir: guardan el nombre del tema y un resumen, no la
+  // estructura. Son un recordatorio; la copia real es el archivo .cc2.
+  function crearTiraRecientes(recientes) {
+    const tira = document.createElement('section');
+    tira.className = 'tira-recientes';
+    tira.setAttribute('aria-label', 'Estructuras recientes');
 
     const titulo = document.createElement('h2');
-    titulo.className = 'panel__titulo texto-nivel-2';
-    titulo.textContent = 'Estructuras recientes';
-    aside.appendChild(titulo);
+    titulo.className = 'tira-recientes__titulo';
+    titulo.textContent = 'Recientes';
 
     const lista = document.createElement('ul');
-    lista.className = 'lista-recientes';
+    lista.className = 'tira-recientes__lista';
     for (const item of recientes) {
-      lista.appendChild(crearItemReciente(item));
+      const li = document.createElement('li');
+      li.className = 'tira-recientes__item';
+      li.title = formatearFecha(item.fecha);
+      const tema = document.createElement('span');
+      tema.className = 'tira-recientes__tema';
+      tema.textContent = item.temaTitulo;
+      const detalle = document.createElement('span');
+      detalle.className = 'tira-recientes__detalle';
+      detalle.textContent = item.detalle;
+      li.append(tema, detalle);
+      lista.appendChild(li);
     }
-    aside.appendChild(lista);
-    return aside;
+    tira.append(titulo, lista);
+    return tira;
+  }
+
+  // **El menú crece con la pantalla** (opción A de la maqueta, 2026-09-27:
+  // diseño responsivo). Se dibuja con el ancho de un portátil —1366×640, la
+  // referencia más chica— y se escala para llenar la ventana: letra,
+  // renglones y espacios crecen juntos, hasta el doble. Así en un portátil
+  // cabe justo y en una pantalla grande no deja media pantalla vacía. Con
+  // `zoom` y no con `transform`: el zoom sí cambia el espacio que ocupa, y la
+  // página no queda con un hueco o un desplazamiento de más.
+  const REFERENCIA = { ancho: 1366, alto: 640 };
+  const ESCALA_MAXIMA = 2;
+
+  function escalarAlaVentana(pantalla) {
+    const escala = Math.max(1, Math.min(
+      window.innerWidth / REFERENCIA.ancho,
+      window.innerHeight / REFERENCIA.alto,
+      ESCALA_MAXIMA
+    ));
+    pantalla.style.zoom = String(escala);
+    // El alto mínimo de pantalla también se escala: `100vh` con zoom 1,4
+    // mediría 140 vh y la página se desplazaría sin nada debajo.
+    pantalla.style.minHeight = `${100 / escala}vh`;
+    return escala;
   }
 
   function crearPantallaMenu({ catalogo, recientes, alSeleccionarTema }) {
@@ -193,12 +224,21 @@
     }
 
     cuerpo.appendChild(columnaCatalogo);
-    if (recientes.length > 0) {
-      cuerpo.appendChild(crearPanelRecientes(recientes));
-    } else {
-      cuerpo.classList.add('pantalla-menu__cuerpo--solo-catalogo');
-    }
-    pantalla.append(barra, cuerpo);
+    pantalla.append(barra);
+    if (recientes.length > 0) pantalla.append(crearTiraRecientes(recientes));
+    pantalla.append(cuerpo);
+
+    // Se escala al montarse y cada vez que cambia la ventana; el oyente se
+    // retira solo cuando el menú ya no está en la página.
+    escalarAlaVentana(pantalla);
+    const alCambiarVentana = () => {
+      if (!pantalla.isConnected) {
+        window.removeEventListener('resize', alCambiarVentana);
+        return;
+      }
+      escalarAlaVentana(pantalla);
+    };
+    window.addEventListener('resize', alCambiarVentana);
     return pantalla;
   }
 

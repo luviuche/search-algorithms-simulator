@@ -476,6 +476,7 @@
       const numerados = [...document.querySelectorAll('.indice__tema')]
         .filter((el) => /^\s*\d/.test(el.textContent));
       afirmar(numerados.length === 0, 'ningún tema del catálogo aparece numerado');
+      menuEnColumnas();
 
       ejercitarTema('Búsqueda secuencial', {
         n: 16, l: 2, claves: [10, 20, 30, 40, 50, 60, 70, 80],
@@ -2291,6 +2292,26 @@
       afirmar(pie <= visible + 1, 'las métricas se ven enteras sin desplazar el panel lateral');
 
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // El menú (2026-09-27): internas y externas lado a lado, cada una entera
+    // en su columna; Grafos, sin temas construidos, con el sello una sola vez.
+    // Se mide lo que se ve: la primera vez la regla de columnas perdía contra
+    // otra más general y externas quedaba debajo de internas.
+    function menuEnColumnas() {
+      registro.push('', '── Menú ──');
+      const grupos = [...document.querySelectorAll('.indice__grupo-titulo')];
+      const internas = grupos.find((g) => g.textContent === 'Búsquedas internas');
+      const externas = grupos.find((g) => g.textContent === 'Búsquedas externas');
+      afirmar(
+        internas && externas && Math.abs(internas.getBoundingClientRect().top - externas.getBoundingClientRect().top) <= 1
+          && externas.getBoundingClientRect().left > internas.getBoundingClientRect().right,
+        'búsquedas internas y externas van lado a lado'
+      );
+      const grafos = [...document.querySelectorAll('.indice__parte')].find((p) => p.textContent.startsWith('Grafos'));
+      const sellos = grafos.querySelectorAll('.indice__estado');
+      const visibles = [...sellos].filter((el) => el.getClientRects().length > 0);
+      afirmar(visibles.length === 1, `Grafos lleva el «En desarrollo» una sola vez (se ven ${visibles.length})`);
     }
 
     function controlDeElision() {
