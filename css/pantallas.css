@@ -341,24 +341,37 @@
   flex-wrap: wrap;
 }
 
-/* El deslizador y su lectura en segundos van en la misma línea, con el rótulo
-   encima de los dos: la lectura sin el deslizador al lado no dice de qué es. */
-.pantalla-tema__controles .pantalla-tema__velocidad {
+/* El reproductor en una fila (2026-09-27): los pasos a los lados, cuadrados,
+   y en medio el botón que alterna entre reproducir y pausar. */
+.reproductor {
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: var(--espacio-1) var(--espacio-2);
-  width: 100%;
+  grid-template-columns: 40px 1fr 40px;
+  gap: var(--espacio-2);
 }
 
-.pantalla-tema__controles .pantalla-tema__velocidad-rotulo {
-  grid-column: 1 / -1;
+.reproductor .boton {
+  justify-content: center;
+}
+
+/* El rótulo, el deslizador y su lectura en segundos, en un solo renglón: era
+   el rótulo encima y sumaba otra línea que el portátil no tenía. */
+.pantalla-tema__velocidad {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin-top: var(--espacio-3);
+}
+
+.pantalla-tema__velocidad input {
+  width: 100%;
+  min-width: 0;
 }
 
 /* Cifras de ancho fijo y un mínimo para el texto: al arrastrar, el número
    cambia de `0,2 s` a `4,0 s` y sin esto el deslizador se encogería y se
    estiraría bajo el pulgar. */
-.pantalla-tema__controles .pantalla-tema__velocidad-lectura {
+.pantalla-tema__velocidad-lectura {
   font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
   color: var(--tinta-suave);

@@ -80,7 +80,9 @@
       // permite reconstruir cualquier paso aplicando desde cero los efectos
       // que la traza declara hasta ahí (ver `sincronizarEfectos`).
       clavesBase: null,
-      mostrarCompleta: false
+      mostrarCompleta: false,
+      // «Editar» abrió la configuración plegada (ver `sincronizarConfiguracion`).
+      editandoConfiguracion: false
     };
     const dom = { metricas: {} };
 
@@ -1959,6 +1961,9 @@
       estado.reproductor = vista.reproductor.crearReproductor({
         pasos,
         velocidadMs: msPorPaso(),
+        alCambiarReproduccion: (reproduciendo) => {
+          dom.alternarReproduccion.textContent = reproduciendo ? 'Pausar' : 'Reproducir';
+        },
         alCambiarPaso: (paso, indice) => {
           estado.pasoActual = paso;
           estado.indicePaso = indice;
@@ -2215,8 +2220,15 @@
         ${selectorTratamiento}
         <div class="pantalla-tema__controles">
           <button type="submit" class="boton boton--primario">Crear estructura</button>
+          <button type="button" class="boton" data-accion="cancelar-configuracion" hidden>Cancelar</button>
         </div>
       `;
+      // Cancelar vuelve a plegarla sin tocar la estructura: solo existe cuando
+      // hay una que conservar (ver `sincronizarConfiguracion`).
+      contenedor.querySelector('[data-accion="cancelar-configuracion"]').addEventListener('click', () => {
+        estado.editandoConfiguracion = false;
+        sincronizarConfiguracion();
+      });
       // Los campos que pertenecen a un tratamiento aparecen y desaparecen con
       // él, para que el formulario no pida un dato que no se va a usar.
       const camposDelTratamiento = [...contenedor.querySelectorAll('[data-solo-con-tratamiento]')];
@@ -2306,7 +2318,34 @@
       if (dom.guardar) dom.guardar.hidden = false;
       renderizarEstructura(null);
       actualizarMetricas(null);
+      estado.editandoConfiguracion = false;
+      sincronizarConfiguracion();
       return resultado.estructura;
+    }
+
+    // **La configuración se pliega en cuanto hay estructura** (opción B de la
+    // maqueta, elegida por el usuario el 2026-09-27). Abierta todo el tiempo
+    // ocupaba unos 250 px del panel lateral para algo que casi no se vuelve a
+    // tocar, y en un portátil (1366×640) dejaba la reproducción y las métricas
+    // fuera de la vista. Plegada, lo que queda de ella es un resumen en la
+    // cabecera de Operaciones —«n = 24 · l = 2  Editar»—, y «Editar» la
+    // vuelve a abrir en su sitio con los valores de siempre.
+    //
+    // No se pliega en los temas sin operaciones (índices): ahí la
+    // configuración *es* la operación, y sin panel de Operaciones no habría
+    // dónde poner el resumen.
+    function resumenDeEstructura(estructura) {
+      if (config.detalleReciente) return config.detalleReciente(estructura);
+      return config.sinLongitud ? `n = ${estructura.n}` : `n = ${estructura.n} · l = ${estructura.l}`;
+    }
+
+    function sincronizarConfiguracion() {
+      if (!dom.configuracion || !dom.resumenEstructura) return;
+      const plegada = Boolean(estado.estructura) && !estado.editandoConfiguracion;
+      dom.configuracion.hidden = plegada;
+      dom.resumenEstructura.hidden = !plegada;
+      if (estado.estructura) dom.resumenTexto.textContent = resumenDeEstructura(estado.estructura);
+      dom.configuracion.querySelector('[data-accion="cancelar-configuracion"]').hidden = !estado.estructura;
     }
 
     // Los parámetros propios del tema, leídos de un `FormData` y validados
@@ -2642,15 +2681,29 @@
            <div class="pantalla-tema__controles">
              <button type="button" class="boton" data-accion="insertar-palabra">Insertar palabra</button>
            </div>`
-        : `<div class="pantalla-tema__controles">
-             <button type="button" class="boton" data-accion="llenado-automatico">Llenado automático</button>
-           </div>`;
+        : '';
+      // El llenado automático es un enlace junto al rótulo de la clave y no un
+      // botón en su propia fila (2026-09-27): se usa una vez para preparar el
+      // ejemplo, y la fila que ocupaba era la que le faltaba al portátil.
+      const enlaceLlenado = config.palabra
+        ? ''
+        : '<button type="button" class="boton-enlace" data-accion="llenado-automatico">Llenado automático</button>';
       contenedor.innerHTML = `
-        <h2 class="panel__titulo texto-nivel-2">Operaciones</h2>
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo texto-nivel-2">Operaciones</h2>
+          <span class="panel__resumen" data-resumen="estructura" hidden>
+            <span class="panel__resumen-texto"></span>
+            <button type="button" class="boton-enlace" data-accion="editar-configuracion">Editar</button>
+          </span>
+        </div>
         ${config.soloPalabra ? '' : `
-        <label class="texto-nivel-3">Clave
-          ${campoClave}
-        </label>
+        <div class="campo">
+          <div class="campo__rotulo-fila">
+            <label class="texto-nivel-3" for="campo-clave">Clave</label>
+            ${enlaceLlenado}
+          </div>
+          ${campoClave.replace('name="clave"', 'id="campo-clave" name="clave"')}
+        </div>
         <div class="pantalla-tema__controles">
           <button type="submit" class="boton boton--primario" data-accion="insertar">Insertar</button>
           <button type="button" class="boton" data-accion="buscar">Buscar</button>
@@ -2687,6 +2740,14 @@
           llenarAutomaticamente();
         });
       }
+      dom.resumenEstructura = contenedor.querySelector('[data-resumen="estructura"]');
+      dom.resumenTexto = contenedor.querySelector('.panel__resumen-texto');
+      contenedor.querySelector('[data-accion="editar-configuracion"]').addEventListener('click', () => {
+        estado.editandoConfiguracion = true;
+        sincronizarConfiguracion();
+        const primerCampo = dom.configuracion && dom.configuracion.querySelector('input, select');
+        if (primerCampo) primerCampo.focus();
+      });
       const porPalabra = contenedor.querySelector('[data-accion="insertar-palabra"]');
       if (porPalabra) {
         porPalabra.addEventListener('click', () => {
@@ -2702,11 +2763,12 @@
     function crearPanelReproduccion() {
       const contenido = document.createElement('div');
       contenido.innerHTML = `
-        <div class="pantalla-tema__controles" data-seccion="reproduccion" hidden>
-          <button type="button" class="boton" data-accion="anterior">◀ Paso anterior</button>
-          <button type="button" class="boton" data-accion="siguiente">Paso siguiente ▶</button>
-          <button type="button" class="boton" data-accion="reproducir">Reproducir</button>
-          <button type="button" class="boton" data-accion="detener">Detener</button>
+        <div data-seccion="reproduccion" hidden>
+          <div class="reproductor">
+            <button type="button" class="boton" data-accion="anterior" title="Paso anterior" aria-label="Paso anterior">◀</button>
+            <button type="button" class="boton" data-accion="reproducir">Reproducir</button>
+            <button type="button" class="boton" data-accion="siguiente" title="Paso siguiente" aria-label="Paso siguiente">▶</button>
+          </div>
           <label class="pantalla-tema__velocidad texto-nivel-5">
             <span class="pantalla-tema__velocidad-rotulo">Velocidad</span>
             <input type="range" min="${PASO_MS_MINIMO}" max="${PASO_MS_MAXIMO}" step="100"
@@ -2716,17 +2778,20 @@
         </div>
       `;
 
+      // En una fila y no en dos (opción B de la maqueta, 2026-09-27): los
+      // pasos a los lados y en medio **un solo botón que alterna** entre
+      // «Reproducir» y «Pausar». Reproducir y Detener nunca se usaban a la vez.
       contenido.querySelector('[data-accion="anterior"]').addEventListener('click', () => {
         if (estado.reproductor) estado.reproductor.pasoAnterior();
       });
       contenido.querySelector('[data-accion="siguiente"]').addEventListener('click', () => {
         if (estado.reproductor) estado.reproductor.siguientePaso();
       });
-      contenido.querySelector('[data-accion="reproducir"]').addEventListener('click', () => {
-        if (estado.reproductor) estado.reproductor.reproducirContinuo();
-      });
-      contenido.querySelector('[data-accion="detener"]').addEventListener('click', () => {
-        if (estado.reproductor) estado.reproductor.detener();
+      dom.alternarReproduccion = contenido.querySelector('[data-accion="reproducir"]');
+      dom.alternarReproduccion.addEventListener('click', () => {
+        if (!estado.reproductor) return;
+        if (estado.reproductor.estaReproduciendo()) estado.reproductor.detener();
+        else estado.reproductor.reproducirContinuo();
       });
 
       dom.seccionReproduccion = contenido.querySelector('[data-seccion="reproduccion"]');

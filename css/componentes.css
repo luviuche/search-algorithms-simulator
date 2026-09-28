@@ -166,6 +166,73 @@ form input[type="checkbox"] {
   width: auto;
 }
 
+/* `hidden` tiene que ganarle al `display` propio: sin esto, `form.panel
+   { display: flex }` deja a la vista la configuración plegada y
+   `.panel__resumen { display: flex }` el resumen que todavía no toca
+   (defecto encontrado al construir el plegado, 2026-09-27). */
+.panel[hidden],
+.panel__resumen[hidden] {
+  display: none;
+}
+
+/* La cabecera de un panel que lleva algo a la derecha del título: en
+   Operaciones, el resumen de la estructura con su «Editar» (2026-09-27). */
+.panel__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--espacio-2);
+}
+
+.panel__resumen {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  font-family: var(--fuente-mono);
+  font-size: 12px;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+
+/* Un campo cuyo rótulo lleva una acción al lado —«Clave» y su «Llenado
+   automático»—. El rótulo va aparte del control, así que el campo se arma
+   como columna a mano en vez de heredar la del `label`. */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.campo__rotulo-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--espacio-2);
+}
+
+/* Acción secundaria con forma de enlace: se usa de vez en cuando y no merece
+   una fila de botón propia. */
+.boton-enlace {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-family: var(--fuente-texto);
+  font-size: 13px;
+  color: var(--tinta-suave);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.boton-enlace:hover { color: var(--tinta); }
+
+.boton-enlace:focus-visible {
+  outline: 2px solid var(--estado-evaluacion-borde);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Botón */
 .boton {
   display: inline-flex;

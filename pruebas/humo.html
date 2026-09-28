@@ -512,6 +512,7 @@
       indices();
       controlDeElision();
       lienzoSinBarras();
+      panelLateralPlegado();
       archivos();
       controlDeVelocidad();
     }
@@ -2226,6 +2227,61 @@
       completa.click();
       asentar(fila());
       afirmar(!fila().classList.contains('desborda'), `al volver a elidir, se va el desvanecido (${ladosDesvanecidos(fila())})`);
+
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // El panel lateral en el portátil (opción B de la maqueta, 2026-09-27):
+    // la configuración se pliega al crear la estructura y deja su resumen en
+    // la cabecera de Operaciones, y la reproducción cabe en una fila. La meta
+    // era que en 1366×640 se vieran operaciones, reproducción y métricas sin
+    // desplazar el panel.
+    function panelLateralPlegado() {
+      registro.push('', '── Panel lateral plegado ──');
+
+      entrarATema('Búsqueda secuencial');
+      const formularios = [...document.querySelectorAll('form.panel')];
+      const configuracion = formularios[0];
+      const resumen = document.querySelector('[data-resumen="estructura"]');
+      // Lo que se ve y no el atributo: `hidden` puesto no garantiza que el
+      // elemento desaparezca si su `display` le gana, y así fue la primera vez.
+      const seVe = (el) => el.getClientRects().length > 0;
+      afirmar(seVe(configuracion) && !seVe(resumen), 'sin estructura, la configuración está abierta y no hay resumen');
+
+      enviar(configuracion, { n: 24, l: 2 });
+      afirmar(!seVe(configuracion), 'al crear la estructura, la configuración se pliega');
+      afirmar(
+        seVe(resumen) && resumen.textContent.includes('n = 24 · l = 2'),
+        `y su resumen queda en la cabecera de Operaciones (${resumen.textContent.trim().replace(/\s+/g, ' ')})`
+      );
+
+      document.querySelector('[data-accion="editar-configuracion"]').click();
+      const cancelar = configuracion.querySelector('[data-accion="cancelar-configuracion"]');
+      afirmar(seVe(configuracion) && !seVe(resumen) && seVe(cancelar), '«Editar» la vuelve a abrir, con «Cancelar» a la vista');
+      cancelar.click();
+      afirmar(!seVe(configuracion) && seVe(resumen), '«Cancelar» la pliega sin tocar la estructura');
+
+      for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) operar(formularios, 'insertar', clave);
+      operar(formularios, 'buscar', 84);
+      // Toda operación arranca reproduciéndose sola (CLAUDE.md 6.8), así que
+      // el botón empieza diciendo «Pausar».
+      const alternar = control('reproducir');
+      afirmar(alternar.textContent === 'Pausar', `la búsqueda arranca sola y el botón dice «Pausar» (dice «${alternar.textContent}»)`);
+      alternar.click();
+      afirmar(alternar.textContent === 'Reproducir', `al pausar, el mismo botón dice «Reproducir» (dice «${alternar.textContent}»)`);
+      alternar.click();
+      afirmar(alternar.textContent === 'Pausar', 'y al reanudar vuelve a «Pausar»');
+      control('siguiente').click();
+      afirmar(alternar.textContent === 'Reproducir', 'un paso a mano también pausa, y el botón lo dice');
+
+      // A 700 px de alto —el portátil deja unos 640— las métricas tienen que
+      // verse enteras sin desplazar el panel.
+      const lateral = document.querySelector('.pantalla-tema__panel-lateral');
+      const metricas = [...lateral.querySelectorAll('.panel')].find((p) => p.textContent.startsWith('Métricas'));
+      const pie = metricas.getBoundingClientRect().bottom;
+      const visible = lateral.getBoundingClientRect().top + lateral.clientHeight;
+      registro.push(`  métricas terminan en ${Math.round(pie)} px; el panel se ve hasta ${Math.round(visible)} px`);
+      afirmar(pie <= visible + 1, 'las métricas se ven enteras sin desplazar el panel lateral');
 
       document.querySelector('.pantalla-tema__volver').click();
     }
