@@ -388,9 +388,10 @@
         claves: estructura.claves,
         clave
       }),
-      // Cada paso deja su propia estructura a la vista, con solo el tramo que
-      // sobrevivió al descarte (pedido del docente): el apilado completo es el
-      // paso a paso del algoritmo, legible de un vistazo al terminar.
+      // Cada paso deja su propia estructura a la vista (pedido del docente),
+      // entera y con lo descartado apagado en su sitio (pedido del usuario,
+      // 2026-09-27): el apilado completo es el paso a paso del algoritmo, y
+      // se ve cómo se van apagando los tramos que ya no se usan.
       apilada: {
         rangoDePaso: (paso) => (
           paso.inicio === undefined ? null : { desde: paso.inicio, hasta: paso.fin }
@@ -398,7 +399,8 @@
         // Sacar la clave no es un descarte: no le corresponde una fila más.
         // Esos pasos se dibujan sobre la estructura completa, que es donde el
         // desplazamiento se ve moverse.
-        // Tampoco el paso final: es la estructura como queda, entera.
+        // Tampoco el paso final: el apilado se va y queda la estructura como
+        // queda, con la clave hallada (CLAUDE.md 6.3).
         aplicaA: (paso) => paso.tipo !== 'eliminacion' && paso.tipo !== 'desplazamiento' && !paso.final
       },
       casillasRelevantes: (paso) => [paso.inicio, paso.medio, paso.fin, paso.casilla].filter(Boolean),

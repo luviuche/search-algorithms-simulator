@@ -873,13 +873,16 @@ Detalle que hace falta y es fácil de omitir: las filas del grid van con `minmax
 
 ### 6.3 Estructuras apiladas (binaria)
 
-**Pedido del docente (2026-08-18): binaria no muestra una estructura que cambia, sino una estructura por paso, apiladas.** Cada fila es la estructura *resultante* de ese paso: solo el tramo que sobrevivió al descarte. Al terminar la búsqueda, el apilado completo es el paso a paso del algoritmo, legible de un vistazo — que es como se explica en el tablero.
+**Pedido del docente (2026-08-18): binaria no muestra una estructura que cambia, sino una estructura por paso, apiladas.** Al terminar la búsqueda, el apilado completo es el paso a paso del algoritmo, legible de un vistazo — que es como se explica en el tablero.
 
-- Cada fila se acorta respecto de la anterior, y eso hace visible la reducción a la mitad.
+**Cada fila es la estructura entera, con lo descartado apagado en su sitio** (opción A de la maqueta, elegida por el usuario el 2026-09-27). Hasta entonces cada fila se recortaba al tramo que sobrevivía y lo descartado desaparecía; lo que el usuario quería ver es **cómo se van apagando los tramos que ya no se usan**, y que al final quede toda la estructura con ellos apagados. Se descartaron la fila única que se va apagando —más limpia, pero al terminar ya no se lee cómo se llegó— y el panel del cálculo, que el usuario no quiso aquí.
+
+- Todas las filas miden lo mismo; lo que se achica de fila en fila es lo encendido: el rango en azul y el medio en naranja. Los tramos elididos que caen enteros en lo descartado se apagan igual (`tramo-elidido--descartado`).
 - Las filas se alinean por columna: la casilla 7 cae bajo la casilla 7 de la fila de arriba. Sin esa alineación se pierde la noción de *dónde* está lo que sobrevivió.
 - Las filas aparecen **una por paso** al avanzar, y retroceder las quita. El apilado sigue al reproductor, no lo reemplaza.
-- La fila de una búsqueda fallida no tiene rango: anuncia *Rango vacío: no quedan casillas por examinar* en lugar de quedar en blanco.
-- El corchete de rango activo no se dibuja aquí: la fila entera **es** el rango, y repetirlo sería ruido.
+- **Al cerrar, el apilado se va** (§7): el último paso del algoritmo muestra todas las filas con lo apagado, y el paso final deja la estructura en una sola fila, como queda, con la clave hallada en verde — «como si todo se hubiera reiniciado» (pedido del usuario, 2026-09-27). Se probó conservar el apilado al cerrar, y también agregarle debajo una fila «Resultado»; el usuario no quiso ninguna de las dos.
+- La fila de una búsqueda fallida no tiene rango: se dibuja **entera y toda apagada**. Antes, recortada, quedaba vacía y anunciaba *Rango vacío*; ese aviso solo queda para una estructura sin claves.
+- El corchete de rango activo no se dibuja: el azul ya marca el rango y lo de fuera está apagado.
 
 **Pendiente de consultar con el docente (2026-08-22): la primera fila muestra el rango de la búsqueda, no las `n` casillas.** Como `buscarBinaria` recorre solo el arreglo de claves, el rango del paso 1 va de 1 a la cantidad de claves; las casillas vacías del final (siempre al final, porque `dominio/estructura.js` inserta empaquetado) no aparecen en ninguna fila. Solo se nota cuando la estructura no está llena. La alternativa evaluada —dibujar la fila 1 completa, con las vacías, y recortar de la fila 2 en adelante— convence al usuario, pero **no se implementa hasta que el docente opine**: las vacías nunca fueron candidatas y mostrarlas puede leerse como que se descartaron en el paso 1. No "corregir" esto por iniciativa propia.
 
@@ -1020,7 +1023,7 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 
 ### El paso final: así queda la estructura (2026-09-24)
 
-**Toda operación de todo tema termina con un paso más**, siempre, también cuando la clave no está o no entra (pedido del usuario). En ese paso la estructura se ve como queda para la siguiente operación: sin casilla marcada, sin sondeo, sin rango, sin apilado —binaria vuelve a la fila única—, y con el panel del cálculo en «Sin operación en curso». No lo produce ningún algoritmo: lo agrega la pantalla en `reproducirOperacion` (`pasoFinal`, tipo `final` en `traza.js`), porque no es un paso del algoritmo sino el momento de mirar el resultado.
+**Toda operación de todo tema termina con un paso más**, siempre, también cuando la clave no está o no entra (pedido del usuario). En ese paso la estructura se ve como queda para la siguiente operación: sin casilla marcada, sin sondeo, sin rango, sin apilado —binaria vuelve a la fila única, «como si todo se hubiera reiniciado» (usuario, 2026-09-27, §6.3)—, y con el panel del cálculo en «Sin operación en curso». No lo produce ningún algoritmo: lo agrega la pantalla en `reproducirOperacion` (`pasoFinal`, tipo `final` en `traza.js`), porque no es un paso del algoritmo sino el momento de mirar el resultado.
 
 - **La excepción: una búsqueda que halló la clave la deja marcada**, en verde y con su ✓ (pedido del usuario, 2026-09-24). Al buscar, lo que se quería saber es dónde está, y apagarla la hacía desaparecer justo al terminar. El paso final es entonces un `encontrada` que solo conserva la ubicación —`casilla`, `posicion` en anidados y cubetas, `medio` en binaria— sin rango, descartes ni recorrido, y lleva `final: true` para que ni el aviso, ni la bitácora, ni el apilado de binaria lo tomen por un paso del algoritmo. Insertar y eliminar terminan sin resaltados.
 - **Hereda los contadores** del último paso, que son el resultado de la operación, y lo que el tema declare en `config.conservarAlFinal` porque su dibujo sale del paso y no de la estructura: Huffman conserva su árbol, su tabla y su reducción; índices, su derivación entera.

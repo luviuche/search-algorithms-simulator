@@ -717,8 +717,11 @@
       }, opciones);
     }
 
-    // Vista apilada: una estructura por paso, cada una con solo el tramo que
-    // sobrevivió al descarte (pedido del docente). Todas las filas comparten
+    // Vista apilada: una estructura por paso (pedido del docente). **Cada fila
+    // es la estructura entera, con lo descartado apagado en su sitio** y no
+    // recortado (pedido del usuario sobre maqueta, 2026-09-27): así se ve cómo
+    // se van apagando los tramos que ya no se usan, fila a fila. Todas las
+    // filas comparten
     // un único grid —no un grid por fila— porque es lo que alinea cada casilla
     // con su posición real en la estructura original; con grids independientes
     // las columnas no se corresponden entre filas.
@@ -726,10 +729,15 @@
     // Los segmentos se calculan una sola vez, sobre las casillas relevantes de
     // la traza completa, para que las columnas no se muevan mientras el
     // estudiante avanza los pasos.
+    //
+    // «Entera» es el rango del primer paso —de la casilla 1 a la última clave—:
+    // si las filas deben mostrar también las vacías del final sigue pendiente
+    // del docente (CLAUDE.md 6.3).
     function renderizarApilado(indicePaso) {
       const claves = estado.estructura.claves;
       const n = estado.estructura.n;
       const segmentos = estado.segmentosApilado;
+      const extension = config.apilada.rangoDePaso(estado.pasos[0]);
 
       dom.estructuraEl.className = 'estructura-apilada';
       // Una pista por segmento, del ancho único de casilla; el tramo elidido
@@ -762,9 +770,10 @@
         rotulo.style.gridRow = String(filaCasillas);
         agregar(orden, rotulo);
 
-        // El paso final sin rango es el que agotó la búsqueda: no queda
-        // estructura que dibujar, y decirlo es más claro que una fila vacía.
-        if (!rango) {
+        // Sin extensión la estructura no tenía claves: no hay fila que dibujar,
+        // y decirlo es más claro que una fila vacía. Una búsqueda que se agotó
+        // sí dibuja la suya, entera y toda apagada.
+        if (!extension) {
           const cierre = document.createElement('span');
           cierre.className = 'apilada__cierre texto-nivel-5';
           cierre.textContent = 'Rango vacío: no quedan casillas por examinar.';
@@ -778,11 +787,17 @@
           const columna = String(posicion + 2);
 
           if (segmento.tipo === 'tramo') {
-            const desde = Math.max(segmento.desde, rango.desde);
-            const hasta = Math.min(segmento.hasta, rango.hasta);
+            const desde = Math.max(segmento.desde, extension.desde);
+            const hasta = Math.min(segmento.hasta, extension.hasta);
             if (desde > hasta) return;
 
             const tramoEl = crearTramo(desde, hasta);
+            // Un tramo que cae entero fuera del rango se apaga como las
+            // casillas que resume: si no, «⋯ 2 ⋯» brillaría en medio de lo
+            // descartado.
+            if (!rango || hasta < rango.desde || desde > rango.hasta) {
+              tramoEl.classList.add('tramo-elidido--descartado');
+            }
             tramoEl.style.gridColumn = columna;
             tramoEl.style.gridRow = String(filaCasillas);
 
@@ -794,11 +809,12 @@
           }
 
           const indice = segmento.indice;
-          if (indice < rango.desde || indice > rango.hasta) return;
+          if (indice < extension.desde || indice > extension.hasta) return;
 
           const clave = claves[indice - 1];
           const descripcion = config.describirCasilla({ paso, indice, ocupada: clave !== undefined });
-          // El corchete de rango sobra aquí: la fila entera ya es el rango.
+          // Sin corchete de rango: el azul ya lo marca, y lo de fuera está
+          // apagado.
           const casillaEl = vista.componentes.casilla.crearCasilla({
             clave,
             indice,
@@ -1768,6 +1784,10 @@
         renderizarIndices(paso, opciones);
         return;
       }
+      // El paso final no apila (`aplicaA`): el apilado se va y queda la
+      // estructura como queda, con la clave hallada en verde, como si todo se
+      // hubiera reiniciado (pedido del usuario, 2026-09-27). Lo apagado fila
+      // por fila se ve un paso antes, en el último del algoritmo.
       const aplicaApilado = !config.apilada || !config.apilada.aplicaA || !paso
         || config.apilada.aplicaA(paso);
       if (config.apilada && estado.pasos && indicePaso >= 0 && aplicaApilado) {

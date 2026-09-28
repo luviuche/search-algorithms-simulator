@@ -344,6 +344,8 @@
 
       // Aquí la traza ya está en su paso final: la estructura como queda.
       // Una búsqueda que halló la clave la deja marcada; lo demás se apaga.
+      // En binaria el apilado se va: queda la estructura entera, como si todo
+      // se hubiera reiniciado, con la clave hallada (2026-09-27).
       afirmar(
         !/en-evaluacion|rango-activo|descartada/.test(retrato),
         `el paso final deja la estructura sin rango ni recorrido (${retrato})`
@@ -367,12 +369,19 @@
       afirmarCasillasParejas(nombreTema);
 
       if (apilada) {
-        // Cada estructura resultante descarta parte de la anterior: ninguna
-        // fila puede tener más casillas que la de arriba.
-        const anchos = retratarApilado().map((fila) => fila.split('→')[1].split(',').length);
+        // Cada fila es la estructura entera —lo descartado se apaga en su
+        // sitio, no se recorta (2026-09-27)—, así que todas miden lo mismo; lo
+        // que se achica de fila en fila es lo que sigue encendido.
+        const filasApiladas = retratarApilado();
+        const anchos = filasApiladas.map((fila) => fila.split('→')[1].split(',').length);
         afirmar(
-          anchos.every((ancho, i) => i === 0 || ancho <= anchos[i - 1]),
-          `cada estructura es más corta que la anterior (${anchos.join(' → ')})`
+          new Set(anchos).size === 1,
+          `todas las filas dibujan la estructura entera (${anchos.join(' → ')})`
+        );
+        const encendidas = filasApiladas.map((fila) => fila.split('→')[1].split(',').filter((e) => e !== 'descartada').length);
+        afirmar(
+          encendidas.every((cuantas, i) => i === 0 || cuantas < encendidas[i - 1]),
+          `lo que sigue encendido se achica de fila en fila (${encendidas.join(' → ')})`
         );
 
         // El rótulo de cada paso nombra su fila, así que va a su altura. Vivía
@@ -1511,8 +1520,9 @@
       document.querySelector('.pantalla-tema__volver').click();
     }
 
-    // El último paso de una búsqueda fallida no tiene rango que dibujar: la
-    // fila debe decirlo en lugar de quedar vacía y parecer un error de dibujo.
+    // El último paso de una búsqueda fallida no tiene rango: su fila se dibuja
+    // entera y toda apagada (2026-09-27), en vez de quedar vacía y parecer un
+    // error de dibujo.
     function binariaSinResultado() {
       registro.push('', '── Búsqueda binaria · clave ausente ──');
 
@@ -1525,13 +1535,21 @@
       operar(formularios, 'buscar', 45);
       hastaElUltimoPasoDelAlgoritmo();
 
-      const cierre = document.querySelector('.apilada__cierre');
-      afirmar(!!cierre, 'la última estructura anuncia el rango vacío');
-      if (cierre) registro.push('  cierre: ' + cierre.textContent);
-
+      const ultimaFila = retratarApilado().pop();
+      registro.push('  última fila: ' + ultimaFila);
+      afirmar(
+        /descartada/.test(ultimaFila) && !/rango-activo|en-evaluacion|encontrada/.test(ultimaFila),
+        `la última fila queda entera y toda apagada (${ultimaFila})`
+      );
       afirmar(
         !document.querySelector('.estructura-apilada').textContent.includes('undefined'),
         'ninguna fila dibuja undefined'
+      );
+
+      control('siguiente').click();
+      afirmar(
+        !document.querySelector('.estructura-apilada'),
+        'al cerrar, el apilado se va y queda la estructura como queda'
       );
 
       document.querySelector('.pantalla-tema__volver').click();

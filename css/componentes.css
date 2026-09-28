@@ -74,6 +74,12 @@
   opacity: .5;
 }
 
+/* El tramo elidido que cae entero en lo descartado (apilado de binaria): se
+   apaga igual que las casillas que resume. */
+.tramo-elidido--descartado {
+  opacity: .5;
+}
+
 .casilla--encontrada {
   border-color: var(--estado-encontrada-borde);
   background: var(--estado-encontrada-relleno);
