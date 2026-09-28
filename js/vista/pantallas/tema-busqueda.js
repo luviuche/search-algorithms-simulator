@@ -1336,8 +1336,6 @@
       escala.className = 'columna-indice__escala';
       const bloques = document.createElement('div');
       bloques.className = 'columna-indice__bloques';
-      const rotulos = document.createElement('div');
-      rotulos.className = 'columna-indice__rotulos';
 
       const puestos = new Map();
       for (const segmento of segmentosDeColumna(columna)) {
@@ -1352,7 +1350,6 @@
           tramo.className = 'tramo-indices';
           tramo.textContent = `⋯ ${mil(segmento.cantidad)} ⋯`;
           bloques.appendChild(tramo);
-          rotulos.appendChild(hueco());
           continue;
         }
 
@@ -1366,16 +1363,15 @@
         par.append(desde, hasta);
         escala.appendChild(par);
 
+        // El rótulo va **dentro** del bloque (pedido del usuario sobre
+        // maqueta, 2026-09-27): a su derecha quedaba justo donde salen las
+        // flechas, y la columna era 46 px más ancha para nada.
         const bloque = document.createElement('div');
         bloque.className = `columna-indice__bloque columna-indice__bloque--${columna.clase}`
           + (activa ? ' columna-indice__bloque--en-curso' : '');
+        bloque.textContent = `B${segmento.indice}`;
         bloques.appendChild(bloque);
         puestos.set(segmento.indice, bloque);
-
-        const rotulo = document.createElement('div');
-        rotulo.className = 'columna-indice__rotulo';
-        rotulo.textContent = `B${segmento.indice}`;
-        rotulos.appendChild(rotulo);
       }
 
       const titulo = document.createElement('div');
@@ -1388,7 +1384,7 @@
         ? `${mil(columna.bloques)} bloq. · ${mil(columna.porBloque)} ${columna.unidad}`
         : 'sin calcular';
 
-      el.append(regla, bytes, escala, bloques, rotulos, titulo, detalle);
+      el.append(regla, bytes, escala, bloques, titulo, detalle);
       return { el, columna, puestos };
     }
 
@@ -1399,10 +1395,27 @@
     //   · la primera entrada, al primer bloque;
     //   · la última entrada del primer bloque, al bloque `frontera` —el B273
     //     del ejercicio—, que es la que enseña cuánto abarca un bloque;
-    //   · el último bloque, al último bloque.
+    //   · la última entrada del último bloque, al último bloque.
     //
-    // Salen del borde derecho de la columna y no del bloque: por el medio está
-    // el rótulo, y una flecha que lo atraviesa lo vuelve ilegible.
+    // **Que se vea dónde conecta cada una** (opción B de la maqueta, elegida
+    // por el usuario el 2026-09-27). Antes salían del borde de la columna, en
+    // curva, y llegaban por detrás de los números: no se leía de qué entrada
+    // salían ni en qué bloque terminaban. Ahora:
+    //
+    //   · **salen de la entrada**: una raya dentro del bloque índice, arriba si
+    //     es su primera entrada y abajo si es la última, y un punto en el borde;
+    //   · **van en codo**: en horizontal, bajan por su propio carril entre las
+    //     columnas —uno por flecha, para que no se monten— y vuelven a la
+    //     horizontal;
+    //   · **llegan con la punta tocando el bloque**, a media altura, que es el
+    //     hueco entre sus dos números. Por eso pueden ir por encima de las
+    //     columnas sin tachar ninguno.
+    const CARRIL_INICIAL = 14;
+    const ENTRE_CARRILES = 9;
+    const RAYA_DE_ENTRADA = 16;
+    const MARGEN_DE_ENTRADA = 7;
+    const RADIO_DEL_CODO = 5;
+
     function trazarFlechas(svg, pista, dibujadas, definidas) {
       svg.innerHTML = '';
       const base = pista.getBoundingClientRect();
@@ -1412,38 +1425,55 @@
           izq: r.left - base.left,
           der: r.right - base.left,
           centro: r.top - base.top + r.height / 2,
-          alto: r.top - base.top + 5,
-          bajo: r.bottom - base.top - 5
+          primera: r.top - base.top + MARGEN_DE_ENTRADA,
+          ultima: r.bottom - base.top - MARGEN_DE_ENTRADA
         };
       };
 
       const defs = document.createElementNS(NS_SVG, 'defs');
       const marca = document.createElementNS(NS_SVG, 'marker');
       marca.setAttribute('id', 'punta-indices');
-      marca.setAttribute('markerWidth', '7');
-      marca.setAttribute('markerHeight', '7');
-      marca.setAttribute('refX', '6');
-      marca.setAttribute('refY', '3.5');
+      marca.setAttribute('markerWidth', '8');
+      marca.setAttribute('markerHeight', '8');
+      marca.setAttribute('refX', '7.5');
+      marca.setAttribute('refY', '4');
       marca.setAttribute('orient', 'auto');
+      // En píxeles y no en múltiplos del trazo: la punta mide lo mismo aunque
+      // cambie el grosor de la línea.
+      marca.setAttribute('markerUnits', 'userSpaceOnUse');
       const punta = document.createElementNS(NS_SVG, 'path');
-      punta.setAttribute('d', 'M0,0 L7,3.5 L0,7 z');
+      punta.setAttribute('d', 'M0,0 L8,4 L0,8 z');
       punta.setAttribute('fill', 'currentColor');
       marca.appendChild(punta);
       defs.appendChild(marca);
       svg.appendChild(defs);
 
       const grupo = document.createElementNS(NS_SVG, 'g');
-      grupo.setAttribute('fill', 'none');
       grupo.setAttribute('stroke', 'currentColor');
-      grupo.setAttribute('stroke-width', '1.2');
-      grupo.setAttribute('marker-end', 'url(#punta-indices)');
+      grupo.setAttribute('stroke-width', '1.4');
       svg.appendChild(grupo);
 
-      const flecha = (x1, y1, x2, y2) => {
-        const medio = x1 + (x2 - x1) / 2;
-        const linea = document.createElementNS(NS_SVG, 'path');
-        linea.setAttribute('d', `M ${x1} ${y1} C ${medio} ${y1} ${medio} ${y2} ${x2} ${y2}`);
-        grupo.appendChild(linea);
+      const nuevo = (tipo, atributos) => {
+        const el = document.createElementNS(NS_SVG, tipo);
+        for (const [nombre, valor] of Object.entries(atributos)) el.setAttribute(nombre, valor);
+        grupo.appendChild(el);
+        return el;
+      };
+
+      // La entrada del índice: su raya dentro del bloque y el punto de salida.
+      const entrada = (x, y) => {
+        nuevo('line', { x1: x - RAYA_DE_ENTRADA, y1: y, x2: x, y2: y, class: 'indices__entrada' });
+        nuevo('circle', { cx: x, cy: y, r: 3.2, fill: 'currentColor', stroke: 'none' });
+      };
+
+      const codo = (x1, y1, carril, x2, y2) => {
+        const r = RADIO_DEL_CODO;
+        const sentido = y2 > y1 ? 1 : -1;
+        const recorrido = Math.abs(y2 - y1) < 2 * r
+          ? `M ${x1} ${y1} L ${carril} ${y1} L ${carril} ${y2} L ${x2} ${y2}`
+          : `M ${x1} ${y1} L ${carril - r} ${y1} Q ${carril} ${y1} ${carril} ${y1 + sentido * r}`
+            + ` L ${carril} ${y2 - sentido * r} Q ${carril} ${y2} ${carril + r} ${y2} L ${x2} ${y2}`;
+        nuevo('path', { d: recorrido, fill: 'none', 'marker-end': 'url(#punta-indices)' });
       };
 
       for (let i = 0; i < dibujadas.length - 1; i++) {
@@ -1454,23 +1484,31 @@
         // que la derivación todavía no dijo.
         if (!definidas.includes(origen.columna.id) || !definidas.includes(destino.columna.id)) continue;
 
-        const salida = caja(origen.el).der;
         const primeroOrigen = origen.puestos.get(1);
         const ultimoOrigen = origen.puestos.get(origen.columna.bloques);
         const primeroDestino = destino.puestos.get(1);
         const ultimoDestino = destino.puestos.get(destino.columna.bloques);
         const fronteraDestino = destino.puestos.get(destino.columna.frontera);
-        const entrada = primeroDestino ? caja(primeroDestino).izq : caja(destino.el).izq;
 
+        const uniones = [];
         if (primeroOrigen && primeroDestino) {
-          flecha(salida, caja(primeroOrigen).alto, entrada, caja(primeroDestino).centro);
+          uniones.push({ desde: primeroOrigen, entrada: 'primera', hasta: primeroDestino });
         }
         if (primeroOrigen && fronteraDestino && destino.columna.frontera > 1) {
-          flecha(salida, caja(primeroOrigen).bajo, entrada, caja(fronteraDestino).centro);
+          uniones.push({ desde: primeroOrigen, entrada: 'ultima', hasta: fronteraDestino });
         }
         if (ultimoOrigen && ultimoDestino && origen.columna.bloques > 1) {
-          flecha(salida, caja(ultimoOrigen).centro, entrada, caja(ultimoDestino).centro);
+          uniones.push({ desde: ultimoOrigen, entrada: 'ultima', hasta: ultimoDestino });
         }
+
+        uniones.forEach((union, k) => {
+          const salida = caja(union.desde);
+          const llegada = caja(union.hasta);
+          const x1 = salida.der;
+          const y1 = salida[union.entrada];
+          entrada(x1, y1);
+          codo(x1, y1, x1 + CARRIL_INICIAL + k * ENTRE_CARRILES, llegada.izq, llegada.centro);
+        });
       }
     }
 

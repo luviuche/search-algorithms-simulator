@@ -2395,7 +2395,8 @@
         'al terminar la derivación ninguna columna queda pendiente'
       );
 
-      const rotulos = [...document.querySelectorAll('.columna-indice__rotulo')].map((el) => el.textContent);
+      // El rótulo va dentro de su bloque (2026-09-27).
+      const rotulos = [...document.querySelectorAll('.columna-indice__bloque')].map((el) => el.textContent);
       registro.push('  bloques dibujados: ' + rotulos.join(' '));
       afirmar(rotulos.includes('B54'), 'el índice llega hasta su último bloque, B54');
       afirmar(rotulos.includes('B14706'), 'el archivo llega hasta su último bloque, B14706');
@@ -2411,8 +2412,28 @@
         'la escala del archivo cierra en la capacidad, 500.004, y no en los 500.000 registros'
       );
 
-      const flechas = document.querySelectorAll('.indices__flechas path[d]');
+      const flechas = [...document.querySelectorAll('.indices__flechas path[d]')]
+        .filter((p) => p.getAttribute('marker-end'));
       afirmar(flechas.length >= 3, `las columnas se unen con flechas (hay ${flechas.length})`);
+
+      // Que se vea dónde conecta cada una (2026-09-27): sale de un punto en su
+      // entrada y llega con la punta tocando el borde izquierdo de un bloque,
+      // a media altura, que es el hueco entre sus dos números.
+      afirmar(
+        document.querySelectorAll('.indices__flechas circle').length === flechas.length,
+        'cada flecha sale de un punto en su entrada'
+      );
+      for (const animacion of document.getAnimations()) animacion.finish();
+      const pista = document.querySelector('.indices__pista').getBoundingClientRect();
+      const bloquesDibujados = [...document.querySelectorAll('.columna-indice__bloque')].map((b) => {
+        const r = b.getBoundingClientRect();
+        return { izq: r.left - pista.left, centro: r.top - pista.top + r.height / 2 };
+      });
+      const sinBloque = flechas.filter((p) => {
+        const [x, y] = p.getAttribute('d').trim().split(/\s+/).slice(-2).map(Number);
+        return !bloquesDibujados.some((b) => Math.abs(b.izq - x) <= 1 && Math.abs(b.centro - y) <= 1);
+      });
+      afirmar(sinBloque.length === 0, `cada punta toca el borde de un bloque, por su medio (${sinBloque.length} sueltas)`);
 
       const metricas = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
       registro.push('  métricas: ' + metricas.join(' · '));
@@ -2449,29 +2470,23 @@
         `los títulos de las columnas caen todos a la misma altura (caen en ${pies.join(', ')})`
       );
 
-      // Y cada bloque, a la altura de sus números y de su rótulo. Las tres
-      // columnas —escala, bloques, rótulos— llevan una celda por segmento y en
-      // el mismo orden, así que basta comparar la i-ésima de cada una. Un
-      // desfase de un píxel por bloque no se ve en el primero y sí en el
-      // séptimo, que es como apareció (2026-09-17).
+      // Y cada bloque, a la altura de sus números. La escala y la pila llevan
+      // una celda por segmento y en el mismo orden, así que basta comparar la
+      // i-ésima de cada una. Un desfase de un píxel por bloque no se ve en el
+      // primero y sí en el séptimo, que es como apareció (2026-09-17).
       let desfase = 0;
       for (const col of columnas()) {
         const filas = (clase) => [...col.querySelector(clase).children];
         const escalas = filas('.columna-indice__escala');
         const pilas = filas('.columna-indice__bloques');
-        const marcas = filas('.columna-indice__rotulos');
         for (let i = 0; i < pilas.length; i++) {
-          desfase = Math.max(
-            desfase,
-            Math.abs(pilas[i].offsetTop - escalas[i].offsetTop),
-            Math.abs(pilas[i].offsetTop - marcas[i].offsetTop)
-          );
+          desfase = Math.max(desfase, Math.abs(pilas[i].offsetTop - escalas[i].offsetTop));
         }
       }
-      registro.push(`  desfase máximo entre bloque, escala y rótulo: ${desfase} px`);
+      registro.push(`  desfase máximo entre bloque y escala: ${desfase} px`);
       afirmar(
         desfase <= 1,
-        `cada bloque queda a la altura de sus números y de su rótulo (se desvía ${desfase} px)`
+        `cada bloque queda a la altura de sus números (se desvía ${desfase} px)`
       );
 
       // El tramo elidido, dentro del ancho de la columna que parte: «⋯ 14.432 ⋯»

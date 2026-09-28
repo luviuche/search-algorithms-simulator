@@ -1152,19 +1152,23 @@
   inset: 0;
   overflow: visible;
   pointer-events: none;
-  /* Por debajo de las columnas. Un SVG posicionado pinta encima de lo que no
-     lo está, y las flechas tachaban los números de la escala justo donde
-     llegan —«9.249» ilegible—. Pasando por detrás, la flecha se ve entrar y
-     salir y el número se lee entero. */
-  z-index: 0;
+  /* Por encima de las columnas (2026-09-27). Iban por detrás porque en curva
+     tachaban los números de la escala —«9.249» ilegible—, pero por detrás la
+     punta se perdía justo antes de llegar. Ahora llegan en horizontal por el
+     medio del bloque, que es el hueco entre sus dos números, y bajan por un
+     carril entre columnas: no tachan nada y se ve dónde conectan. */
+  z-index: 2;
+  color: var(--tinta);
 }
 
 .columna-indice {
   position: relative;
   z-index: 1;
   display: grid;
+  /* La tercera ya no lleva rótulos —van dentro del bloque— y se queda con
+     el tamaño del bloque (`120 B`) y los carriles de las flechas. */
   grid-template-columns:
-    var(--ancho-escala-indice) var(--ancho-bloque-indice) var(--ancho-rotulo-indice);
+    var(--ancho-escala-indice) var(--ancho-bloque-indice) auto;
   /* La regla arriba, la pila ocupando lo que sobre, y el título y su detalle
      al pie. El `1fr` de la pila es lo que empuja el título hasta abajo del
      todo en las columnas cortas. */
@@ -1208,15 +1212,13 @@
    Comparte el alto del bloque para no tener que escribirlo dos veces, igual
    que la escala de registros de búsquedas externas. */
 .columna-indice__escala,
-.columna-indice__bloques,
-.columna-indice__rotulos {
+.columna-indice__bloques {
   display: flex;
   flex-direction: column;
 }
 
 .columna-indice__escala { grid-column: 1; }
 .columna-indice__bloques { grid-column: 2; }
-.columna-indice__rotulos { grid-column: 3; }
 
 .columna-indice__rango {
   height: var(--alto-bloque-indice);
@@ -1239,6 +1241,13 @@
   height: var(--alto-bloque-indice);
   border: 1px solid var(--tinta);
   background: var(--superficie);
+  /* Su rótulo, adentro y centrado (2026-09-27). */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fuente-mono);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* Los bloques van pegados, como una pila, y el borde entre dos es uno solo: el
@@ -1266,18 +1275,8 @@
   background: var(--estado-evaluacion-relleno);
 }
 
-.columna-indice__rotulo {
-  height: var(--alto-bloque-indice);
-  display: flex;
-  align-items: center;
-  padding-left: var(--espacio-2);
-  font-family: var(--fuente-mono);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-/* El tramo elidido mide lo mismo en las tres columnas, o la escala dejaría de
-   rotular lo que rotula. */
+/* El tramo elidido mide lo mismo en la escala y en la pila, o la escala
+   dejaría de rotular lo que rotula. */
 .columna-indice__hueco {
   height: var(--alto-tramo-indice);
 }
@@ -1285,7 +1284,7 @@
 .tramo-indices {
   height: var(--alto-tramo-indice);
   /* Encerrado en el ancho del bloque: «⋯ 14.432 ⋯» se salía por los dos lados
-     y se montaba encima de la escala y de los rótulos. */
+     y se montaba encima de la escala y de lo que había a su derecha. */
   width: var(--ancho-bloque-indice);
   overflow: hidden;
   white-space: nowrap;

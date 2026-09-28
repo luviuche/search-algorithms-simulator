@@ -63,7 +63,6 @@
      y de ahí la otra mitad — el lienzo se desplaza. */
   --ancho-bloque-indice: 64px;
   --ancho-escala-indice: 52px;
-  --ancho-rotulo-indice: 46px;
   /* Más alto que una casilla normal (40 px) y no menos: el tramo elidido vive
      **entre** dos bloques, y con bloques bajos el hueco y lo que hay a cada
      lado pesaban lo mismo, así que la pila dejaba de leerse como pila
