@@ -1072,12 +1072,10 @@
   max-width: 100%;
   max-height: 100%;
   overflow: auto;
-  /* La barra siempre reservada y a la vista: con la barra flotante de Chromium
-     una columna cortada por el borde se lee como un defecto de dibujo y no
-     como «hay más a la derecha», que es justo lo que pasa con el multinivel de
-     cuatro columnas. */
-  scrollbar-width: thin;
-  scrollbar-gutter: stable;
+  /* Sin barra, como todo el lienzo (ver `.desborda`): lo que dice «hay más a
+     la derecha» en el multinivel de cuatro columnas es el borde desvanecido.
+     Hasta el 2026-09-27 la barra iba reservada y a la vista, porque sin ella
+     una columna cortada se leía como un defecto de dibujo. */
 }
 
 /* Reparto del lienzo cuando el tema es índices. Aquí el cálculo es una fórmula
@@ -1321,3 +1319,44 @@
   font-size: 10px;
   color: var(--tinta-suave);
 }
+
+/* Lienzo sin barras de desplazamiento (pedido del usuario, 2026-09-27). La
+   estructura sigue desplazándose —rueda en vertical, Shift + rueda en
+   horizontal, touchpad—, pero la barra no se ve. Aparecía al activar «Ver
+   estructura completa» con una barra clásica de 15 px que además le quitaba
+   alto al lienzo, y a destellos al desactivarla o al crecer un árbol: la
+   animación FLIP arranca las casillas desde donde estaban, y mientras viajan
+   el contenido desborda. El panel lateral conserva la suya. */
+.pantalla-tema__lienzo * {
+  scrollbar-width: none;
+}
+
+.pantalla-tema__lienzo *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Sin barra hace falta otra señal de que hay más: **el borde por donde sigue
+   la estructura se desvanece**, y solo ese (maqueta aprobada el 2026-09-27).
+   `vigilarDesborde` en la pantalla pone `.desborda` y un lado por borde, y los
+   mide con la estructura ya asentada, no a media animación. La máscara solo
+   existe con `.desborda`: sin desborde no hay nada que recortar. */
+.desborda {
+  --desvanecido: 80px;
+  --borde-izq: #000;
+  --borde-der: #000;
+  --borde-arr: #000;
+  --borde-aba: #000;
+  -webkit-mask-image:
+    linear-gradient(to right, var(--borde-izq), #000 var(--desvanecido), #000 calc(100% - var(--desvanecido)), var(--borde-der)),
+    linear-gradient(to bottom, var(--borde-arr), #000 var(--desvanecido), #000 calc(100% - var(--desvanecido)), var(--borde-aba));
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, var(--borde-izq), #000 var(--desvanecido), #000 calc(100% - var(--desvanecido)), var(--borde-der)),
+    linear-gradient(to bottom, var(--borde-arr), #000 var(--desvanecido), #000 calc(100% - var(--desvanecido)), var(--borde-aba));
+  mask-composite: intersect;
+}
+
+.desborda-izq { --borde-izq: transparent; }
+.desborda-der { --borde-der: transparent; }
+.desborda-arr { --borde-arr: transparent; }
+.desborda-aba { --borde-aba: transparent; }

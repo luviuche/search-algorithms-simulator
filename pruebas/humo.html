@@ -511,6 +511,7 @@
       arbolDeHuffman();
       indices();
       controlDeElision();
+      lienzoSinBarras();
       archivos();
       controlDeVelocidad();
     }
@@ -2177,6 +2178,58 @@
     // mirar (2026-09-11). Se decide mirando el dibujo —¿quedó algún tramo?— y
     // no recalculando la elisión, así que la comprobación entra por donde
     // entra el estudiante: creando una estructura que quepa y otra que no.
+    // El desvanecido se mide con la estructura asentada, cuando termina la
+    // animación (CLAUDE.md 6.2). Esta prueba es síncrona: se terminan las
+    // animaciones a mano y se avisa con un `scroll`, que es lo que la pantalla
+    // escucha para volver a medir.
+    function asentar(el) {
+      for (const animacion of document.getAnimations()) animacion.finish();
+      el.dispatchEvent(new Event('scroll'));
+    }
+    const ladosDesvanecidos = (el) =>
+      ['izq', 'der', 'arr', 'aba'].filter((lado) => el.classList.contains(`desborda-${lado}`)).join(',') || 'ninguno';
+
+    // Sin barras en el lienzo (pedido del usuario, 2026-09-27): se desplaza
+    // igual, pero lo que dice «hay más» es el borde desvanecido del lado por
+    // donde sigue la estructura, y solo ese.
+    function lienzoSinBarras() {
+      registro.push('', '── Lienzo sin barras ──');
+
+      entrarATema('Búsqueda secuencial');
+      const formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { n: 24, l: 2 });
+      for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) operar(formularios, 'insertar', clave);
+
+      const fila = () => document.querySelector('.estructura-horizontal');
+      asentar(fila());
+      afirmar(!fila().classList.contains('desborda'), `elidida cabe: ningún borde desvanecido (${ladosDesvanecidos(fila())})`);
+
+      const completa = document.querySelector('[data-control="mostrar-completa"]');
+      completa.click();
+      asentar(fila());
+      registro.push(`  completa: ${fila().scrollWidth} px en ${fila().clientWidth} px`);
+      afirmar(fila().scrollWidth > fila().clientWidth, 'con la estructura completa, la fila desborda');
+      afirmar(
+        fila().offsetHeight - fila().clientHeight === 0,
+        `y no aparece barra: no le quita alto al lienzo (${fila().offsetHeight - fila().clientHeight} px)`
+      );
+      afirmar(ladosDesvanecidos(fila()) === 'der', `al principio se desvanece solo el borde derecho (${ladosDesvanecidos(fila())})`);
+
+      fila().scrollLeft = fila().scrollWidth / 2 - fila().clientWidth / 2;
+      asentar(fila());
+      afirmar(ladosDesvanecidos(fila()) === 'izq,der', `a mitad de camino, los dos (${ladosDesvanecidos(fila())})`);
+
+      fila().scrollLeft = fila().scrollWidth;
+      asentar(fila());
+      afirmar(ladosDesvanecidos(fila()) === 'izq', `al final, solo el izquierdo (${ladosDesvanecidos(fila())})`);
+
+      completa.click();
+      asentar(fila());
+      afirmar(!fila().classList.contains('desborda'), `al volver a elidir, se va el desvanecido (${ladosDesvanecidos(fila())})`);
+
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
     function controlDeElision() {
       registro.push('', '── Control de elisión ──');
 
@@ -2436,6 +2489,16 @@
         caja.scrollWidth <= caja.clientWidth || getComputedStyle(caja).overflowX !== 'visible',
         'si las cuatro columnas no caben, la estructura se puede desplazar en horizontal'
       );
+      // Sin barra desde el 2026-09-27: lo que avisa que hay más columnas es el
+      // borde desvanecido.
+      asentar(caja);
+      afirmar(caja.offsetHeight - caja.clientHeight === 0, 'las columnas de índices no llevan barra');
+      if (caja.scrollWidth > caja.clientWidth) {
+        afirmar(
+          caja.classList.contains('desborda') && /izq|der/.test(ladosDesvanecidos(caja)),
+          `y el borde por donde siguen las columnas se desvanece (${ladosDesvanecidos(caja)})`
+        );
+      }
 
       document.querySelector('.pantalla-tema__volver').click();
     }

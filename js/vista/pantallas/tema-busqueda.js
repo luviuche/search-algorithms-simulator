@@ -1753,6 +1753,52 @@
       }
       dibujar(paso, indicePaso, opciones);
       actualizarControlElision();
+      marcarDesbordeAlAsentarse(dom.estructuraEl);
+    }
+
+    // El borde desvanecido (CLAUDE.md 6.2): el lienzo no muestra barras, así
+    // que el lado por donde sigue la estructura se desvanece. Se mide el
+    // desplazamiento y no las cajas: con `scrollLeft` y `scrollWidth` da igual
+    // qué vista sea —fila, tabla, árbol, bloques, columnas de índices—.
+    function marcarDesborde(el) {
+      if (!el) return;
+      const lados = {
+        'desborda-izq': el.scrollLeft > 1,
+        'desborda-der': el.scrollLeft < el.scrollWidth - el.clientWidth - 1,
+        'desborda-arr': el.scrollTop > 1,
+        'desborda-aba': el.scrollTop < el.scrollHeight - el.clientHeight - 1
+      };
+      let alguno = false;
+      for (const [clase, desborda] of Object.entries(lados)) {
+        el.classList.toggle(clase, desborda);
+        alguno = alguno || desborda;
+      }
+      el.classList.toggle('desborda', alguno);
+    }
+
+    // **Con la estructura asentada, no a media animación.** Las casillas del
+    // FLIP viajan con `transform` y mientras tanto ensanchan el desborde: medir
+    // entonces encendía el desvanecido a destellos, que es el mismo defecto por
+    // el que se quitó la barra. Cada dibujo reescribe la clase de la estructura
+    // y con ella borra el desvanecido; aquí se vuelve a poner cuando termina lo
+    // que se esté moviendo, o en el acto si no se mueve nada.
+    function marcarDesbordeAlAsentarse(el) {
+      const enCurso = el.getAnimations ? el.getAnimations({ subtree: true }) : [];
+      if (enCurso.length === 0) {
+        marcarDesborde(el);
+        return;
+      }
+      Promise.all(enCurso.map((animacion) => animacion.finished.catch(() => null)))
+        .then(() => marcarDesborde(el));
+    }
+
+    // Desplazar a mano o cambiar el tamaño de la ventana también mueve los
+    // bordes: el que llega al final deja de desvanecerse. También se espera a
+    // que la estructura se asiente: `llevarALaVista` desplaza en medio de la
+    // animación, y su evento llega con las casillas todavía viajando.
+    function vigilarDesborde(el) {
+      el.addEventListener('scroll', () => marcarDesbordeAlAsentarse(el), { passive: true });
+      if (window.ResizeObserver) new ResizeObserver(() => marcarDesbordeAlAsentarse(el)).observe(el);
     }
 
     function renderizarLienzoVacio() {
@@ -1879,7 +1925,10 @@
           estado.pasoActual = paso;
           estado.indicePaso = indice;
           sincronizarEfectos(indice);
-          if (dom.calculo) dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
+          if (dom.calculo) {
+            dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
+            marcarDesborde(dom.calculo.el);
+          }
           renderizarEstructura(paso, indice);
           actualizarMetricas(paso);
           sincronizarAviso(indice);
@@ -2804,9 +2853,13 @@
     escenario.className = `lienzo__escenario${esIndices() ? ' lienzo__escenario--indices' : ''}`;
     dom.escenario = escenario;
     escenario.appendChild(dom.estructuraEl);
+    vigilarDesborde(dom.estructuraEl);
     if (config.calculo) {
       dom.calculo = vista.componentes.calculo.crearPanelCalculo({ titulo: config.tituloCalculo });
       escenario.appendChild(dom.calculo.el);
+      // El cálculo también puede desbordar a lo ancho, junto al árbol más
+      // ancho (ver `.calculo`): mismo borde desvanecido, sin barra.
+      vigilarDesborde(dom.calculo.el);
     }
     // El árbol no elide: se dibuja entero, porque su tamaño lo acota el
     // alfabeto y no un n que el estudiante elige. Sin elisión, el control
