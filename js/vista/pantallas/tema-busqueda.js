@@ -1178,12 +1178,16 @@
       // sola vez para toda la matriz: si cada bloque elidiera por su cuenta,
       // sus renglones dejarían de corresponderse y la escala de la izquierda
       // dejaría de rotular lo que rotula.
-      const renglonDelPaso = paso && paso.casilla
-        ? paso.casilla - dominio.externa.rangoDelBloque(forma, dominio.externa.bloqueDe(forma, paso.casilla)).primero + 1
-        : undefined;
+      //
+      // Los renglones relevantes son los de las casillas que el tema declara:
+      // la del paso y, en binaria externa, los extremos del rango que está
+      // estrechando dentro del bloque.
+      const renglonDe = (registro) =>
+        registro - dominio.externa.rangoDelBloque(forma, dominio.externa.bloqueDe(forma, registro)).primero + 1;
+      const renglonesRelevantes = paso ? config.casillasRelevantes(paso).map(renglonDe) : [];
       const segmentosDelRenglon = vista.elision.calcularSegmentos({
         n: forma.registrosPorBloque,
-        relevantes: renglonDelPaso ? [renglonDelPaso] : [],
+        relevantes: renglonesRelevantes,
         orientacion: 'vertical',
         mostrarCompleta: estado.mostrarCompleta,
         vecinas: false
@@ -1195,9 +1199,15 @@
 
       // Bloques que nunca se esconden dentro de un tramo: el primero y el
       // último —la regla de siempre—, el del paso, y los últimos comparados.
-      const descartados = (paso && paso.bloquesDescartados) || [];
-      const relevantes = descartados.slice(-BLOQUES_RECIENTES);
+      // En secuencial externa los comparados son los descartados, en orden;
+      // binaria externa descarta por los dos lados y dice cuáles leyó.
+      const comparados = (paso && (paso.bloquesLeidos || paso.bloquesDescartados)) || [];
+      const relevantes = comparados.slice(-BLOQUES_RECIENTES);
       if (paso && paso.bloque) relevantes.push(paso.bloque);
+      // Y los extremos del rango de binaria externa: sin ellos, un tramo
+      // «⋯ 7 bloques ⋯» se tragaba el bloque donde empieza el rango, que es
+      // lo que el paso está diciendo.
+      if (paso && paso.rangoBloques) relevantes.push(paso.rangoBloques.inicio, paso.rangoBloques.fin);
       const segmentosDeBloques = vista.elision.calcularSegmentos({
         n: forma.bloques,
         relevantes,
@@ -1849,7 +1859,7 @@
           estado.pasoActual = paso;
           estado.indicePaso = indice;
           sincronizarEfectos(indice);
-          if (dom.calculo) dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null);
+          if (dom.calculo) dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
           renderizarEstructura(paso, indice);
           actualizarMetricas(paso);
           sincronizarAviso(indice);

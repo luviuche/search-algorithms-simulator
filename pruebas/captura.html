@@ -69,6 +69,7 @@
   <script src="../js/algoritmos/hash/operaciones.js"></script>
   <script src="../js/algoritmos/cubetas.js"></script>
   <script src="../js/algoritmos/secuencial-externa.js"></script>
+  <script src="../js/algoritmos/binaria-externa.js"></script>
   <script src="../js/algoritmos/huffman.js"></script>
   <script src="../js/algoritmos/indices.js"></script>
   <script src="../js/persistencia/recientes.js"></script>
@@ -344,8 +345,11 @@
     // una búsqueda que descarta un bloque entero antes de entrar al que la
     // contiene. Con ?n= grande se fotografía la elisión, que es la que
     // comprime los bloques ya comparados.
-    function prepararSecuencialExterna() {
-      const formularios = entrarATema('Búsqueda secuencial externa');
+    //
+    // Binaria externa usa la misma preparación con su tema: el archivo y las
+    // claves son los mismos, cambia solo el orden en que se leen los bloques.
+    function prepararSecuencialExterna(nombreTema = 'Búsqueda secuencial externa') {
+      const formularios = entrarATema(nombreTema);
       const n = Number(parametros.get('n')) || 23;
       enviar(formularios[0], { n, l: Number(parametros.get('l')) || 4 });
 
@@ -433,6 +437,7 @@
       if (vista === 'eliminar-hash') return prepararEliminacionHash();
       if (vista === 'cubetas') return prepararCubetas();
       if (vista === 'secuencial-externa') return prepararSecuencialExterna();
+      if (vista === 'binaria-externa') return prepararSecuencialExterna('Búsqueda binaria externa');
       if (vista === 'huffman') return prepararHuffman();
       if (vista === 'indices') return prepararIndices();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();

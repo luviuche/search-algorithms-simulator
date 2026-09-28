@@ -69,7 +69,7 @@
           descripcion: 'La estructura no cabe completa en memoria',
           hijos: [
             { id: 'externa-secuencial', titulo: 'Búsqueda secuencial externa', descripcion: 'El archivo se lee bloque por bloque', tema: 'secuencial-externa', disponible: true },
-            { id: 'externa-binaria', titulo: 'Búsqueda binaria externa', descripcion: '', tema: null, disponible: false },
+            { id: 'externa-binaria', titulo: 'Búsqueda binaria externa', descripcion: 'Se parte el archivo por la mitad, bloque por bloque', tema: 'binaria-externa', disponible: true },
             { id: 'indices', titulo: 'Índices primarios, secundarios y multinivel', descripcion: 'La estructura sale de los parámetros del archivo', tema: 'indices', disponible: true },
             { id: 'cubetas', titulo: 'Otras búsquedas dinámicas', descripcion: 'Cubetas con expansión y reducción dinámica de n', tema: 'cubetas', disponible: true }
           ]
@@ -252,6 +252,105 @@
         return { estado: base, modificadores };
       },
       metricas: [METRICA_COMPARACIONES, METRICA_ACCESOS, METRICA_FACTOR_CARGA]
+    };
+  }
+
+  // Búsquedas externas por comparación (CLAUDE.md 5.8 y 5.11). El archivo es
+  // el mismo arreglo ordenado y denso de secuencial interna —`modo` ordenada,
+  // que es el de por omisión— y los bloques son una agrupación de posiciones
+  // encima de él: por eso insertar sigue siendo instantáneo, como en
+  // secuencial y binaria, y el desbordamiento al bloque de al lado lo anima
+  // el FLIP sin traza propia. Secuencial y binaria externa comparten el
+  // archivo, el dibujo, el borrado y las métricas; lo único que cada una
+  // aporta es su `recorrido`, el orden en que lee los bloques.
+  function temaExterno(recorrido) {
+    const leer = (estructura, objetivo) => recorrido({ claves: estructura.claves, n: estructura.n, objetivo });
+    return {
+      // Cuarta orientación de la pantalla (CLAUDE.md 6.1): ni fila, ni tabla,
+      // ni niveles, sino columnas separadas con su rótulo arriba.
+      orientacion: 'bloques',
+      etiquetaTamano: 'Registros del archivo (N)',
+      // El panel del cálculo, junto a la estructura: aquí no desarrolla una
+      // dirección sino la comparación en curso —contra qué registro, de qué
+      // bloque, y qué se concluye—, que es la cuenta que este algoritmo hace.
+      // Binaria externa lo retitula paso a paso (`paso.tituloCalculo`),
+      // porque cambia de fase: primero por bloques, después dentro de uno.
+      calculo: true,
+      tituloCalculo: 'Comparación',
+      buscar: ({ estructura, objetivo }) => leer(estructura, objetivo),
+      // Borrar lee el archivo como buscar: la eliminación no tiene camino
+      // propio, usa el del tema (CLAUDE.md 5.6). Lo único suyo es cómo nombra
+      // el sitio: el estudiante ubica el bloque, no el número de registro
+      // (pedido del usuario, 2026-09-11).
+      eliminar: ({ estructura, clave }) => algoritmos.eliminacion.eliminarPorBusqueda({
+        pasos: leer(estructura, clave),
+        claves: estructura.claves,
+        clave,
+        nombrar: (paso) => `el bloque ${paso.bloque}`
+      }),
+      // Los extremos del rango de renglones también, para que la elisión no
+      // esconda justo la frontera que la binaria de dentro está estrechando.
+      casillasRelevantes: (paso) => {
+        const relevantes = paso.casilla ? [paso.casilla] : [];
+        if (paso.rangoRegistros) relevantes.push(paso.rangoRegistros.inicio, paso.rangoRegistros.fin);
+        return relevantes;
+      },
+      describirCasilla: ({ paso, indice, bloque, ocupada }) => {
+        const base = ocupada ? 'ocupada' : 'vacia';
+        if (!paso) return { estado: base };
+
+        if (paso.casilla === indice) {
+          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
+          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
+          return { estado: 'en-evaluacion' };
+        }
+        // El bloque descartado se apaga entero: es la unidad con la que este
+        // algoritmo descarta, igual que binaria apaga el tramo que tiró.
+        if (paso.bloquesDescartados && paso.bloquesDescartados.includes(bloque)) {
+          return { estado: 'descartada' };
+        }
+        // Binaria externa, dentro del bloque que queda: el rango de renglones
+        // en azul y lo que ya tiró apagado, como binaria interna pero en la
+        // columna del bloque (maqueta elegida por el usuario, 2026-09-27).
+        if (paso.rangoRegistros && paso.bloque === bloque) {
+          const { inicio, fin } = paso.rangoRegistros;
+          return { estado: indice >= inicio && indice <= fin ? 'rango-activo' : 'descartada' };
+        }
+        // Rastro de los registros ya mirados dentro del bloque en curso.
+        if (paso.recorridas && paso.recorridas.includes(indice)) {
+          return { estado: base, modificadores: ['sondeada'] };
+        }
+        return { estado: base };
+      },
+      detalleReciente: (estructura) => {
+        const forma = dominio.externa.formaDelArchivo(estructura.n);
+        return `N = ${estructura.n} · ${forma.bloques} bloques de ${forma.registrosPorBloque}`;
+      },
+      metricas: [
+        METRICA_COMPARACIONES,
+        {
+          // No es el acceso genérico: aquí lo que cuesta es leer un bloque, y
+          // ese número —cercano a √N y no a N en secuencial, y a log₂ B en
+          // binaria— es la lección del tema.
+          id: 'accesos',
+          etiqueta: 'Accesos a bloque',
+          valor: ({ paso }) => (paso ? String(paso.accesos) : '0')
+        },
+        {
+          id: 'bloques',
+          etiqueta: 'Bloques (B)',
+          valor: ({ estructura }) => (
+            estructura ? String(dominio.externa.formaDelArchivo(estructura.n).bloques) : '0'
+          )
+        },
+        {
+          id: 'registros-bloque',
+          etiqueta: 'Registros por bloque',
+          valor: ({ estructura }) => (
+            estructura ? String(dominio.externa.formaDelArchivo(estructura.n).registrosPorBloque) : '0'
+          )
+        }
+      ]
     };
   }
 
@@ -684,92 +783,10 @@
       ]
     }),
 
-    // Búsqueda secuencial externa (CLAUDE.md 5.x). El archivo es el mismo
-    // arreglo ordenado y denso de secuencial interna —`modo` ordenada, que es
-    // el de por omisión— y los bloques son una agrupación de posiciones
-    // encima de él: por eso insertar sigue siendo instantáneo, como en
-    // secuencial y binaria, y el desbordamiento al bloque de al lado lo anima
-    // el FLIP sin traza propia. Lo único que este tema aporta es cómo se lee
-    // el archivo —bloque por bloque— y cómo se dibuja.
-    'secuencial-externa': {
-      // Cuarta orientación de la pantalla (CLAUDE.md 6.1): ni fila, ni tabla,
-      // ni niveles, sino columnas separadas con su rótulo arriba.
-      orientacion: 'bloques',
-      etiquetaTamano: 'Registros del archivo (N)',
-      // El panel del cálculo, junto a la estructura: aquí no desarrolla una
-      // dirección sino la comparación en curso —contra qué registro, de qué
-      // bloque, y qué se concluye—, que es la cuenta que este algoritmo hace.
-      calculo: true,
-      tituloCalculo: 'Comparación',
-      buscar: ({ estructura, objetivo }) => algoritmos.secuencialExterna.buscarSecuencialExterna({
-        claves: estructura.claves,
-        n: estructura.n,
-        objetivo
-      }),
-      // Borrar lee el archivo bloque por bloque, como buscar: la eliminación
-      // no tiene camino propio, usa el del tema (CLAUDE.md 5.6). Lo único
-      // suyo es cómo nombra el sitio: el estudiante ubica el bloque, no el
-      // número de registro (pedido del usuario, 2026-09-11).
-      eliminar: ({ estructura, clave }) => algoritmos.eliminacion.eliminarPorBusqueda({
-        pasos: algoritmos.secuencialExterna.buscarSecuencialExterna({
-          claves: estructura.claves,
-          n: estructura.n,
-          objetivo: clave
-        }),
-        claves: estructura.claves,
-        clave,
-        nombrar: (paso) => `el bloque ${paso.bloque}`
-      }),
-      casillasRelevantes: (paso) => (paso.casilla ? [paso.casilla] : []),
-      describirCasilla: ({ paso, indice, bloque, ocupada }) => {
-        const base = ocupada ? 'ocupada' : 'vacia';
-        if (!paso) return { estado: base };
-
-        if (paso.casilla === indice) {
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
-          return { estado: 'en-evaluacion' };
-        }
-        // El bloque descartado se apaga entero: es la unidad con la que este
-        // algoritmo descarta, igual que binaria apaga el tramo que tiró.
-        if (paso.bloquesDescartados && paso.bloquesDescartados.includes(bloque)) {
-          return { estado: 'descartada' };
-        }
-        // Rastro de los registros ya mirados dentro del bloque en curso.
-        if (paso.recorridas && paso.recorridas.includes(indice)) {
-          return { estado: base, modificadores: ['sondeada'] };
-        }
-        return { estado: base };
-      },
-      detalleReciente: (estructura) => {
-        const forma = dominio.externa.formaDelArchivo(estructura.n);
-        return `N = ${estructura.n} · ${forma.bloques} bloques de ${forma.registrosPorBloque}`;
-      },
-      metricas: [
-        METRICA_COMPARACIONES,
-        {
-          // No es el acceso genérico: aquí lo que cuesta es leer un bloque, y
-          // ese número —cercano a √N y no a N— es la lección del tema.
-          id: 'accesos',
-          etiqueta: 'Accesos a bloque',
-          valor: ({ paso }) => (paso ? String(paso.accesos) : '0')
-        },
-        {
-          id: 'bloques',
-          etiqueta: 'Bloques (B)',
-          valor: ({ estructura }) => (
-            estructura ? String(dominio.externa.formaDelArchivo(estructura.n).bloques) : '0'
-          )
-        },
-        {
-          id: 'registros-bloque',
-          etiqueta: 'Registros por bloque',
-          valor: ({ estructura }) => (
-            estructura ? String(dominio.externa.formaDelArchivo(estructura.n).registrosPorBloque) : '0'
-          )
-        }
-      ]
-    },
+    // Las dos búsquedas externas (CLAUDE.md 5.8 y 5.11) comparten todo menos
+    // el recorrido: ver `temaExterno`.
+    'secuencial-externa': temaExterno(algoritmos.secuencialExterna.buscarSecuencialExterna),
+    'binaria-externa': temaExterno(algoritmos.binariaExterna.buscarBinariaExterna),
 
     // Índices primarios, secundarios y multinivel (CLAUDE.md 5.x). El tema que
     // más se sale del molde del catálogo: **no se inserta ni se busca ninguna

@@ -70,7 +70,12 @@
     // debajo de la dirección, para que el cálculo de la función hash quede
     // intacto y se vea qué dio ella y qué hizo el tratamiento cuando esa
     // dirección estaba ocupada.
-    function actualizar(lineas, saltos = null) {
+    //
+    // `tituloDelPaso` lo pone un algoritmo que cambia de fase a media traza
+    // —binaria externa: primero por bloques, después dentro de uno (CLAUDE.md
+    // 5.11)—. Sin él vuelve el del tema.
+    function actualizar(lineas, saltos = null, tituloDelPaso = null) {
+      tituloEl.textContent = tituloDelPaso || titulo;
       lista.innerHTML = '';
       seccion.hidden = true;
       if (!lineas || lineas.length === 0) {

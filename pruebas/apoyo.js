@@ -31,6 +31,7 @@ require('../js/algoritmos/hash/bases.js');
 require('../js/algoritmos/hash/operaciones.js');
 require('../js/algoritmos/cubetas.js');
 require('../js/algoritmos/secuencial-externa.js');
+require('../js/algoritmos/binaria-externa.js');
 require('../js/algoritmos/huffman.js');
 require('../js/algoritmos/indices.js');
 // Persistencia: serializar y validar son cálculo puro y sí se prueban aquí;

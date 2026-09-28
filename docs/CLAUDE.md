@@ -705,7 +705,9 @@ Primer tema de **Búsquedas externas** con recorrido propio (cubetas, §5.7, no 
 - **El panel del cálculo desarrolla la comparación en curso** —contra qué registro, de qué bloque, y qué se concluye— y no una dirección: es la cuenta que este algoritmo hace (§6.5).
 - **El aviso ubica la clave por bloque**: «Clave encontrada en el bloque 2», sin el número de registro (pedido del usuario, 2026-09-11).
 
-**Lo que no está confirmado y por eso no se construyó**: binaria externa y hashing externo. La forma del archivo de arriba probablemente les sirva igual, pero su recorrido no se le ha preguntado al docente. No implementarlos por iniciativa propia.
+**Solo se leen los bloques que tienen claves** (regla escrita el 2026-09-27, al construir binaria externa; el código ya la seguía desde el principio). Con 12 claves en un archivo de `N = 23` hay tres bloques con datos, y B4 y B5 no se leen nunca: una clave mayor que todo el archivo se da por ausente tras leer B3. Y si el último bloque con datos está a medio llenar, **su "último registro" es el último ocupado**, no el último que cabría. Binaria externa sigue las dos reglas (§5.11).
+
+**Lo que no está confirmado y por eso no se construyó**: hashing externo. La forma del archivo de arriba probablemente le sirva igual, pero su recorrido no se le ha preguntado al docente. No implementarlo por iniciativa propia.
 
 ---
 
@@ -793,6 +795,26 @@ El primero de cada pareja va a la izquierda. Con CIENCIAS da `c=00, i=01, e=100,
 
 **El orden de los parámetros importa**: `B` va declarado antes que `R` y `Ri` porque esos dos se validan **contra él** —un registro que no cabe en un bloque daría factor de bloqueo cero y no habría estructura— y `leerParametros` los lee en el orden en que el tema los declara. Para eso `parametro.validar` recibe ahora, además de `n` y `l`, **los parámetros ya leídos**; los temas que no lo necesitan ignoran ese dato.
 
+### 5.11 Búsqueda binaria externa (2026-09-27)
+
+**El mismo archivo que secuencial externa** (§5.8): la forma que da `N`, ordenado y denso, insertar instantáneo y el borrado por `eliminarPorBusqueda` nombrando el bloque. Lo único que cambia es **el orden en que se leen los bloques**, y por eso los dos temas salen de una sola configuración, `temaExterno(recorrido)` en `app.js`. Las reglas las dio el usuario sobre mi hipótesis:
+
+- **Del bloque del medio se compara solo su último registro**, como en secuencial externa. Mayor → se descartan él y los anteriores (`inicio = m + 1`). **Menor → la clave está en ese bloque o antes, así que el bloque se queda en el rango** (`fin = m`). Igual → encontrada, sin entrar al bloque.
+- **El medio se trunca**, `m = ⌊(inicio + fin) / 2⌋`, igual que en binaria interna.
+- **El rango son solo los bloques con claves** (recomendación mía, aceptada; §5.8). Con 12 claves en `N = 23` el rango es `B1 … B3` y el primer medio es B2, no B3.
+- **Cuando queda un solo bloque, se busca dentro también en binaria**, sobre sus renglones.
+
+**Los accesos se cuentan por bloque leído**, como en secuencial externa (pendiente de confirmar con el docente). La regla nueva la trajo este tema: **el bloque que queda no siempre es el último que se leyó.** Buscando 22 en el archivo lleno se leen B3, B2 y B1, y el rango se cierra en B2; buscando 67 se cierra en B5, que nunca se leyó. **En memoria solo está el último bloque leído, así que el que queda cuesta otro acceso salvo que sea ése** (recomendación mía, aceptada el 2026-09-27; también pendiente de confirmar). El panel lo dice en la línea `Bloque` —`ya leído`, `se lee · acceso 3`, `se relee · acceso 4`— para que ese acceso no se cuente a escondidas. Con esa regla, en el archivo lleno 53 cuesta 2 accesos, 22 cuesta 4 y 67 cuesta 3.
+
+**Cómo se dibuja** (opción A de la maqueta, elegida por el usuario el 2026-09-27): **todo sobre los mismos bloques** de §5.8, sin estructura aparte.
+
+- **Fase de bloques.** El bloque del medio se marca en su rótulo y su último registro en naranja; los bloques fuera del rango se apagan enteros, **por los dos lados**. El rango de cada paso es el que estaba vigente al comparar, antes de estrecharlo, como en binaria interna (§5.2).
+- **Fase dentro del bloque.** La binaria se hace **en la misma columna**: el rango de renglones en azul (`rango-activo`), el medio en naranja y los renglones descartados apagados dentro del bloque.
+- **El panel del cálculo cambia de título con la fase** —«Búsqueda por bloques» y «Dentro del bloque B4»—: el paso lo trae en `tituloCalculo`, y sin él vuelve el del tema. Desarrolla el rango, la cuenta del medio con su acceso y la comparación con su conclusión (`50 < 58 → fin = 4`).
+- **La elisión conserva los dos extremos del rango de bloques** (`paso.rangoBloques`), además del bloque del paso y los dos últimos leídos (`paso.bloquesLeidos`). Sin eso, con `N = 150` un tramo «⋯ 7 bloques ⋯» se tragaba B8 justo cuando el rango era `B8 … B10`; lo encontró la captura en ventana ancha y lo cierra la prueba de humo. Dentro del bloque, lo mismo con los extremos del rango de renglones.
+
+La opción B —apilar al lado los pasos de dentro, como en binaria interna— se descartó: dentro de un bloque la binaria da dos o tres pasos, y a 1440 px de ancho ya cortaba el panel del cálculo. **El usuario quiere llevar este diseño a binaria interna** (2026-09-27); está por conversar.
+
 ## 6. Visualización
 
 ### 6.1 Orientación
@@ -800,7 +822,7 @@ El primero de cada pareja va a la izquierda. Con CIENCIAS da `c=00, i=01, e=100,
 - Secuencial y binaria: estructura **horizontal**.
 - Funciones hash: estructura **vertical**.
 - Árboles de búsqueda por bits: por **niveles** (§6.7).
-- Búsquedas externas: en **bloques** —columnas separadas, con su rótulo arriba— (§5.8).
+- Búsquedas externas: en **bloques** —columnas separadas, con su rótulo arriba— (§5.8 y §5.11).
 - Árbol de Huffman: en **bosque** —los árboles que aún no se han unido, en fila— (§5.9).
 - Índices: **columnas una al lado de otra**, unidas por flechas, de la raíz del índice al archivo de datos (§5.10).
 
@@ -1253,7 +1275,7 @@ Pendientes conocidos, no bloqueantes: faltan los `.woff2` en `fuentes/` (cae al 
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-Búsquedas externas —binaria externa— (salvo otras búsquedas dinámicas, §5.7, e índices, §5.10, ya construidas) y la categoría de grafos completa. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos completa (las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11). Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 
@@ -1263,7 +1285,7 @@ Búsquedas externas —binaria externa— (salvo otras búsquedas dinámicas, §
 - **Nunca llegó a verse en clase, y el usuario no espera que se vea.** En once días no apareció ni un enunciado, ni un ejercicio, ni una regla que implementar, mientras el tema vecino —índices primarios, secundarios y multinivel (§5.10)— sí llegó con la hoja del docente y quedó construido.
 - **Nunca tuvo código**: era una entrada del catálogo con `tema: null` y `disponible: false`, así que quitarla no deja nada huérfano. Si el docente lo retoma, vuelve con una línea en `CATALOGO` y lo que se aprenda de él.
 
-**Binaria externa y hashing externo siguen sin algoritmo confirmado.** La forma del archivo probablemente les sirva igual, pero su recorrido no se le ha preguntado al docente. No construir esto por iniciativa propia mientras esa duda siga abierta.
+**Binaria externa está construida** (§5.11, 2026-09-27). **Hashing externo sigue sin algoritmo confirmado**: la forma del archivo probablemente le sirva igual, pero su recorrido no se le ha preguntado al docente. No construirlo por iniciativa propia mientras esa duda siga abierta.
 
 ---
 

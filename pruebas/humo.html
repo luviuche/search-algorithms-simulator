@@ -50,6 +50,7 @@
   <script src="../js/algoritmos/hash/operaciones.js"></script>
   <script src="../js/algoritmos/cubetas.js"></script>
   <script src="../js/algoritmos/secuencial-externa.js"></script>
+  <script src="../js/algoritmos/binaria-externa.js"></script>
   <script src="../js/algoritmos/huffman.js"></script>
   <script src="../js/algoritmos/indices.js"></script>
   <script src="../js/persistencia/recientes.js"></script>
@@ -497,6 +498,7 @@
       residuosMultiples();
       cubetas();
       secuencialExterna();
+      binariaExterna();
       arbolDeHuffman();
       indices();
       controlDeElision();
@@ -2009,6 +2011,113 @@
     // caiga a la misma altura en todos —y que el último registro de un bloque
     // comprimido coincida con el último de los completos— es lo único que hace
     // legible la matriz, y no se ve desde `node --test`.
+    // Búsqueda binaria externa (CLAUDE.md 5.11). La aritmética está en
+    // `binaria-externa.test.js`; aquí va lo que solo se ve en el DOM: que el
+    // panel cambie de título al pasar de los bloques a los renglones, que la
+    // binaria de dentro pinte su rango en la columna del bloque, y que la
+    // relectura de un bloque se diga en el panel y se cuente en las métricas.
+    function binariaExterna() {
+      registro.push('', '── Búsqueda binaria externa ──');
+
+      entrarATema('Búsqueda binaria externa');
+      const formularios = [...document.querySelectorAll('form.panel')];
+      // El archivo lleno de la maqueta: N = 23, 5 bloques, el último de 3.
+      enviar(formularios[0], { n: 23, l: 2 });
+      for (const clave of [10, 12, 15, 18, 20, 22, 25, 27, 30, 33, 35, 38, 40, 42, 45, 48, 50, 53, 55, 58, 60, 63, 67]) {
+        operar(formularios, 'insertar', clave);
+      }
+
+      const bloques = () => [...document.querySelectorAll('.bloque')];
+      const rotulo = (b) => bloques()[b - 1].querySelector('.bloque__etiqueta');
+      const titulo = () => document.querySelector('.calculo__titulo').textContent;
+      const panel = () => document.querySelector('.calculo').textContent;
+      const metricas = () => [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
+      // Avanza hasta que se cumpla la condición, sin pasarse del final.
+      const hastaQue = (condicion) => {
+        for (let i = 0; i < 40 && !condicion(); i++) control('siguiente').click();
+        return condicion();
+      };
+
+      operar(formularios, 'buscar', 50);
+      afirmar(
+        hastaQue(() => rotulo(4).classList.contains('bloque--en-curso')),
+        'la búsqueda por bloques llega a B4'
+      );
+      afirmar(titulo() === 'Búsqueda por bloques', `en la fase de bloques el panel se titula «Búsqueda por bloques» (dice «${titulo()}»)`);
+      afirmar(
+        [1, 2, 3].every((b) => rotulo(b).classList.contains('bloque--descartado')) && !rotulo(5).classList.contains('bloque--descartado'),
+        'comparando B4, B1 a B3 están descartados y B5 todavía no'
+      );
+
+      afirmar(
+        hastaQue(() => titulo() === 'Dentro del bloque B4'),
+        'al quedar un solo bloque el panel pasa a «Dentro del bloque B4»'
+      );
+      afirmar(rotulo(5).classList.contains('bloque--descartado'), 'dentro de B4, B5 ya está descartado');
+      afirmar(panel().includes('ya leído'), 'B4 era el último leído: el panel dice «ya leído»');
+      const estados = [...bloques()[3].querySelectorAll('.casilla')].map((c) =>
+        ['en-evaluacion', 'rango-activo', 'descartada', 'encontrada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
+      registro.push('  B4, primer paso dentro: ' + estados.join(' '));
+      afirmar(
+        estados.join(' ') === 'rango-activo rango-activo en-evaluacion rango-activo rango-activo',
+        'la binaria de dentro pinta su rango en la columna y marca el medio, el renglón 3'
+      );
+      control('siguiente').click();
+      const estados2 = [...bloques()[3].querySelectorAll('.casilla')].map((c) =>
+        ['en-evaluacion', 'rango-activo', 'descartada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
+      afirmar(
+        estados2.join(' ') === 'en-evaluacion rango-activo descartada descartada descartada',
+        `al estrechar, los renglones tirados se apagan dentro del bloque (${estados2.join(' ')})`
+      );
+
+      hastaElUltimoPasoDelAlgoritmo();
+      afirmar(
+        document.querySelector('.alerta').textContent.includes('Clave encontrada en el bloque 4'),
+        'el aviso ubica la clave por bloque'
+      );
+      registro.push('  métricas: ' + metricas().join(' · '));
+      afirmar(metricas()[0] === '5' && metricas()[1] === '2', `50 cuesta 5 comparaciones y 2 accesos (reporta ${metricas().slice(0, 2).join(', ')})`);
+      afirmarCasillasParejas('búsqueda binaria externa');
+      afirmarRenglonesDeBloquesAlineados('binaria externa');
+
+      // 22: se leen B3, B2 y B1, y el rango se cierra en B2, que hay que releer.
+      operar(formularios, 'buscar', 22);
+      afirmar(hastaQue(() => panel().includes('se relee')), 'buscando 22, el panel avisa que B2 se relee');
+      hastaElUltimoPasoDelAlgoritmo();
+      afirmar(metricas()[1] === '4', `la relectura cuenta: 22 cuesta 4 accesos (reporta ${metricas()[1]})`);
+
+      // Archivo grande: los bloques leídos por la binaria saltan, y la elisión
+      // tiene que seguir alineando los renglones.
+      vaciar();
+      enviar(formularios[0], { n: 150, l: 4 });
+      for (let i = 0; i < 150; i++) operar(formularios, 'insertar', 1000 + 7 * i);
+      // 1700 está en B9. Comparando B9 el rango es B8 … B10: sus dos extremos
+      // tienen que seguir a la vista aunque el resto se junte en tramos.
+      operar(formularios, 'buscar', 1700);
+      const rotulos = () => [...document.querySelectorAll('.bloque__etiqueta')].map((el) => el.textContent);
+      afirmar(
+        hastaQue(() => panel().includes('B8 … B10')),
+        'con N = 150 el rango llega a B8 … B10'
+      );
+      afirmar(
+        ['B8', 'B9', 'B10'].every((b) => rotulos().includes(b)),
+        `los extremos del rango no se esconden en un tramo (se ven ${rotulos().join(' ')})`
+      );
+      afirmar(hastaQue(() => titulo().startsWith('Dentro del bloque')), 'y llega a buscar dentro de un bloque');
+      afirmar(
+        document.querySelectorAll('.tramo-bloques').length > 0,
+        'y los bloques lejanos se juntan en un tramo'
+      );
+      afirmarRenglonesDeBloquesAlineados('binaria externa elidida');
+      hastaElUltimoPasoDelAlgoritmo();
+      afirmar(
+        document.querySelector('.alerta').textContent.includes('Clave encontrada en el bloque'),
+        'y la encuentra'
+      );
+
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
     function afirmarRenglonesDeBloquesAlineados(contexto) {
       const bloques = [...document.querySelectorAll('.bloque')];
       const pies = bloques.map((bloque) => {

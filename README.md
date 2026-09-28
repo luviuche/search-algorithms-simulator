@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas, Bogotá).**
 
-> 🚧 **Work in progress.** Most of the course's search topics are already built and usable; the rest are listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable; the graphs unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -45,7 +45,7 @@ The user interface is in **Spanish**, the language of the course.
 | External sequential search, with the file read block by block | ✅ |
 | Primary, secondary and multilevel indexes | ✅ |
 | Dynamic hashing (buckets) with total and partial expansion and reduction | ✅ |
-| External binary search | 🚧 |
+| External binary search, halving the range of blocks and then the rows of the one left | ✅ |
 
 ### Graphs
 
@@ -87,7 +87,6 @@ The design decisions, the professor's rules for each topic, and the reasons behi
 
 ## Roadmap
 
-- External binary search, once the professor confirms the algorithm.
 - The graphs unit.
 - Printable/PDF export of a session: the structure, the log and the metrics.
 

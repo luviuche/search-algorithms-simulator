@@ -47,7 +47,7 @@ node .claude/skills/verificar/scripts/captura.js "vista=anidados&n=10&l=4&paso=f
 
 Imprime la ruta del PNG (por defecto, en el directorio temporal del sistema; las capturas son material de trabajo, no del proyecto). Un segundo argumento suelto fija el destino, y `--alto` / `--ancho` el tamaño de ventana.
 
-Vistas de `pruebas/captura.html`: `menu`, `secuencial`, `binaria`, `hash`, `hash-libre`, `anidados`, `encadenamiento`, `arbol-digital`, `residuos`, `residuos-multiples`, `cubetas`, `secuencial-externa`, `eliminar-secuencial`, `eliminar-binaria`, `eliminar-hash`.
+Vistas de `pruebas/captura.html`: `menu`, `secuencial`, `binaria`, `hash`, `hash-libre`, `anidados`, `encadenamiento`, `arbol-digital`, `residuos`, `residuos-multiples`, `cubetas`, `secuencial-externa`, `binaria-externa`, `eliminar-secuencial`, `eliminar-binaria`, `eliminar-hash`.
 
 Parámetros útiles: `paso=fin` recorre la traza entera (`paso=<n>` se detiene en un paso concreto, que es como se fotografía la casilla marcada antes de que se mueva nada), y en los temas de transformación de claves `tema=`, `tratamiento=`, `n=`, `l=`, `clave=`, `base=`, `posiciones=`, `operacion=`.
 
