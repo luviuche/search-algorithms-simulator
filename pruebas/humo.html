@@ -347,7 +347,7 @@
       // En binaria el apilado se va: queda la estructura entera, como si todo
       // se hubiera reiniciado, con la clave hallada (2026-09-27).
       afirmar(
-        !/en-evaluacion|rango-activo|descartada/.test(retrato),
+        !/en-evaluacion|descartada/.test(retrato),
         `el paso final deja la estructura sin rango ni recorrido (${retrato})`
       );
       afirmar(
@@ -369,6 +369,14 @@
       afirmarCasillasParejas(nombreTema);
 
       if (apilada) {
+        // La fórmula de la métrica no pasa a mayúsculas con su rótulo: «⌈LOG₂ N⌉»
+        // decía otra cosa, porque aquí N y n no son lo mismo (2026-09-27).
+        const formula = document.querySelector('.metrica__formula');
+        afirmar(
+          formula && formula.textContent === '⌈log₂ n⌉' && getComputedStyle(formula).textTransform === 'none',
+          `la fórmula de la métrica se lee en minúsculas (${formula ? formula.textContent : 'no hay'})`
+        );
+
         // Cada fila es la estructura entera —lo descartado se apaga en su
         // sitio, no se recorta (2026-09-27)—, así que todas miden lo mismo; lo
         // que se achica de fila en fila es lo que sigue encendido.
@@ -1542,7 +1550,7 @@
       const ultimaFila = retratarApilado().pop();
       registro.push('  última fila: ' + ultimaFila);
       afirmar(
-        /descartada/.test(ultimaFila) && !/rango-activo|en-evaluacion|encontrada/.test(ultimaFila),
+        /descartada/.test(ultimaFila) && !/ocupada|en-evaluacion|encontrada/.test(ultimaFila),
         `la última fila queda entera y toda apagada (${ultimaFila})`
       );
       afirmar(
@@ -2084,17 +2092,17 @@
       afirmar(rotulo(5).classList.contains('bloque--descartado'), 'dentro de B4, B5 ya está descartado');
       afirmar(panel().includes('ya leído'), 'B4 era el último leído: el panel dice «ya leído»');
       const estados = [...bloques()[3].querySelectorAll('.casilla')].map((c) =>
-        ['en-evaluacion', 'rango-activo', 'descartada', 'encontrada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
+        ['en-evaluacion', 'ocupada', 'descartada', 'encontrada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
       registro.push('  B4, primer paso dentro: ' + estados.join(' '));
       afirmar(
-        estados.join(' ') === 'rango-activo rango-activo en-evaluacion rango-activo rango-activo',
-        'la binaria de dentro pinta su rango en la columna y marca el medio, el renglón 3'
+        estados.join(' ') === 'ocupada ocupada en-evaluacion ocupada ocupada',
+        'la binaria de dentro marca el medio, el renglón 3, y el resto del bloque sigue en juego'
       );
       control('siguiente').click();
       const estados2 = [...bloques()[3].querySelectorAll('.casilla')].map((c) =>
-        ['en-evaluacion', 'rango-activo', 'descartada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
+        ['en-evaluacion', 'ocupada', 'descartada'].find((e) => c.classList.contains(`casilla--${e}`)) || '·');
       afirmar(
-        estados2.join(' ') === 'en-evaluacion rango-activo descartada descartada descartada',
+        estados2.join(' ') === 'en-evaluacion ocupada descartada descartada descartada',
         `al estrechar, los renglones tirados se apagan dentro del bloque (${estados2.join(' ')})`
       );
 
@@ -2281,6 +2289,17 @@
       afirmar(alternar.textContent === 'Pausar', 'y al reanudar vuelve a «Pausar»');
       control('siguiente').click();
       afirmar(alternar.textContent === 'Reproducir', 'un paso a mano también pausa, y el botón lo dice');
+
+      // El rastro del recorrido (2026-09-27): lo ya comparado se apaga, como lo
+      // que descarta binaria, y lo que falta se ve normal.
+      const evaluada = document.querySelector('.casilla--en-evaluacion');
+      const actual = Number(evaluada.dataset.indice);
+      const antes = [...document.querySelectorAll('.estructura-horizontal .casilla[data-indice]')]
+        .filter((c) => Number(c.dataset.indice) < actual);
+      afirmar(
+        antes.length > 0 && antes.every((c) => c.classList.contains('casilla--descartada')),
+        `secuencial apaga lo ya comparado antes de la casilla ${actual} (${antes.length} casillas)`
+      );
 
       // A 700 px de alto —el portátil deja unos 640— las métricas tienen que
       // verse enteras sin desplazar el panel.

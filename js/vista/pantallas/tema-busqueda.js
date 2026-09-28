@@ -329,6 +329,15 @@
     // terminaba con más números de escala que claves. Lo que el tema enseña es
     // dónde cayó cada clave; el rango elidido no aporta a eso, y el conteo
     // basta para que la escala no parezca que pierde casillas.
+    function tramoDescartado(paso, segmento) {
+      const claves = estado.estructura.claves;
+      for (let indice = segmento.desde; indice <= segmento.hasta; indice++) {
+        const descripcion = config.describirCasilla({ paso, indice, ocupada: claves[indice - 1] !== undefined });
+        if (descripcion.estado !== 'descartada') return false;
+      }
+      return true;
+    }
+
     function crearTramo(desde, hasta) {
       const el = document.createElement('div');
       el.className = 'tramo-elidido';
@@ -625,6 +634,10 @@
 
           if (segmento.tipo === 'tramo') {
             const tramoEl = crearTramo(segmento.desde, segmento.hasta);
+            // Si todo lo que resume está descartado, se apaga con ello: el
+            // «⋯ 2 ⋯» del rastro de secuencial no puede brillar en medio de
+            // lo ya recorrido (igual que en el apilado de binaria).
+            if (paso && tramoDescartado(paso, segmento)) tramoEl.classList.add('tramo-elidido--descartado');
             // Sin rótulo, el grupo tiene un solo hijo: en vertical el grid lo
             // metería en la columna de la escala, así que se lo manda a la de
             // las casillas a mano. Con arreglos anidados cruza la matriz
@@ -2813,6 +2826,7 @@
       for (const metrica of config.metricas) {
         const el = vista.componentes.panel.crearMetrica({
           etiqueta: metrica.etiqueta,
+          formula: metrica.formula,
           valor: metrica.valor({ estructura: null, paso: null })
         });
         dom.metricas[metrica.id] = el.querySelector('.metrica__valor');

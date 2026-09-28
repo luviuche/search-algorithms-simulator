@@ -12,15 +12,26 @@
     return el;
   }
 
-  function crearMetrica({ etiqueta, valor }) {
+  // El rótulo va en versalitas, y por eso **el símbolo va aparte**
+  // (`formula`): pasado a mayúsculas, «⌈log₂ n⌉» se leía «⌈LOG₂ N⌉» y
+  // «Cubetas (n)» se leía «CUBETAS (N)», y aquí `N` y `n` no son lo mismo —en
+  // las búsquedas externas `N` son los registros del archivo— (2026-09-27).
+  function crearMetrica({ etiqueta, formula, valor }) {
     const el = document.createElement('div');
-    el.className = 'metrica';
+    // Con fórmula, el rótulo es largo: ocupa el renglón entero del panel.
+    el.className = 'metrica' + (formula ? ' metrica--ancha' : '');
     const valorEl = document.createElement('span');
     valorEl.className = 'metrica__valor texto-mono';
     valorEl.textContent = String(valor);
     const etiquetaEl = document.createElement('span');
     etiquetaEl.className = 'texto-nivel-2';
     etiquetaEl.textContent = etiqueta;
+    if (formula) {
+      const formulaEl = document.createElement('span');
+      formulaEl.className = 'metrica__formula';
+      formulaEl.textContent = formula;
+      etiquetaEl.append(' ', formulaEl);
+    }
     el.append(valorEl, etiquetaEl);
     return el;
   }

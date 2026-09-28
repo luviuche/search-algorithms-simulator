@@ -32,36 +32,6 @@
   background: var(--estado-ocupada-relleno);
 }
 
-.casilla--rango-activo {
-  border-color: var(--estado-rango-borde);
-  background: var(--estado-rango-relleno);
-}
-
-/* Corchete del rango activo — refuerzo no cromático del tramo [inicio, fin]
-   en binaria (CLAUDE.md 8.1). Es un modificador y no un estado porque cubre
-   también la casilla en evaluación, que ya tiene su propio color. */
-.casilla--en-rango {
-  position: relative;
-}
-
-.casilla--en-rango::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 4px);
-  height: 6px;
-  border-top: 2px solid var(--estado-rango-borde);
-}
-
-.casilla--en-rango-inicio::before {
-  border-left: 2px solid var(--estado-rango-borde);
-}
-
-.casilla--en-rango-fin::before {
-  border-right: 2px solid var(--estado-rango-borde);
-}
-
 .casilla--en-evaluacion {
   border-width: 2px;
   border-color: var(--estado-evaluacion-borde);
@@ -307,6 +277,15 @@ form input[type="checkbox"] {
   gap: var(--espacio-1);
 }
 
+/* El símbolo de la métrica, tal como se escribe en el tablero: sin las
+   versalitas ni el tracking del rótulo (ver `crearMetrica`). */
+.metrica__formula {
+  font-family: var(--fuente-mono);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .metrica__valor {
   font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
@@ -322,20 +301,22 @@ form input[type="checkbox"] {
   overflow-y: auto;
 }
 
-/* La columna de la hora mide lo que mide una hora —ocho cifras de la
-   monoespaciada— y no `max-content`: cada fila es su propia cuadrícula, así
-   que con `max-content` el renglón cuya hora se omite por repetida daba una
-   columna de ancho cero y su mensaje se corría a la izquierda, desalineado de
-   los demás (CLAUDE.md 6.x). */
+/* **La hora es el separador de su grupo, y los mensajes van a todo el
+   ancho** (2026-09-27). Antes era una columna de ocho cifras a la izquierda de
+   cada mensaje, casi siempre vacía —la hora solo se escribe cuando cambia—,
+   y el mensaje se apretaba en el resto: cada entrada ocupaba dos o tres
+   renglones del panel más estrecho de la pantalla. Ahora la hora encabeza lo
+   que pasó en ese segundo y cada mensaje cabe en un renglón. Los mensajes van
+   en la letra de texto: son frases, y en monoespaciada se leían peor. */
 .bitacora__fila {
-  display: grid;
-  grid-template-columns: 8ch 1fr;
-  gap: var(--espacio-2);
-  padding: var(--espacio-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--borde);
-  font-family: var(--fuente-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-family: var(--fuente-texto);
+  font-size: 12.5px;
+  line-height: 1.35;
 }
 
 .bitacora__fila:last-child {
@@ -343,7 +324,21 @@ form input[type="checkbox"] {
 }
 
 .bitacora__hora {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
   color: var(--tinta-suave);
+}
+
+/* La hora repetida no se dibuja, pero el lector de pantalla la sigue oyendo
+   por su `aria-label` (ver bitacora.js): oculta a la vista y no con
+   `display: none`, que también la sacaría del árbol de accesibilidad. */
+.bitacora__hora:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 /* Clave recién colocada por la transformación de claves. Comparte el color de

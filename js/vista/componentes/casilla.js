@@ -11,8 +11,9 @@
   }
 
   // El estado pinta la casilla; los modificadores marcan pertenencias que son
-  // independientes del color —el corchete del rango activo en binaria— y que
-  // por eso no pueden ser un estado más (CLAUDE.md 8.1).
+  // independientes del color —el rastro de los sondeos, la dirección de la
+  // que salió la clave— y que por eso no pueden ser un estado más
+  // (CLAUDE.md 8.1).
   function aplicarEstado(el, estado, modificadores) {
     const clases = [`casilla`, `casilla--${estado}`];
     for (const modificador of modificadores || []) clases.push(`casilla--${modificador}`);

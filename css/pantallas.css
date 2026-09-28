@@ -462,11 +462,34 @@
    en búsquedas externas— se salía del panel y quedaba cortada contra el
    borde. Envolviéndolas sin más quedaban escalonadas, porque cada una mide lo
    que mida su rótulo; en cuadrícula caen alineadas y el panel se lee de un
-   vistazo. */
+   vistazo.
+
+   **Cada una en un renglón, con el valor delante de su rótulo**
+   (2026-09-27): con el valor encima, el panel medía el doble, y en un
+   portátil la tercera métrica de binaria quedaba cortada. Las columnas miden
+   lo que su contenido, con aire entre ellas para que dos métricas no se lean
+   como una frase, y un rótulo largo se parte dentro de su celda. La que lleva
+   fórmula ocupa el renglón entero (`metrica--ancha`). */
 .pantalla-tema__metricas {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--espacio-3) var(--espacio-4);
+  grid-template-columns: repeat(2, minmax(0, auto));
+  justify-content: start;
+  gap: var(--espacio-2) var(--espacio-6);
+}
+
+.pantalla-tema__metricas .metrica {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.pantalla-tema__metricas .metrica__valor {
+  font-size: 18px;
+}
+
+.pantalla-tema__metricas .metrica--ancha {
+  grid-column: 1 / -1;
 }
 
 /* Estructura horizontal (secuencial, binaria) */
@@ -477,9 +500,6 @@
      dejaría hundido a la altura de la numeración. */
   align-items: flex-start;
   gap: var(--espacio-2);
-  /* Deja aire arriba para el corchete del rango activo, que se dibuja fuera
-     del flujo sobre las casillas. */
-  padding-top: var(--espacio-4);
   /* Centrada en el lienzo (CLAUDE.md 6.2). Si aun con elisión no cabe a lo
      ancho, scrollea ella y no la página. */
   place-self: center;

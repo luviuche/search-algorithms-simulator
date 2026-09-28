@@ -309,12 +309,13 @@
         if (paso.bloquesDescartados && paso.bloquesDescartados.includes(bloque)) {
           return { estado: 'descartada' };
         }
-        // Binaria externa, dentro del bloque que queda: el rango de renglones
-        // en azul y lo que ya tiró apagado, como binaria interna pero en la
-        // columna del bloque (maqueta elegida por el usuario, 2026-09-27).
+        // Binaria externa, dentro del bloque que queda: lo que ya tiró la
+        // binaria de dentro, apagado, como binaria interna pero en la columna
+        // del bloque (maqueta elegida por el usuario, 2026-09-27). Lo que
+        // sigue en juego se ve normal: el azul se retiró (CLAUDE.md 8.2).
         if (paso.rangoRegistros && paso.bloque === bloque) {
           const { inicio, fin } = paso.rangoRegistros;
-          return { estado: indice >= inicio && indice <= fin ? 'rango-activo' : 'descartada' };
+          if (indice < inicio || indice > fin) return { estado: 'descartada' };
         }
         // Rastro de los registros ya mirados dentro del bloque en curso.
         if (paso.recorridas && paso.recorridas.includes(indice)) {
@@ -338,7 +339,8 @@
         },
         {
           id: 'bloques',
-          etiqueta: 'Bloques (B)',
+          etiqueta: 'Bloques',
+          formula: 'B',
           valor: ({ estructura }) => (
             estructura ? String(dominio.externa.formaDelArchivo(estructura.n).bloques) : '0'
           )
@@ -373,6 +375,18 @@
           if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
           if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
           if (paso.tipo === 'comparacion') return { estado: 'en-evaluacion' };
+        }
+        // **El rastro del recorrido** (2026-09-27): las casillas ya comparadas
+        // se apagan, como lo que descarta binaria —secuencial descarta una
+        // casilla por comparación; binaria, media estructura—. Así se ve de un
+        // vistazo cuánto lleva recorrido, que es lo que este tema enseña. Una
+        // búsqueda que se agotó las descartó todas. El paso final deja la
+        // estructura como queda, sin rastro (CLAUDE.md 7).
+        if (paso && !paso.final && ocupada) {
+          const recorrido = paso.tipo === 'comparacion' || paso.tipo === 'encontrada';
+          if ((recorrido && indice < paso.casilla) || paso.tipo === 'no-encontrada') {
+            return { estado: 'descartada' };
+          }
         }
         return { estado: ocupada ? 'ocupada' : 'vacia' };
       },
@@ -415,20 +429,13 @@
           return { estado: 'descartada' };
         }
 
-        // El corchete cubre el rango completo, incluida la casilla en
-        // evaluación: por eso va como modificador y no como estado.
-        const modificadores = [];
-        const enRango = paso.inicio !== undefined && indice >= paso.inicio && indice <= paso.fin;
-        if (enRango) {
-          modificadores.push('en-rango');
-          if (indice === paso.inicio) modificadores.push('en-rango-inicio');
-          if (indice === paso.fin) modificadores.push('en-rango-fin');
-        }
-
+        // **Sin azul para el rango** (2026-09-27, CLAUDE.md 8.2): lo que
+        // sigue en juego se ve normal y lo descartado, apagado. Es la misma
+        // regla que secuencial —«apagado es descartado»—, y con lo descartado
+        // apagado el azul ya no decía nada que no se viera.
         if (paso.medio === indice) {
-          return { estado: paso.tipo === 'encontrada' ? 'encontrada' : 'en-evaluacion', modificadores };
+          return { estado: paso.tipo === 'encontrada' ? 'encontrada' : 'en-evaluacion' };
         }
-        if (enRango) return { estado: 'rango-activo', modificadores };
         return { estado: ocupada ? 'ocupada' : 'vacia' };
       },
       metricas: [
@@ -436,7 +443,8 @@
         METRICA_ACCESOS,
         {
           id: 'maximo-teorico',
-          etiqueta: 'Máximo ⌈log₂ n⌉',
+          etiqueta: 'Máximo de pasos',
+          formula: '⌈log₂ n⌉',
           valor: ({ estructura }) => (
             estructura ? String(dominio.limites.maximoPasosBinaria(estructura.n)) : '0'
           )
@@ -1031,7 +1039,8 @@
         METRICA_ACCESOS,
         {
           id: 'cubetas-n',
-          etiqueta: 'Cubetas (n)',
+          etiqueta: 'Cubetas',
+          formula: 'n',
           valor: ({ estructura }) => (estructura ? String(estructura.n) : '0')
         },
         {

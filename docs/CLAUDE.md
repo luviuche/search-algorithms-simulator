@@ -242,7 +242,7 @@ Es decir: **lo único que distingue un tema de otro es cómo se lee su traza.** 
 
 El estado (`estructura`, `reproductor`, `pasoActual`) vive en el closure de cada pantalla, no en variables del módulo `app.js`: dos temas abiertos en sucesión no comparten nada, y volver al menú no deja temporizadores corriendo.
 
-**Estados y modificadores de casilla son cosas distintas.** El estado pinta (`ocupada`, `en-evaluacion`, `descartada`, `encontrada`…) y es uno solo. Los modificadores marcan pertenencias independientes del color: el corchete del rango activo en binaria (`en-rango`, `en-rango-inicio`, `en-rango-fin`) cubre también la casilla en evaluación, que ya tiene su propio color, y por eso no puede ser un estado más.
+**Estados y modificadores de casilla son cosas distintas.** El estado pinta (`ocupada`, `en-evaluacion`, `descartada`, `encontrada`…) y es uno solo. Los modificadores marcan pertenencias independientes del color —el rastro de los sondeos (`sondeada`), la dirección de la que salió la clave (`direccion`)— que pueden caer sobre una casilla que ya tiene su propio estado, y por eso no pueden ser un estado más. (El corchete del rango activo de binaria era el ejemplo de siempre; se retiró con el azul el 2026-09-27, §8.2.)
 
 ### El catálogo del menú: un índice, no una navegación (2026-09-06, rehecho 2026-09-11)
 
@@ -367,6 +367,8 @@ Vistas disponibles: `menu`, `secuencial`, `binaria`, `hash` (inserción que coli
 ### 5.1 Búsqueda secuencial · `O(n)`
 
 Recorrido lineal desde la casilla 1. Casilla relevante: la posición actual `i`.
+
+**Lo ya comparado se apaga** (2026-09-27): cada comparación fallida descarta una casilla, así que se dibuja como lo que descarta binaria —apagado—, y se ve de un vistazo cuánto lleva recorrido la búsqueda, que es lo que el tema enseña. Una búsqueda que se agotó las descartó todas; el paso final deja la estructura como queda, sin rastro (§7). Un tramo elidido cuyas casillas están todas descartadas se apaga con ellas (`tramoDescartado`). Secuencial y binaria hablan así el mismo idioma: apagado es descartado, normal es «todavía puede estar», naranja es la que se compara (§8.2).
 
 ### 5.2 Búsqueda binaria · `O(log n)`
 
@@ -817,7 +819,7 @@ El primero de cada pareja va a la izquierda. Con CIENCIAS da `c=00, i=01, e=100,
 **Cómo se dibuja** (opción A de la maqueta, elegida por el usuario el 2026-09-27): **todo sobre los mismos bloques** de §5.8, sin estructura aparte.
 
 - **Fase de bloques.** El bloque del medio se marca en su rótulo y su último registro en naranja; los bloques fuera del rango se apagan enteros, **por los dos lados**. El rango de cada paso es el que estaba vigente al comparar, antes de estrecharlo, como en binaria interna (§5.2).
-- **Fase dentro del bloque.** La binaria se hace **en la misma columna**: el rango de renglones en azul (`rango-activo`), el medio en naranja y los renglones descartados apagados dentro del bloque.
+- **Fase dentro del bloque.** La binaria se hace **en la misma columna**: el medio en naranja, los renglones descartados apagados dentro del bloque y los que siguen en juego, normales. (Hasta el 2026-09-27 los que seguían en juego iban en azul; §8.2.)
 - **El panel del cálculo cambia de título con la fase** —«Búsqueda por bloques» y «Dentro del bloque B4»—: el paso lo trae en `tituloCalculo`, y sin él vuelve el del tema. Desarrolla el rango, la cuenta del medio con su acceso y la comparación con su conclusión (`50 < 58 → fin = 4`).
 - **La elisión conserva los dos extremos del rango de bloques** (`paso.rangoBloques`), además del bloque del paso y los dos últimos leídos (`paso.bloquesLeidos`). Sin eso, con `N = 150` un tramo «⋯ 7 bloques ⋯» se tragaba B8 justo cuando el rango era `B8 … B10`; lo encontró la captura en ventana ancha y lo cierra la prueba de humo. Dentro del bloque, lo mismo con los extremos del rango de renglones.
 
@@ -870,6 +872,8 @@ Solo la inserción limpia el campo al terminar: es la que se repite clave tras c
 - **El llenado automático es un enlace** junto al rótulo «Clave» y no un botón en su propia fila: se usa una vez para preparar el ejemplo, y esa fila era la que le faltaba al portátil.
 - **La reproducción cabe en una fila**: `◀  Reproducir  ▶`, con la velocidad en un renglón debajo. **Reproducir y Detener son un solo botón que alterna** con «Pausar»: nunca se usaban a la vez. El reproductor avisa cuándo arranca y cuándo se detiene (`alCambiarReproduccion`), y así el botón dice la verdad también cuando la operación arranca sola (§6.8), cuando un paso a mano la pausa y cuando llega al final.
 - **El resumen baja a su renglón si no cabe junto al título** (`flex-wrap` en `.panel__cabecera`): el de las búsquedas externas —«N = 23 · 5 bloques de 5 Editar»— se salía del panel en el portátil y cortaba el «Editar».
+- **Las métricas van en un renglón cada una, con el valor delante del rótulo** (2026-09-27): el panel mide la mitad, y en el portátil la tercera métrica de binaria dejó de quedar cortada. Dos por renglón con aire entre ellas, para que no se lean como una frase, y la que lleva fórmula ocupa el renglón entero. **El símbolo va aparte del rótulo** (`formula` en la métrica, `.metrica__formula`): los rótulos van en versalitas, y «⌈log₂ n⌉» se leía «⌈LOG₂ N⌉» y «Cubetas (n)», «CUBETAS (N)» — y aquí `N` y `n` no son lo mismo.
+- **La bitácora lleva la hora como separador de su grupo, y los mensajes a todo el ancho** (2026-09-27). Era una columna de ocho cifras a la izquierda de cada mensaje, casi siempre vacía —la hora solo se escribe cuando cambia—, y cada entrada ocupaba dos o tres renglones. Los mensajes van en la letra de texto, que en frases se lee mejor que la monoespaciada. La hora repetida se oculta a la vista pero no al lector de pantalla, que la sigue oyendo por su `aria-label`.
 - **Lo que queda justo**: en el portátil se ven operaciones, reproducción y métricas —desde que el aviso salió del panel lateral, también al terminar—. El humo lo mide a 700 px de alto, donde caben con 5 px de sobra. Donde todavía no alcanza: los árboles, cuyo campo «Palabra» alarga Operaciones, y la segunda fila de métricas de las búsquedas externas.
 
 **El aviso flota sobre el lienzo, arriba a la izquierda, en la fila del control «Ver estructura completa»** (opción B de la maqueta, elegida por el usuario el 2026-09-27). De agosto a septiembre fue anclado arriba del panel lateral (pedido del usuario, 2026-08-29: abajo en la columna quedaba fuera de la vista), pero ahí empujaba todos los paneles, y en un portátil dejaba las métricas bajo el borde justo al terminar cada operación. Entonces se había descartado el lienzo porque su alto es el recurso escaso y una banda que aparece y desaparece haría saltar la estructura: **flotando no ocupa alto y no mueve nada**. Se descartó también el encabezado, que en índices partía el título en dos renglones y crecía.
@@ -902,12 +906,12 @@ Detalle que hace falta y es fácil de omitir: las filas del grid van con `minmax
 
 **Cada fila es la estructura entera, con lo descartado apagado en su sitio** (opción A de la maqueta, elegida por el usuario el 2026-09-27). Hasta entonces cada fila se recortaba al tramo que sobrevivía y lo descartado desaparecía; lo que el usuario quería ver es **cómo se van apagando los tramos que ya no se usan**, y que al final quede toda la estructura con ellos apagados. Se descartaron la fila única que se va apagando —más limpia, pero al terminar ya no se lee cómo se llegó— y el panel del cálculo, que el usuario no quiso aquí.
 
-- Todas las filas miden lo mismo; lo que se achica de fila en fila es lo encendido: el rango en azul y el medio en naranja. Los tramos elididos que caen enteros en lo descartado se apagan igual (`tramo-elidido--descartado`).
+- Todas las filas miden lo mismo; lo que se achica de fila en fila es lo encendido: el rango que sigue en juego, normal, y el medio en naranja. Los tramos elididos que caen enteros en lo descartado se apagan igual (`tramo-elidido--descartado`).
 - Las filas se alinean por columna: la casilla 7 cae bajo la casilla 7 de la fila de arriba. Sin esa alineación se pierde la noción de *dónde* está lo que sobrevivió.
 - Las filas aparecen **una por paso** al avanzar, y retroceder las quita. El apilado sigue al reproductor, no lo reemplaza.
 - **Al cerrar, el apilado se va** (§7): el último paso del algoritmo muestra todas las filas con lo apagado, y el paso final deja la estructura en una sola fila, como queda, con la clave hallada en verde — «como si todo se hubiera reiniciado» (pedido del usuario, 2026-09-27). Se probó conservar el apilado al cerrar, y también agregarle debajo una fila «Resultado»; el usuario no quiso ninguna de las dos.
 - La fila de una búsqueda fallida no tiene rango: se dibuja **entera y toda apagada**. Antes, recortada, quedaba vacía y anunciaba *Rango vacío*; ese aviso solo queda para una estructura sin claves.
-- El corchete de rango activo no se dibuja: el azul ya marca el rango y lo de fuera está apagado.
+- **Sin azul ni corchete para el rango** (2026-09-27, §8.2): lo de fuera está apagado, y eso basta para ver lo que sigue en juego.
 
 **Pendiente de consultar con el docente (2026-08-22): la primera fila muestra el rango de la búsqueda, no las `n` casillas.** Como `buscarBinaria` recorre solo el arreglo de claves, el rango del paso 1 va de 1 a la cantidad de claves; las casillas vacías del final (siempre al final, porque `dominio/estructura.js` inserta empaquetado) no aparecen en ninguna fila. Solo se nota cuando la estructura no está llena. La alternativa evaluada —dibujar la fila 1 completa, con las vacías, y recortar de la fila 2 en adelante— convence al usuario, pero **no se implementa hasta que el docente opine**: las vacías nunca fueron candidatas y mostrarlas puede leerse como que se descartaron en el paso 1. No "corregir" esto por iniciativa propia.
 
@@ -1084,11 +1088,12 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 |---|---|---|---|
 | Vacía | `#B7C2CB` | `--superficie-hundida` | Contorno punteado |
 | Ocupada | `#24303B` | `#FFFFFF` | — |
-| Rango activo | `#2F6E96` | `#DCE9F1` | Corchete sobre el tramo |
 | En evaluación | `#C77C1E` | `#F7E2BD` | Borde de 2 px |
 | Descartada | `#97A3AC` | `#E5E9EC` | Opacidad 0.5 |
 | Encontrada | `#1B7A63` | `#CFE9E1` | Glifo de verificación |
 | Colisión | `#A8324A` | `#F3D6DC` | Trama diagonal |
+
+**Ya no hay estado «rango activo»** (decisión del usuario sobre maqueta, 2026-09-27). Era el azul del tramo en juego en binaria —con un corchete encima como refuerzo— y el de los renglones en juego dentro del bloque en binaria externa. Al apagar lo descartado en el apilado de binaria y llevar el rastro a secuencial, la pregunta fue si el azul tenía que ir también a secuencial, a las externas y al hashing. El análisis: el azul significa «donde la clave todavía puede estar», y esa región solo existe en la familia de búsquedas por comparación —en hashing la clave está en su dirección o en su secuencia de sondeos, que no es un tramo; en los árboles, en el camino—. Se eligió **quitarlo en vez de extenderlo**: con lo descartado apagado, lo que sigue en juego ya se lee por contraste, y queda una sola regla para toda la aplicación, **apagado es descartado; normal, todavía puede estar**. Los tokens `--estado-rango-*` siguen existiendo porque otros usos no de estado los toman —el foco del teclado y los bloques del índice en índices—.
 
 ### 8.3 Escala tipográfica
 
