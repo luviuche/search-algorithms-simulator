@@ -731,10 +731,13 @@
 .lienzo__escenario {
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* Centrado «seguro»: si lo de dentro no cabe, se sale solo por la derecha.
+     Centrado a secas se salía por los dos lados a la vez, y en residuos
+     múltiples desaparecía la primera hoja del árbol (2026-09-28). */
+  justify-content: safe center;
   /* El canal entre la estructura y el cálculo: lo justo para separarlos. Era
      de 32 px y en residuos múltiples —el dibujo más ancho— esos 16 px de más
-     salían del cálculo, que es quien cede (ver `.calculo`). */
+     salían del cálculo. */
   gap: var(--espacio-4);
   min-height: 0;
   overflow: hidden;
@@ -916,11 +919,16 @@
   padding: var(--espacio-2);
 }
 
-/* Ver el comentario de .calculo: el árbol se queda con el ancho que necesita
-   —hasta el 100% del escenario, que su max-width ya acota— y el cálculo se
-   acomoda en lo que sobre. */
+/* El árbol se queda con el ancho que necesita —hasta el 100% del escenario,
+   que su max-width ya acota—, y si con el cálculo no cabe se encoge él
+   (`encogerArbol`, 2026-09-28): el panel conserva el ancho que su contenido
+   pide. Antes cedía el panel, y cedía cortándose. */
 .lienzo__escenario .estructura-arbol {
   flex-shrink: 0;
+}
+
+.lienzo__escenario--arbol .calculo {
+  flex: none;
 }
 
 .arbol {
@@ -975,6 +983,14 @@
   box-shadow: 0 0 0 3px var(--estado-evaluacion-relleno);
 }
 
+/* Lo que la búsqueda descartó se apaga como una casilla descartada
+   (CLAUDE.md 8.2): la misma opacidad, en el punto, la arista y su bit. */
+.arbol__bifurcacion--descartada,
+.arbol__arista--descartada,
+.arbol__bit--descartado {
+  opacity: .5;
+}
+
 /* Las aristas van detrás de las casillas y no interceptan el ratón: son
    dibujo, no control. */
 .arbol__aristas {
@@ -982,11 +998,21 @@
   top: 0;
   left: 0;
   pointer-events: none;
+  /* El bit de la rama de un extremo cae un poco fuera del dibujo: sin esto se
+     cortaba («1:» por «11»). */
+  overflow: visible;
 }
 
 .arbol__arista {
   stroke: var(--borde-fuerte);
   stroke-width: 1;
+}
+
+/* Rama que no lleva a ninguna clave: punteada y sin bit (opción 1a, usuario,
+   2026-09-28). Sigue dibujada porque el espacio sin usar es la mitad de lo que
+   cuesta el método (CLAUDE.md 5.5). */
+.arbol__arista--vacia {
+  stroke-dasharray: 3 3;
 }
 
 /* El bit que hubo que leer para bajar por esa arista. Sin él el dibujo no
@@ -1074,11 +1100,13 @@
   border-radius: var(--radio-panel);
 }
 
-/* Donde el cálculo señala una casilla (transformación de claves): el panel se
-   corre en vertical hasta que su línea activa queda a la altura de la fila que
-   el paso sigue, y el pico la señala desde el borde (CLAUDE.md 6.5). El
-   escenario se posiciona para que el panel y el pico se midan contra él. */
-.lienzo__escenario--senala {
+/* Donde el panel del cálculo solo está durante una operación, al irse se
+   desvanece fuera del flujo, en su sitio; y donde además señala una casilla
+   (transformación de claves), se corre en vertical hasta que su línea activa
+   queda a la altura de la fila que el paso sigue, y el pico la señala desde el
+   borde (CLAUDE.md 6.5). En los dos casos el panel y el pico se miden contra
+   el escenario, que por eso se posiciona. */
+.lienzo__escenario--posicionado {
   position: relative;
 }
 

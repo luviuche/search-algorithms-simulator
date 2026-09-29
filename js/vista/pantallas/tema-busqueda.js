@@ -904,9 +904,13 @@
       return !(paso && paso.casilla === indice && paso.tipo !== 'ramificacion');
     }
 
-    function crearBifurcacion(activa) {
+    // Con identidad propia, como las casillas: sin ella el FLIP no la veía, y
+    // al recolocarse el árbol los puntos saltaban a su sitio mientras los
+    // nodos con clave viajaban al suyo.
+    function crearBifurcacion(activa, indice) {
       const el = document.createElement('div');
       el.className = 'arbol__bifurcacion' + (activa ? ' arbol__bifurcacion--activa' : '');
+      el.dataset.clave = `bifurcacion-${indice}`;
       return el;
     }
 
@@ -941,33 +945,30 @@
       return { posiciones, ancho: x };
     }
 
-    function crearAristas(posiciones, ancho, alto, altoDe) {
+    // `vacia` dice si una arista lleva a un subárbol sin claves, y `descartada`
+    // si queda fuera del camino del paso (ver `renderizarArbol`).
+    //
+    // Crea las aristas sin colocarlas y devuelve `trazar`, que las coloca a
+    // partir de dónde está cada nodo: `centroDe(indice)` da su centro `x`, su
+    // borde de arriba y su pie. Al terminar el dibujo se trazan con la
+    // retícula; mientras el FLIP mueve los nodos, con dónde van pasando (ver
+    // `seguirAristas`).
+    function crearAristas(posiciones, ancho, alto, { vacia = () => false, descartada = () => false } = {}) {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('class', 'arbol__aristas');
       svg.setAttribute('width', ancho);
       svg.setAttribute('height', alto);
       svg.setAttribute('aria-hidden', 'true');
 
-      const centro = (indice) => ({
-        x: posiciones.get(indice).centro,
-        y: (formaArbol.nivelDe(indice) - 1) * SEPARACION_NIVEL
-      });
-
+      const aristas = [];
       for (const indice of posiciones.keys()) {
         if (indice === formaArbol.RAIZ) continue;
         const padre = formaArbol.padre(indice);
-        const desde = centro(padre);
-        const hasta = centro(indice);
-        // La arista sale del pie del nodo padre, que mide distinto según sea
-        // una casilla o un punto de bifurcación.
-        const pie = desde.y + altoDe(padre);
 
         const linea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        linea.setAttribute('class', 'arbol__arista');
-        linea.setAttribute('x1', desde.x);
-        linea.setAttribute('y1', pie);
-        linea.setAttribute('x2', hasta.x);
-        linea.setAttribute('y2', hasta.y);
+        linea.setAttribute('class', 'arbol__arista'
+          + (vacia(indice) ? ' arbol__arista--vacia' : '')
+          + (descartada(indice) ? ' arbol__arista--descartada' : ''));
         svg.appendChild(linea);
 
         // El rótulo va sobre la arista, del lado del hijo: es el bit —o el
@@ -991,12 +992,69 @@
           : 0.45;
         const rotulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         rotulo.setAttribute('class', 'arbol__bit');
-        rotulo.setAttribute('x', desde.x + (hasta.x - desde.x) * avance + (hasta.x < desde.x ? -8 : 8));
-        rotulo.setAttribute('y', pie + (hasta.y - pie) * avance);
         rotulo.textContent = formaArbol.rotuloDeArista(indice);
-        svg.appendChild(rotulo);
+        if (descartada(indice)) rotulo.classList.add('arbol__bit--descartado');
+        // **Solo llevan bit las ramas que conducen a una clave** (opción 1a de
+        // la maqueta, elegida por el usuario el 2026-09-28). En residuos
+        // múltiples el esqueleto abre todas las ramas, y los rótulos de las
+        // vacías de dos subárboles vecinos se montaban —«11 01 01»— o se
+        // salían del dibujo. La rama vacía sigue ahí, punteada, y con ella el
+        // espacio sin usar que el tema enseña; su bit no dice nada. Es también
+        // como rotula el docente en su tablero (CLAUDE.md 5.5).
+        if (!vacia(indice)) svg.appendChild(rotulo);
+        aristas.push({ indice, padre, linea, rotulo, avance });
       }
-      return svg;
+
+      // La arista sale del pie del padre —que mide distinto según sea una
+      // casilla o un punto de bifurcación— y llega al borde de arriba del hijo.
+      function trazar(centroDe) {
+        for (const { indice, padre, linea, rotulo, avance } of aristas) {
+          const desde = centroDe(padre);
+          const hasta = centroDe(indice);
+          linea.setAttribute('x1', desde.x);
+          linea.setAttribute('y1', desde.pie);
+          linea.setAttribute('x2', hasta.x);
+          linea.setAttribute('y2', hasta.arriba);
+          rotulo.setAttribute('x', desde.x + (hasta.x - desde.x) * avance + (hasta.x < desde.x ? -8 : 8));
+          rotulo.setAttribute('y', desde.pie + (hasta.arriba - desde.pie) * avance);
+        }
+      }
+      return { svg, aristas, trazar };
+    }
+
+    // **Las aristas siguen a los nodos mientras viajan** (pedido del usuario,
+    // 2026-09-28: el árbol se conectaba «raro» al recolocarse). El FLIP mueve
+    // los nodos con `transform` y el SVG no se entera: las aristas quedaban
+    // ya en su sitio final, uniendo huecos, mientras los nodos iban de
+    // camino. Cuadro a cuadro, mientras en el árbol haya algo animándose, se
+    // retrazan desde donde cada nodo se ve; al terminar, con la retícula.
+    function seguirAristas(lienzoArbol, trazar, nodos, centroFinal) {
+      const centroVivo = (indice) => {
+        const nodo = nodos.get(indice);
+        if (!nodo) return centroFinal(indice);
+        // Con el árbol encogido (`zoom`), la pantalla mide en píxeles
+        // encogidos y el SVG dibuja en los suyos.
+        const factor = parseFloat(lienzoArbol.style.zoom) || 1;
+        const lienzo = lienzoArbol.getBoundingClientRect();
+        const caja = nodo.getBoundingClientRect();
+        return {
+          x: (caja.left + caja.width / 2 - lienzo.left) / factor,
+          arriba: (caja.top - lienzo.top) / factor,
+          pie: (caja.bottom - lienzo.top) / factor
+        };
+      };
+      const enCurso = () => lienzoArbol.getAnimations({ subtree: true })
+        .some((animacion) => animacion.playState === 'running' || animacion.pending);
+      const cuadro = () => {
+        if (!lienzoArbol.isConnected || dom.lienzoArbol !== lienzoArbol) return;
+        if (!enCurso()) {
+          trazar(centroFinal);
+          return;
+        }
+        trazar(centroVivo);
+        requestAnimationFrame(cuadro);
+      };
+      cuadro();
     }
 
     function renderizarArbol(paso, opciones) {
@@ -1015,11 +1073,46 @@
 
       const reparto = distribuir(dibujadas, anchoDe);
       const posiciones = reparto.posiciones;
+
+      // **Lo que la búsqueda descarta se apaga** (opción 2b de la maqueta,
+      // elegida por el usuario el 2026-09-28): todo lo que no está en el
+      // camino hasta el nodo del paso ni cuelga de él, porque la clave ya no
+      // puede estar ahí. Es la misma regla de toda la aplicación —apagado es
+      // descartado, normal es «todavía puede estar» (CLAUDE.md 8.2)—, y el
+      // camino queda encendido por contraste. El camino no viaja en la traza:
+      // en un árbol son los ancestros del nodo del paso. El paso final no lo
+      // tiene y el árbol vuelve entero.
+      const ancestros = (indice) => {
+        const lista = [];
+        for (let i = indice; ; i = formaArbol.padre(i)) {
+          lista.push(i);
+          if (i === formaArbol.RAIZ) return lista;
+        }
+      };
+      const actual = paso && !paso.final && paso.casilla && posiciones.has(paso.casilla) ? paso.casilla : null;
+      const camino = new Set(actual ? ancestros(actual) : []);
+      const descartada = (indice) => actual !== null && !camino.has(indice) && !ancestros(indice).includes(actual);
+      // Una arista es vacía si no lleva a ninguna clave, salvo la del camino:
+      // ahí es donde la clave está o tendría que estar.
+      const conClave = (indice) => claves[indice - 1] !== undefined
+        || formaArbol.hijos(indice).some((hijo) => posiciones.has(hijo) && conClave(hijo));
+      const vacia = (indice) => !camino.has(indice) && !conClave(indice);
       const niveles = [...posiciones.keys()].reduce((mayor, i) => Math.max(mayor, formaArbol.nivelDe(i)), 1);
       const ancho = Math.max(reparto.ancho, 1);
       const alto = (niveles - 1) * SEPARACION_NIVEL + DIAMETRO_NODO;
 
+      const centroFinal = (indice) => {
+        const arriba = (formaArbol.nivelDe(indice) - 1) * SEPARACION_NIVEL;
+        return { x: posiciones.get(indice).centro, arriba, pie: arriba + altoDe(indice) };
+      };
+      // Lo que ya estaba dibujado antes de este paso: lo que no, aparece.
+      const previos = new Set([...dom.estructuraEl.querySelectorAll('[data-clave]')]
+        .map((el) => el.dataset.clave));
+
       let seguido = null;
+      let lienzo = null;
+      let aristas = null;
+      const nodos = new Map();
       vista.animacion.animarFlip(dom.estructuraEl, () => {
         dom.estructuraEl.className = 'estructura-arbol';
         dom.estructuraEl.removeAttribute('style');
@@ -1029,19 +1122,23 @@
         lienzoArbol.className = 'arbol';
         lienzoArbol.style.width = `${ancho}px`;
         lienzoArbol.style.height = `${alto}px`;
-        lienzoArbol.appendChild(crearAristas(posiciones, ancho, alto, altoDe));
+        aristas = crearAristas(posiciones, ancho, alto, { vacia, descartada });
+        aristas.trazar(centroFinal);
+        lienzoArbol.appendChild(aristas.svg);
 
         for (const [indice, sitio] of posiciones) {
           const clave = claves[indice - 1];
           let nodoEl;
           if (esBifurcacion(indice, paso)) {
-            nodoEl = crearBifurcacion(!!paso && paso.casilla === indice);
+            nodoEl = crearBifurcacion(!!paso && paso.casilla === indice, indice);
+            if (descartada(indice)) nodoEl.classList.add('arbol__bifurcacion--descartada');
           } else {
             const descripcion = config.describirCasilla({ paso, indice, ocupada: clave !== undefined });
+            const sinResaltar = descripcion.estado === 'ocupada' || descripcion.estado === 'vacia';
             nodoEl = vista.componentes.casilla.crearCasilla({
               clave,
               indice,
-              estado: descripcion.estado,
+              estado: sinResaltar && descartada(indice) ? 'descartada' : descripcion.estado,
               modificadores: descripcion.modificadores
             });
           }
@@ -1049,12 +1146,63 @@
           nodoEl.style.left = `${sitio.izquierda + hueco / 2}px`;
           nodoEl.style.top = `${(formaArbol.nivelDe(indice) - 1) * SEPARACION_NIVEL}px`;
           lienzoArbol.appendChild(nodoEl);
+          nodos.set(indice, nodoEl);
           if (paso && paso.casilla === indice) seguido = nodoEl;
         }
 
         dom.estructuraEl.appendChild(lienzoArbol);
+        dom.lienzoArbol = lienzoArbol;
+        lienzo = lienzoArbol;
+        encogerArbol();
         llevarALaVista(seguido);
       }, opciones);
+
+      if (vista.animacion.prefiereMovimientoReducido()) return;
+      // **Lo nuevo aparece, no salta**: el nodo que entra y la arista que
+      // llega a él se desvanecen hacia dentro mientras el resto se recoloca.
+      // En el primer dibujo no hay nada previo y no se anima nada.
+      if (previos.size > 0) {
+        const aparecer = (el) => el.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: DURACION_APARICION_MS, delay: DURACION_APARICION_MS / 2, fill: 'backwards'
+        });
+        for (const [indice, nodo] of nodos) {
+          if (previos.has(nodo.dataset.clave)) continue;
+          aparecer(nodo);
+          for (const arista of aristas.aristas) {
+            if (arista.indice !== indice) continue;
+            aparecer(arista.linea);
+            aparecer(arista.rotulo);
+          }
+        }
+      }
+      seguirAristas(lienzo, aristas.trazar, nodos, centroFinal);
+    }
+    const DURACION_APARICION_MS = 300;
+
+    // **Cuando el árbol y el cálculo no caben juntos, el árbol se encoge** lo
+    // justo (maqueta elegida por el usuario, 2026-09-28). Pasa en el portátil
+    // con residuos múltiples, el dibujo más ancho. Antes cedía el cálculo, y
+    // cedía cortándose: sus valores quedaban fuera del lienzo. El panel se
+    // queda con el ancho que su contenido pide y el árbol, con el resto. Solo
+    // encoge, nunca agranda, y no por debajo de `ENCOGIMIENTO_MINIMO`: más
+    // chico los bits dejan de leerse, y entonces vuelve a desplazarse.
+    //
+    // El panel que se está yendo cuenta todavía: el árbol no crece encima de
+    // él mientras se desvanece, y se vuelve a medir cuando ya no está.
+    const ENCOGIMIENTO_MINIMO = 0.6;
+    function encogerArbol() {
+      const lienzoArbol = dom.lienzoArbol;
+      if (!esArbol() || !lienzoArbol || !lienzoArbol.isConnected) return;
+      lienzoArbol.style.zoom = '';
+      const escenario = getComputedStyle(dom.escenario);
+      const caja = getComputedStyle(dom.estructuraEl);
+      const panel = dom.calculo && !dom.calculo.el.hidden ? dom.calculo.el : null;
+      const disponible = dom.escenario.clientWidth
+        - parseFloat(escenario.paddingLeft) - parseFloat(escenario.paddingRight)
+        - parseFloat(caja.paddingLeft) - parseFloat(caja.paddingRight)
+        - (panel ? panel.offsetWidth + parseFloat(escenario.columnGap || 0) : 0);
+      const factor = Math.min(1, Math.max(ENCOGIMIENTO_MINIMO, disponible / lienzoArbol.offsetWidth));
+      if (factor < 1) lienzoArbol.style.zoom = String(factor);
     }
 
     // Búsquedas externas (CLAUDE.md 5.x): cuarta orientación de la pantalla.
@@ -1815,15 +1963,15 @@
       alinearCalculo();
     }
 
-    // El panel del cálculo con lo que el paso revela. Donde el cálculo señala
-    // una casilla (transformación de claves), sin operación no hay casilla que
-    // señalar y el panel no se dibuja: «Sin operación en curso» ocupaba el
-    // ancho que la matriz de anidados necesita y no enseñaba nada (maqueta
-    // elegida por el usuario, 2026-09-28).
+    // El panel del cálculo con lo que el paso revela. Donde el tema lo declara
+    // (`calculoSoloEnOperacion`: transformación de claves y los árboles de
+    // bits), sin operación el panel no se dibuja: «Sin operación en curso»
+    // ocupaba el ancho que la matriz de anidados y el árbol necesitan, y no
+    // enseñaba nada (maquetas elegidas por el usuario, 2026-09-28).
     function sincronizarCalculo(paso) {
       if (!dom.calculo) return;
       dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
-      if (config.calculoSenalaCasilla) {
+      if (config.calculoSoloEnOperacion) {
         dom.calculoVisible = Boolean(paso && paso.calculo && paso.calculo.length);
       }
       marcarDesborde(dom.calculo.el);
@@ -1851,7 +1999,7 @@
     const DURACION_RECENTRADO_MS = 400;
     const DURACION_FUNDIDO_MS = 150;
     function aplicarVisibilidadCalculo() {
-      if (!config.calculoSenalaCasilla || !dom.calculo) return;
+      if (!config.calculoSoloEnOperacion || !dom.calculo) return;
       const panel = dom.calculo.el;
       const saliendo = Boolean(dom.salidaCalculo);
       const visibleAhora = !panel.hidden && !saliendo;
@@ -1867,7 +2015,7 @@
         // Al final del recentrado: con `ease-in-out`, a los 350 ms de 400 a la
         // estructura le quedan unos 6 px, menos que el canal que la separa.
         if (animar) {
-          for (const el of [panel, dom.picoCalculo]) {
+          for (const el of [panel, dom.picoCalculo].filter(Boolean)) {
             vista.animacion.reemplazarAnimacion(el, [{ opacity: 0 }, { opacity: 1 }], {
               duration: DURACION_FUNDIDO_MS,
               delay: DURACION_RECENTRADO_MS - 50,
@@ -1881,7 +2029,7 @@
         panel.style.position = 'absolute';
         panel.style.left = `${offsetLeft}px`;
         panel.style.top = `${offsetTop}px`;
-        if (!dom.picoCalculo.hidden) {
+        if (dom.picoCalculo && !dom.picoCalculo.hidden) {
           vista.animacion.reemplazarAnimacion(dom.picoCalculo, [{ opacity: 1 }, { opacity: 0 }], {
             duration: DURACION_FUNDIDO_MS, fill: 'forwards'
           });
@@ -1916,13 +2064,16 @@
       dom.salidaCalculo = null;
       // El fundido del pico se quedó en cero (`fill: 'forwards'`): se suelta
       // para que la próxima vez aparezca.
-      for (const animacion of dom.picoCalculo.getAnimations()) animacion.cancel();
-      dom.picoCalculo.hidden = true;
+      if (dom.picoCalculo) {
+        for (const animacion of dom.picoCalculo.getAnimations()) animacion.cancel();
+        dom.picoCalculo.hidden = true;
+      }
       panel.style.position = '';
       panel.style.left = '';
       panel.style.top = '';
       panel.hidden = !dom.calculoVisible;
       if (panel.hidden) panel.style.transform = '';
+      encogerArbol();
     }
 
     // La línea activa del cálculo, a la altura de la casilla que el paso sigue
@@ -2871,12 +3022,15 @@
       const campoClave = config.claveEsLetra
         ? '<input type="text" name="clave" maxlength="1" size="4" autocapitalize="off" spellcheck="false" required>'
         : '<input type="text" name="clave" inputmode="numeric" required>';
+      // El campo y su botón en un renglón (2026-09-28): uno debajo del otro,
+      // en el portátil empujaban las métricas fuera de la pantalla.
       const segundaFila = config.palabra
-        ? `<label class="texto-nivel-3">Palabra
-             <input type="text" name="palabra" autocapitalize="off" spellcheck="false">
-           </label>
-           <div class="pantalla-tema__controles">
-             <button type="button" class="boton" data-accion="insertar-palabra">Insertar palabra</button>
+        ? `<div class="campo">
+             <label class="texto-nivel-3" for="campo-palabra">Palabra</label>
+             <div class="campo__en-linea">
+               <input type="text" id="campo-palabra" name="palabra" autocapitalize="off" spellcheck="false">
+               <button type="button" class="boton" data-accion="insertar-palabra">Insertar palabra</button>
+             </div>
            </div>`
         : '';
       // El llenado automático es un enlace junto al rótulo de la clave y no un
@@ -3163,11 +3317,22 @@
       // ancho (ver `.calculo`): mismo borde desvanecido, sin barra.
       vigilarDesborde(dom.calculo.el);
     }
+    // Sin operación el panel no está, y al irse se desvanece fuera del flujo,
+    // posicionado contra el escenario (ver `aplicarVisibilidadCalculo`).
+    if (config.calculoSoloEnOperacion && dom.calculo) {
+      escenario.classList.add('lienzo__escenario--posicionado');
+      dom.calculo.el.hidden = true;
+    }
+    // El árbol se encoge si con el cálculo no cabe (ver `encogerArbol`), así
+    // que cambiar la ventana lo vuelve a medir.
+    if (esArbol()) {
+      escenario.classList.add('lienzo__escenario--arbol');
+      if (window.ResizeObserver) new ResizeObserver(encogerArbol).observe(escenario);
+    }
     // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
     // no parte de él: el panel recorta lo que se le sale a los lados.
     if (config.calculoSenalaCasilla && dom.calculo) {
       escenario.classList.add('lienzo__escenario--senala');
-      dom.calculo.el.hidden = true;
       dom.picoCalculo = document.createElement('div');
       dom.picoCalculo.className = 'calculo-pico';
       dom.picoCalculo.setAttribute('aria-hidden', 'true');

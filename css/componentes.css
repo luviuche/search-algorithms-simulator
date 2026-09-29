@@ -184,6 +184,22 @@ form input[type="checkbox"] {
   gap: var(--espacio-2);
 }
 
+/* El control y el botón que lo usa en un solo renglón —«Palabra» y su
+   «Insertar palabra»—: el campo cede ancho, el botón no. */
+.campo__en-linea {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+.campo__en-linea input {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo__en-linea .boton {
+  flex: none;
+}
+
 /* Acción secundaria con forma de enlace: se usa de vez en cuando y no merece
    una fila de botón propia. */
 .boton-enlace {

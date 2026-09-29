@@ -174,6 +174,7 @@
       // se pone a la altura de la que el paso sigue, con un pico que la señala,
       // y sin operación no se dibuja (maqueta elegida por el usuario,
       // 2026-09-28, CLAUDE.md 6.5).
+      calculoSoloEnOperacion: true,
       calculoSenalaCasilla: true,
       parametros,
       tratamientos: [
@@ -489,6 +490,9 @@
         arbol,
         calculo: true,
         tituloCalculo: 'Código de la clave',
+        // Sin operación el panel no se dibuja, como en transformación de
+        // claves: el árbol se queda con el lienzo (usuario, 2026-09-28).
+        calculoSoloEnOperacion: true,
         claveEsLetra: true,
         palabra: true,
         sinTamano: true,
@@ -556,6 +560,9 @@
         modo: dominio.estructura.MODOS.ARBOL,
         calculo: true,
         tituloCalculo: 'Código de la clave',
+        // Sin operación el panel no se dibuja, como en transformación de
+        // claves: el árbol se queda con el lienzo (usuario, 2026-09-28).
+        calculoSoloEnOperacion: true,
         claveEsLetra: true,
         palabra: true,
         sinTamano: true,
@@ -622,6 +629,9 @@
         // Lo que se desarrolla aquí no es una dirección sino el código de la
         // letra y el camino que ese código abre.
         tituloCalculo: 'Código de la clave',
+        // Sin operación el panel no se dibuja, como en transformación de
+        // claves: el árbol se queda con el lienzo (usuario, 2026-09-28).
+        calculoSoloEnOperacion: true,
         // La clave es una letra y además se puede insertar una palabra entera,
         // que es como se arma el ejercicio de clase.
         claveEsLetra: true,
@@ -711,6 +721,9 @@
         {
           id: 'letras',
           etiqueta: 'Letras distintas',
+          // Las dos de rótulo largo, cada una en su renglón: en la columna se
+          // partían en dos líneas (como el factor de carga, 2026-09-28).
+          ancha: true,
           valor: ({ paso }) => (paso && paso.total ? String(hojasDelPaso(paso)) : '0')
         },
         {
@@ -724,6 +737,7 @@
           // media que dar.
           id: 'media',
           etiqueta: 'Bits por letra',
+          ancha: true,
           valor: ({ paso }) => (paso && paso.tabla
             ? (paso.tabla.suma / paso.tabla.total).toString().replace('.', ',')
             : '—')

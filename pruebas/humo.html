@@ -209,6 +209,28 @@
       registro.push(`  cálculo ${contexto}: ${alineada ? 'alineado' : 'en el borde'} (alto ${alto} px)`);
     }
 
+    // Cada arista del árbol termina en el borde de arriba de algún nodo tal
+    // como se ve **ahora**, con el FLIP a medio camino: al recolocarse el
+    // árbol, las aristas quedaban en su sitio final mientras los nodos
+    // viajaban (usuario, 2026-09-28). Se mide en pantalla a propósito: es la
+    // posición animada la que tiene que coincidir.
+    function afirmarAristasPegadas(contexto) {
+      const svg = document.querySelector('.arbol__aristas');
+      const lienzo = svg.getBoundingClientRect();
+      const factor = parseFloat(svg.parentElement.style.zoom) || 1;
+      const nodos = [...document.querySelectorAll('.arbol .casilla, .arbol__bifurcacion')].map((el) => {
+        const caja = el.getBoundingClientRect();
+        return { x: (caja.left + caja.width / 2 - lienzo.left) / factor, y: (caja.top - lienzo.top) / factor };
+      });
+      const sueltas = [...svg.querySelectorAll('.arbol__arista')].filter((linea) => {
+        const x = Number(linea.getAttribute('x2'));
+        const y = Number(linea.getAttribute('y2'));
+        return !nodos.some((n) => Math.abs(n.x - x) < 2 && Math.abs(n.y - y) < 2);
+      });
+      const enVuelo = document.querySelector('.arbol').getAnimations({ subtree: true }).length;
+      afirmar(sueltas.length === 0, `${contexto}: cada arista llega a su nodo (${sueltas.length} suelta(s), ${enVuelo} animación(es) en curso)`);
+    }
+
     const estadoDe = (casilla) =>
       casilla.className.replace(/casilla(--)?/g, '').trim().replace(/\s+/g, '+');
 
@@ -1333,9 +1355,26 @@
       control('anterior').click();
       afirmar(nodos() === 'bepru', `retroceder saca del árbol la letra que el paso colocó (queda ${nodos()})`);
       control('siguiente').click();
+      afirmarAristasPegadas('al volver a colocar a');
 
       operar(formularios, 'buscar', 'u');
+      // Lo que la búsqueda descarta se apaga y el camino queda encendido
+      // (opción 2b, usuario, 2026-09-28): bajando p → r → u, el subárbol de e.
+      hastaElUltimoPasoDelAlgoritmo();
+      const apagados = [...document.querySelectorAll('.arbol .casilla--descartada')]
+        .map((el) => el.textContent.trim()).sort().join('');
+      afirmar(apagados === 'abe', `al hallar u, lo que la búsqueda descartó se apaga (apagados: «${apagados}»)`);
+      afirmar(!document.querySelector('.calculo').hidden, 'durante la búsqueda se ve el cálculo');
       agotarTraza();
+      afirmar(
+        document.querySelectorAll('.arbol .casilla--descartada, .arbol__arista--descartada').length === 0,
+        'al terminar, el árbol vuelve entero'
+      );
+      const panelArbol = document.querySelector('.calculo');
+      afirmar(
+        panelArbol.hidden || getComputedStyle(panelArbol).position === 'absolute',
+        'sin operación en curso, el panel del cálculo deja de ocupar sitio junto al árbol'
+      );
       afirmar(metricas()[0] === '3', `buscar u cuesta 3 comparaciones (reporta ${metricas()[0]})`);
       afirmar(
         !!aviso() && aviso().textContent.includes('hijo izquierdo de r'),
@@ -1809,9 +1848,17 @@
       // saliendo del mismo nodo se amontonan si no se separan a propósito.
       const rotulos = [...document.querySelectorAll('.arbol__bit')]
         .map((el) => ({ x: Number(el.getAttribute('x')), y: Number(el.getAttribute('y')), t: el.textContent }));
-      const deLaRaiz = rotulos.slice().sort((a, b) => a.y - b.y).slice(0, 4)
-        .map((r) => r.t).sort().join(' ');
-      afirmar(deLaRaiz === '00 01 10 11', `la raíz abre sus cuatro ramas rotuladas (${deLaRaiz})`);
+      // La raíz abre sus cuatro ramas, pero **solo llevan bit las que conducen
+      // a una clave** (opción 1a, usuario, 2026-09-28): con «prueba», 00 y 10.
+      // Las otras dos van punteadas y sin rótulo. El primer nivel está a 68 px.
+      const altoRaiz = Math.min(...aristas.map((arista) => Number(arista.getAttribute('y1'))));
+      const ramasRaiz = aristas.filter((arista) => Number(arista.getAttribute('y1')) === altoRaiz);
+      const vaciasRaiz = ramasRaiz.filter((arista) => arista.classList.contains('arbol__arista--vacia'));
+      const deLaRaiz = rotulos.filter((r) => r.y < 68).map((r) => r.t).sort().join(' ');
+      afirmar(
+        ramasRaiz.length === 4 && vaciasRaiz.length === 2 && deLaRaiz === '00 10',
+        `la raíz abre sus cuatro ramas, y solo las dos con claves llevan bit (${ramasRaiz.length} ramas, ${vaciasRaiz.length} vacías, rótulos «${deLaRaiz}»)`
+      );
       const encimados = rotulos.filter((a, i) => rotulos.some((b, j) => (
         j !== i && Math.abs(a.x - b.x) < 12 && Math.abs(a.y - b.y) < 8
       )));
