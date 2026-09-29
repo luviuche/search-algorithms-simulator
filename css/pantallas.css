@@ -1011,12 +1011,38 @@
 /* La flecha del enlace. Es lo que distingue a simple vista la cadena del
    arreglo anidado —sin ella los dos tratamientos se verían casi igual— y por
    eso la primera sale de la casilla de la tabla: la cadena cuelga de ella.
-   El canal que en la matriz separa tabla y arreglo aquí lo hace la flecha. */
+   El canal que en la matriz separa tabla y arreglo aquí lo hace la flecha.
+
+   **Dibujada, raya y punta, en tinta** (opción B de la maqueta, elegida por
+   el usuario el 2026-09-28). Era el glifo `→` a 13 px en tinta suave, y entre
+   casillas apagadas casi no se veía justo lo que distingue al tratamiento.
+   Dibujada se lee como el enlace entre nodos del tablero. El glifo sigue en
+   el DOM, sin tamaño: la flecha es decorativa (`aria-hidden`). */
 .cadena__enlace {
-  padding: 0 var(--espacio-1);
-  color: var(--tinta-suave);
-  font-family: var(--fuente-mono);
-  font-size: 13px;
+  position: relative;
+  flex: none;
+  width: 22px;
+  height: 12px;
+  font-size: 0;
+}
+
+.cadena__enlace::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 7px;
+  top: 5px;
+  border-top: 2px solid var(--tinta);
+}
+
+.cadena__enlace::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 1px;
+  border-left: 8px solid var(--tinta);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
 }
 
 /* El tramo del arreglo anidado corre a lo ancho de la fila y no a lo alto de

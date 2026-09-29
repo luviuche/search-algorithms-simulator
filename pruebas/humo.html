@@ -1571,8 +1571,18 @@
       afirmarCalculoJuntoASuCasilla('en el último sondeo');
 
       agotarTraza();
-      afirmar(document.querySelector('.calculo').hidden, 'sin operación en curso, el panel del cálculo no se dibuja');
-      afirmar(document.querySelector('.calculo-pico').hidden, 'sin operación en curso, tampoco el pico');
+      // Al irse, el panel sale del flujo y se desvanece donde estaba; se
+      // esconde cuando termina, y ese aviso llega después de esta prueba, que
+      // es síncrona. Lo que sí es inmediato es que ya no ocupa sitio.
+      const panelCalculo = document.querySelector('.calculo');
+      afirmar(
+        panelCalculo.hidden || getComputedStyle(panelCalculo).position === 'absolute',
+        'sin operación en curso, el panel del cálculo deja de ocupar sitio en el lienzo'
+      );
+      afirmar(
+        document.querySelector('.calculo-pico').hidden || getComputedStyle(panelCalculo).position === 'absolute',
+        'sin operación en curso, el pico se va con el panel'
+      );
 
       operar(formularios, 'buscar', 9912);
       const retratoBusqueda = hastaElUltimoPasoDelAlgoritmo();

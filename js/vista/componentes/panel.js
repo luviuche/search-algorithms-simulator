@@ -16,10 +16,11 @@
   // (`formula`): pasado a mayúsculas, «⌈log₂ n⌉» se leía «⌈LOG₂ N⌉» y
   // «Cubetas (n)» se leía «CUBETAS (N)», y aquí `N` y `n` no son lo mismo —en
   // las búsquedas externas `N` son los registros del archivo— (2026-09-27).
-  function crearMetrica({ etiqueta, formula, valor }) {
+  function crearMetrica({ etiqueta, formula, valor, ancha = false }) {
     const el = document.createElement('div');
-    // Con fórmula, el rótulo es largo: ocupa el renglón entero del panel.
-    el.className = 'metrica' + (formula ? ' metrica--ancha' : '');
+    // Con fórmula, el rótulo es largo: ocupa el renglón entero del panel. Sin
+    // ella también puede pedirlo una métrica de rótulo largo (`ancha`).
+    el.className = 'metrica' + (formula || ancha ? ' metrica--ancha' : '');
     const valorEl = document.createElement('span');
     valorEl.className = 'metrica__valor texto-mono';
     valorEl.textContent = String(valor);

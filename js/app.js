@@ -127,6 +127,10 @@
   const METRICA_FACTOR_CARGA = {
     id: 'factor-carga',
     etiqueta: 'Factor de carga',
+    // En su propio renglón (maqueta elegida por el usuario, 2026-09-28): en la
+    // columna de «Comparaciones» se partía en dos líneas en todas las
+    // pantallas, y el panel crecía un renglón por nada.
+    ancha: true,
     valor: ({ estructura }) => (
       estructura
         ? (dominio.estructura.cantidadClaves(estructura) / dominio.estructura.baseDeCarga(estructura)).toFixed(2)

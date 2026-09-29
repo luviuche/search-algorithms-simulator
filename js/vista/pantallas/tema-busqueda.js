@@ -617,9 +617,6 @@
       // vertical la marca va antes, a la izquierda, que es como se rotula una
       // tabla de direcciones.
       vista.animacion.animarFlip(dom.estructuraEl, () => {
-        // Dentro del cambio: el panel que aparece o se va recentra la tabla,
-        // y así el FLIP la desliza en vez de dejarla saltar.
-        aplicarVisibilidadCalculo();
         dom.estructuraEl.className = vertical ? 'estructura-vertical' : 'estructura-horizontal';
         dom.estructuraEl.removeAttribute('style');
         dom.estructuraEl.innerHTML = '';
@@ -1832,11 +1829,100 @@
       marcarDesborde(dom.calculo.el);
     }
 
-    // Mostrar u ocultar el panel se deja para el dibujo de la estructura (ver
-    // `renderizarFilaUnica`), que es quien sabe animar lo que eso mueve.
+    // El panel que aparece o se va recentra la estructura en el lienzo. **La
+    // estructura se desliza entera, como un bloque** (pedido del usuario,
+    // 2026-09-28): antes el corrimiento lo animaba el FLIP de las casillas, y
+    // la numeración, los tramos elididos y el borde de la tabla —que no son
+    // casillas— saltaban de golpe mientras las casillas viajaban, y la tabla
+    // se veía descuadrada durante el viaje.
+    //
+    // Por eso se hace antes de dibujar el paso y no dentro de su FLIP: la
+    // estructura ya lleva el desplazamiento puesto cuando el FLIP mide, y las
+    // casillas solo animan lo que les pasa a ellas.
+    //
+    // El panel aparece desvaneciéndose en su sitio, ya alineado —sin viajar en
+    // vertical desde el centro—, y al irse sale del flujo donde está y se
+    // desvanece. **Panel y estructura nunca se ven encima uno del otro**
+    // (pedido del usuario, 2026-09-28: al irse, «se intersectan»): la tabla
+    // queda a solo un canal del panel, así que cualquier corrimiento la mete
+    // en su sitio. Al entrar, la estructura se corre primero y el panel se
+    // funde cuando le falta menos que el canal; al irse, en espejo, el panel
+    // se funde primero y la estructura arranca cuando ya no se ve.
+    const DURACION_RECENTRADO_MS = 400;
+    const DURACION_FUNDIDO_MS = 150;
     function aplicarVisibilidadCalculo() {
       if (!config.calculoSenalaCasilla || !dom.calculo) return;
-      dom.calculo.el.hidden = !dom.calculoVisible;
+      const panel = dom.calculo.el;
+      const saliendo = Boolean(dom.salidaCalculo);
+      const visibleAhora = !panel.hidden && !saliendo;
+      if (visibleAhora === dom.calculoVisible) return;
+
+      const animar = !vista.animacion.prefiereMovimientoReducido();
+      const antes = dom.estructuraEl.getBoundingClientRect().left;
+
+      if (dom.calculoVisible) {
+        if (saliendo) terminarSalidaCalculo();
+        panel.hidden = false;
+        dom.calculoRecienAparecido = true;
+        // Al final del recentrado: con `ease-in-out`, a los 350 ms de 400 a la
+        // estructura le quedan unos 6 px, menos que el canal que la separa.
+        if (animar) {
+          for (const el of [panel, dom.picoCalculo]) {
+            vista.animacion.reemplazarAnimacion(el, [{ opacity: 0 }, { opacity: 1 }], {
+              duration: DURACION_FUNDIDO_MS,
+              delay: DURACION_RECENTRADO_MS - 50,
+              fill: 'backwards'
+            });
+          }
+        }
+      } else if (animar) {
+        // Fuera del flujo en el sitio exacto en que está, con su alineado.
+        const { offsetLeft, offsetTop } = panel;
+        panel.style.position = 'absolute';
+        panel.style.left = `${offsetLeft}px`;
+        panel.style.top = `${offsetTop}px`;
+        if (!dom.picoCalculo.hidden) {
+          vista.animacion.reemplazarAnimacion(dom.picoCalculo, [{ opacity: 1 }, { opacity: 0 }], {
+            duration: DURACION_FUNDIDO_MS, fill: 'forwards'
+          });
+        }
+        dom.salidaCalculo = vista.animacion.reemplazarAnimacion(panel, [{ opacity: 1 }, { opacity: 0 }], {
+          duration: DURACION_FUNDIDO_MS, fill: 'forwards'
+        });
+        dom.salidaCalculo.addEventListener('finish', terminarSalidaCalculo);
+      } else {
+        panel.hidden = true;
+      }
+
+      // Al irse el panel, la estructura espera a que se haya fundido; hasta
+      // entonces se queda donde estaba (`fill: 'backwards'`).
+      const corrimiento = antes - dom.estructuraEl.getBoundingClientRect().left;
+      if (animar && Math.abs(corrimiento) > 0.5) {
+        vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
+          { transform: `translateX(${corrimiento}px)` },
+          { transform: 'none' }
+        ], {
+          duration: DURACION_RECENTRADO_MS,
+          delay: dom.calculoVisible ? 0 : DURACION_FUNDIDO_MS,
+          easing: 'ease-in-out',
+          fill: 'backwards'
+        });
+      }
+    }
+
+    function terminarSalidaCalculo() {
+      const panel = dom.calculo.el;
+      if (dom.salidaCalculo) dom.salidaCalculo.cancel();
+      dom.salidaCalculo = null;
+      // El fundido del pico se quedó en cero (`fill: 'forwards'`): se suelta
+      // para que la próxima vez aparezca.
+      for (const animacion of dom.picoCalculo.getAnimations()) animacion.cancel();
+      dom.picoCalculo.hidden = true;
+      panel.style.position = '';
+      panel.style.left = '';
+      panel.style.top = '';
+      panel.hidden = !dom.calculoVisible;
+      if (panel.hidden) panel.style.transform = '';
     }
 
     // La línea activa del cálculo, a la altura de la casilla que el paso sigue
@@ -1859,6 +1945,9 @@
       const panel = dom.calculo.el;
       const activa = panel.querySelector('.calculo__linea--activa');
       const fila = dom.filaSeguida;
+      // Mientras se desvanece al irse, el panel y su pico se quedan donde
+      // estaban.
+      if (dom.salidaCalculo) return;
       if (panel.hidden || !activa || !fila || !fila.isConnected) {
         panel.style.transform = '';
         dom.picoCalculo.hidden = true;
@@ -1880,6 +1969,14 @@
       const maximo = escenario.clientHeight - panel.offsetTop - panel.offsetHeight;
       const deseado = centroFila - centroLinea;
       const desplazamiento = minimo <= maximo ? Math.max(minimo, Math.min(maximo, deseado)) : 0;
+      // Recién aparecido, el panel toma su altura sin transición —y el pico
+      // con él—: se desvanece ya en su sitio, en vez de bajar desde el centro.
+      const sinTransicion = dom.calculoRecienAparecido;
+      dom.calculoRecienAparecido = false;
+      if (sinTransicion) {
+        panel.style.transition = 'none';
+        dom.picoCalculo.style.transition = 'none';
+      }
       panel.style.transform = desplazamiento ? `translateY(${desplazamiento}px)` : '';
 
       const MEDIO_PICO = 8;
@@ -1888,6 +1985,12 @@
       dom.picoCalculo.style.top = `${centroFila - MEDIO_PICO}px`;
       // Por la derecha: el pico escondido no mide nada, y su ancho no hace falta.
       dom.picoCalculo.style.right = `${escenario.clientWidth - panel.offsetLeft}px`;
+      if (sinTransicion) {
+        // Se fuerza el estilo antes de devolver la transición.
+        void panel.offsetHeight;
+        panel.style.transition = '';
+        dom.picoCalculo.style.transition = '';
+      }
     }
 
     // El borde desvanecido (CLAUDE.md 6.2): el lienzo no muestra barras, así
@@ -2065,6 +2168,7 @@
           // Antes de dibujar: la estructura alinea el cálculo al terminar, y
           // tiene que encontrar ya la línea que este paso revela.
           sincronizarCalculo(paso);
+          aplicarVisibilidadCalculo();
           renderizarEstructura(paso, indice);
           actualizarMetricas(paso);
           sincronizarAviso(indice);
@@ -2907,6 +3011,7 @@
         const el = vista.componentes.panel.crearMetrica({
           etiqueta: metrica.etiqueta,
           formula: metrica.formula,
+          ancha: metrica.ancha,
           valor: metrica.valor({ estructura: null, paso: null })
         });
         dom.metricas[metrica.id] = el.querySelector('.metrica__valor');
