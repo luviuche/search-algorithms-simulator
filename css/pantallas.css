@@ -1048,6 +1048,38 @@
   border-radius: var(--radio-panel);
 }
 
+/* Donde el cálculo señala una casilla (transformación de claves): el panel se
+   corre en vertical hasta que su línea activa queda a la altura de la fila que
+   el paso sigue, y el pico la señala desde el borde (CLAUDE.md 6.5). El
+   escenario se posiciona para que el panel y el pico se midan contra él. */
+.lienzo__escenario--senala {
+  position: relative;
+}
+
+.calculo-pico {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 9px solid var(--estado-evaluacion-borde);
+  pointer-events: none;
+}
+
+.calculo-pico[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lienzo__escenario--senala .calculo {
+    transition: transform 200ms ease-in-out;
+  }
+
+  .calculo-pico {
+    transition: top 200ms ease-in-out;
+  }
+}
+
 .calculo__titulo {
   margin: 0 0 var(--espacio-3);
 }

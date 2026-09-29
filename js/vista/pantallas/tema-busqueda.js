@@ -259,7 +259,9 @@
       estado.pasos = null;
       estado.segmentosApilado = null;
       if (dom.seccionReproduccion) dom.seccionReproduccion.hidden = true;
-      if (dom.calculo) dom.calculo.actualizar(null);
+      sincronizarCalculo(null);
+      aplicarVisibilidadCalculo();
+      alinearCalculo();
     }
 
     function esMarcaMayor(indice, n) {
@@ -615,6 +617,9 @@
       // vertical la marca va antes, a la izquierda, que es como se rotula una
       // tabla de direcciones.
       vista.animacion.animarFlip(dom.estructuraEl, () => {
+        // Dentro del cambio: el panel que aparece o se va recentra la tabla,
+        // y así el FLIP la desliza en vez de dejarla saltar.
+        aplicarVisibilidadCalculo();
         dom.estructuraEl.className = vertical ? 'estructura-vertical' : 'estructura-horizontal';
         dom.estructuraEl.removeAttribute('style');
         dom.estructuraEl.innerHTML = '';
@@ -729,6 +734,9 @@
         // Dentro del cambio y no después: así el FLIP mide las posiciones
         // finales, ya desplazadas, y no anima contra coordenadas viejas.
         llevarALaVista(grupoSeguido);
+        // La fila y no la casilla: el FLIP mueve las casillas con `transform`
+        // y medirlas en pleno viaje daría dónde van pasando, no dónde quedan.
+        dom.filaSeguida = grupoSeguido;
       }, opciones);
     }
 
@@ -1807,6 +1815,79 @@
       dibujar(paso, indicePaso, opciones);
       actualizarControlElision();
       marcarDesbordeAlAsentarse(dom.estructuraEl);
+      alinearCalculo();
+    }
+
+    // El panel del cálculo con lo que el paso revela. Donde el cálculo señala
+    // una casilla (transformación de claves), sin operación no hay casilla que
+    // señalar y el panel no se dibuja: «Sin operación en curso» ocupaba el
+    // ancho que la matriz de anidados necesita y no enseñaba nada (maqueta
+    // elegida por el usuario, 2026-09-28).
+    function sincronizarCalculo(paso) {
+      if (!dom.calculo) return;
+      dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
+      if (config.calculoSenalaCasilla) {
+        dom.calculoVisible = Boolean(paso && paso.calculo && paso.calculo.length);
+      }
+      marcarDesborde(dom.calculo.el);
+    }
+
+    // Mostrar u ocultar el panel se deja para el dibujo de la estructura (ver
+    // `renderizarFilaUnica`), que es quien sabe animar lo que eso mueve.
+    function aplicarVisibilidadCalculo() {
+      if (!config.calculoSenalaCasilla || !dom.calculo) return;
+      dom.calculo.el.hidden = !dom.calculoVisible;
+    }
+
+    // La línea activa del cálculo, a la altura de la casilla que el paso sigue
+    // (maqueta elegida por el usuario, 2026-09-28, CLAUDE.md 6.5): lo que se
+    // enseña es qué cuenta lleva a qué casilla, y centrado en el lienzo el
+    // «Dirección … 57» caía a 40 px de la 57. Un pico en el borde del panel
+    // señala la fila.
+    //
+    // Se mide contra el escenario y sin el desplazamiento puesto: la fila por
+    // su caja —no se transforma—, el panel por `offsetTop` —que no ve el
+    // `transform`, ni el que está a medio transicionar— y la línea por su
+    // distancia al borde del panel, que el `transform` mueve con él.
+    //
+    // Si la fila queda donde el panel no llega sin salirse del lienzo —la
+    // línea activa al pie de un panel alto y la fila arriba, en una ventana
+    // baja—, el panel se queda en el borde y el pico se esconde: señalaría la
+    // fila desde un renglón que no es el que la produjo.
+    function alinearCalculo() {
+      if (!config.calculoSenalaCasilla || !dom.calculo) return;
+      const panel = dom.calculo.el;
+      const activa = panel.querySelector('.calculo__linea--activa');
+      const fila = dom.filaSeguida;
+      if (panel.hidden || !activa || !fila || !fila.isConnected) {
+        panel.style.transform = '';
+        dom.picoCalculo.hidden = true;
+        return;
+      }
+
+      const escenario = dom.escenario;
+      const escenarioRect = escenario.getBoundingClientRect();
+      const filaRect = fila.getBoundingClientRect();
+      const caja = dom.estructuraEl.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const activaRect = activa.getBoundingClientRect();
+
+      const origen = escenarioRect.top + escenario.clientTop;
+      const centroFila = filaRect.top + filaRect.height / 2 - origen;
+      const centroLinea = panel.offsetTop + (activaRect.top - panelRect.top) + activaRect.height / 2;
+
+      const minimo = -panel.offsetTop;
+      const maximo = escenario.clientHeight - panel.offsetTop - panel.offsetHeight;
+      const deseado = centroFila - centroLinea;
+      const desplazamiento = minimo <= maximo ? Math.max(minimo, Math.min(maximo, deseado)) : 0;
+      panel.style.transform = desplazamiento ? `translateY(${desplazamiento}px)` : '';
+
+      const MEDIO_PICO = 8;
+      const filaVisible = filaRect.bottom > caja.top && filaRect.top < caja.bottom;
+      dom.picoCalculo.hidden = !filaVisible || Math.abs(desplazamiento - deseado) > 1;
+      dom.picoCalculo.style.top = `${centroFila - MEDIO_PICO}px`;
+      // Por la derecha: el pico escondido no mide nada, y su ancho no hace falta.
+      dom.picoCalculo.style.right = `${escenario.clientWidth - panel.offsetLeft}px`;
     }
 
     // El borde desvanecido (CLAUDE.md 6.2): el lienzo no muestra barras, así
@@ -1981,10 +2062,9 @@
           estado.pasoActual = paso;
           estado.indicePaso = indice;
           sincronizarEfectos(indice);
-          if (dom.calculo) {
-            dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
-            marcarDesborde(dom.calculo.el);
-          }
+          // Antes de dibujar: la estructura alinea el cálculo al terminar, y
+          // tiene que encontrar ya la línea que este paso revela.
+          sincronizarCalculo(paso);
           renderizarEstructura(paso, indice);
           actualizarMetricas(paso);
           sincronizarAviso(indice);
@@ -2977,6 +3057,21 @@
       // El cálculo también puede desbordar a lo ancho, junto al árbol más
       // ancho (ver `.calculo`): mismo borde desvanecido, sin barra.
       vigilarDesborde(dom.calculo.el);
+    }
+    // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
+    // no parte de él: el panel recorta lo que se le sale a los lados.
+    if (config.calculoSenalaCasilla && dom.calculo) {
+      escenario.classList.add('lienzo__escenario--senala');
+      dom.calculo.el.hidden = true;
+      dom.picoCalculo = document.createElement('div');
+      dom.picoCalculo.className = 'calculo-pico';
+      dom.picoCalculo.setAttribute('aria-hidden', 'true');
+      dom.picoCalculo.hidden = true;
+      escenario.appendChild(dom.picoCalculo);
+      // Desplazar la tabla a mano, cambiar la ventana o destapar la estructura
+      // completa mueven la fila: el panel la sigue.
+      dom.estructuraEl.addEventListener('scroll', alinearCalculo, { passive: true });
+      if (window.ResizeObserver) new ResizeObserver(alinearCalculo).observe(escenario);
     }
     // El árbol no elide: se dibuja entero, porque su tamaño lo acota el
     // alfabeto y no un n que el estudiante elige. Sin elisión, el control

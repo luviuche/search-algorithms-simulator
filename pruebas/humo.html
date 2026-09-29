@@ -143,11 +143,15 @@
 
     // En la vista vertical cada fila es un grid aparte: que las columnas caigan
     // en la misma x en todas las filas es lo único que hace legible la matriz.
+    // Con `offsetLeft` y `offsetTop`, no con la posición en pantalla: el FLIP
+    // viaja con `transform`, y en transformación de claves el panel del
+    // cálculo que aparece o se va desliza la tabla entera. A media animación
+    // cada fila está en otro punto del viaje y la pantalla miente.
     function afirmarColumnasAlineadas(contexto) {
       const columnas = [...document.querySelectorAll('.fila-casilla')]
         .filter((fila) => fila.querySelector('.casilla'))
         .map((fila) => [...fila.querySelectorAll('.casilla')]
-          .map((c) => Math.round(c.getBoundingClientRect().left)).join(','));
+          .map((c) => c.offsetLeft).join(','));
       afirmar(
         new Set(columnas).size === 1,
         `${contexto}: todas las filas alinean sus columnas (${new Set(columnas).size} disposición(es))`
@@ -162,11 +166,47 @@
       const filas = [...document.querySelectorAll('.columna-casilla')]
         .filter((columna) => columna.querySelector('.casilla'))
         .map((columna) => [...columna.querySelectorAll('.casilla')]
-          .map((c) => Math.round(c.getBoundingClientRect().top)).join(','));
+          .map((c) => c.offsetTop).join(','));
       afirmar(
         new Set(filas).size === 1,
         `${contexto}: todas las columnas alinean sus renglones (${new Set(filas).size} disposición(es))`
       );
+    }
+
+    // El cálculo señala su casilla (CLAUDE.md 6.5): la línea activa a la
+    // altura de la fila que el paso sigue, y el pico a su lado. Se mide el
+    // desplazamiento que el panel tiene puesto y no el que va transicionando.
+    function afirmarCalculoJuntoASuCasilla(contexto) {
+      const panel = document.querySelector('.calculo');
+      const activa = panel.querySelector('.calculo__linea--activa');
+      const pico = document.querySelector('.calculo-pico');
+      const fila = [...document.querySelectorAll('.fila-casilla')]
+        .find((f) => f.querySelector('.casilla--en-evaluacion, .casilla--insertada, .casilla--encontrada'));
+      afirmar(!panel.hidden && activa && fila, `${contexto}: hay panel, línea activa y casilla seguida`);
+      if (panel.hidden || !activa || !fila) return;
+      const escenario = panel.parentElement.getBoundingClientRect();
+      const desplazamiento = Number((panel.style.transform.match(/-?[\d.]+/) || [0])[0]);
+      const filaRect = fila.getBoundingClientRect();
+      const centroFila = filaRect.top + filaRect.height / 2 - escenario.top;
+      const centroLinea = panel.offsetTop + desplazamiento
+        + (activa.getBoundingClientRect().top - panel.getBoundingClientRect().top) + activa.offsetHeight / 2;
+      // En una ventana baja el panel puede no llegar sin salirse del lienzo:
+      // entonces se queda en el borde y el pico se esconde.
+      const alineada = Math.abs(centroFila - centroLinea) < 2;
+      const alto = panel.parentElement.clientHeight;
+      const enElBorde = Math.abs(panel.offsetTop + desplazamiento) < 2
+        || Math.abs(panel.offsetTop + desplazamiento + panel.offsetHeight - alto) < 2;
+      afirmar(
+        alineada || enElBorde,
+        `${contexto}: la línea activa queda a la altura de su casilla, o el panel en el borde del lienzo (desfase ${Math.round(centroFila - centroLinea)} px)`
+      );
+      afirmar(
+        alineada
+          ? !pico.hidden && Math.abs(pico.offsetTop + pico.offsetHeight / 2 - centroFila) < 2
+          : pico.hidden,
+        `${contexto}: el pico señala la fila solo cuando la línea está a su altura`
+      );
+      registro.push(`  cálculo ${contexto}: ${alineada ? 'alineado' : 'en el borde'} (alto ${alto} px)`);
     }
 
     const estadoDe = (casilla) =>
@@ -1521,7 +1561,18 @@
         casillaEn(5).querySelector('.casilla').textContent === '9912',
         'la tercera sigue avanzando hasta la primera casilla libre'
       );
-      afirmar(retrato.includes('sondeada'), 'las casillas recorridas por la prueba lineal quedan marcadas');
+      // Lo que el sondeo saltó se apaga, como lo comparado en secuencial, y el
+      // rojo queda solo para la colisión (maqueta del usuario, 2026-09-28).
+      afirmar(
+        casillaEn(3).querySelector('.casilla').classList.contains('casilla--colision')
+          && casillaEn(4).querySelector('.casilla').classList.contains('casilla--descartada'),
+        'la dirección que chocó queda en rojo y la casilla que el sondeo saltó, apagada'
+      );
+      afirmarCalculoJuntoASuCasilla('en el último sondeo');
+
+      agotarTraza();
+      afirmar(document.querySelector('.calculo').hidden, 'sin operación en curso, el panel del cálculo no se dibuja');
+      afirmar(document.querySelector('.calculo-pico').hidden, 'sin operación en curso, tampoco el pico');
 
       operar(formularios, 'buscar', 9912);
       const retratoBusqueda = hastaElUltimoPasoDelAlgoritmo();

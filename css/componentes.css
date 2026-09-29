@@ -376,6 +376,7 @@ form input[type="checkbox"] {
 .casilla--anidada.casilla--insertada,
 .casilla--anidada.casilla--colision,
 .casilla--anidada.casilla--eliminada,
+.casilla--anidada.casilla--descartada,
 .casilla--anidada.casilla--en-evaluacion {
   border-style: solid;
 }

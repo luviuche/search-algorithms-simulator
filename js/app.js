@@ -166,6 +166,11 @@
       orientacion: 'vertical',
       modo: dominio.estructura.MODOS.DISPERSA,
       calculo: true,
+      // Aquí cada renglón del desarrollo lleva a una casilla, así que el panel
+      // se pone a la altura de la que el paso sigue, con un pico que la señala,
+      // y sin operación no se dibuja (maqueta elegida por el usuario,
+      // 2026-09-28, CLAUDE.md 6.5).
+      calculoSenalaCasilla: true,
       parametros,
       tratamientos: [
         { valor: hashOperaciones.TRATAMIENTOS.NINGUNO, etiqueta: 'Sin tratamiento' },
@@ -222,12 +227,6 @@
           modificadores.push('direccion');
         }
 
-        // Posiciones del anidado ya recorridas por esta inserción: el rastro
-        // que deja ver por qué la clave terminó donde terminó.
-        if (posicion !== undefined && paso.casilla === indice) {
-          if (paso.recorridas && paso.recorridas.includes(posicion)) modificadores.push('sondeada');
-        }
-
         if (paso.casilla === indice && paso.posicion === posicion) {
           if (paso.tipo === 'encontrada') return { estado: 'encontrada', modificadores };
           if (paso.tipo === 'insercion') return { estado: 'insertada', modificadores };
@@ -241,13 +240,19 @@
           }
           return { estado: 'en-evaluacion', modificadores };
         }
+        // Lo que el sondeo ya pasó de largo se apaga, como lo comparado en
+        // secuencial (maqueta elegida por el usuario, 2026-09-28): apagado es
+        // descartado (CLAUDE.md 8.2). El rojo queda solo para la colisión.
+        // Vale para las posiciones del anidado o de la cadena ya recorridas y
+        // para las casillas de la tabla que la reasignación saltó.
+        if (posicion !== undefined && paso.casilla === indice) {
+          if (paso.recorridas && paso.recorridas.includes(posicion)) return { estado: 'descartada', modificadores };
+        }
         // Estas dos hablan de casillas de la tabla, no del anidado: sin acotar
         // por `posicion`, una colisión pintaría de rojo la fila entera.
         if (posicion === undefined) {
           if (paso.colision === indice) return { estado: 'colision', modificadores };
-          if (paso.sondeadas && paso.sondeadas.includes(indice)) {
-            return { estado: base, modificadores: modificadores.concat('sondeada') };
-          }
+          if (paso.sondeadas && paso.sondeadas.includes(indice)) return { estado: 'descartada', modificadores };
         }
         return { estado: base, modificadores };
       },
