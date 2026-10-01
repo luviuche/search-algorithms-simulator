@@ -1456,6 +1456,17 @@ form.panel > .pantalla-tema__reproduccion {
 .columna-indice__escala { grid-column: 1; }
 .columna-indice__bloques { grid-column: 2; }
 
+/* **Nada de la escala ni de la pila se encoge** (2026-09-30). Cuando la
+   columna no cabía de alto, los bloques —que solo llevan un rótulo— se
+   encogían a 36 px y los renglones de la escala —dos números— se quedaban en
+   48: los números dejaban de rotular su bloque y las flechas, trazadas sobre
+   los bloques encogidos, llegaban un bloque más arriba (la del 7 caía en B6).
+   Lo que no cabe se desplaza, como en el resto del lienzo. */
+.columna-indice__escala > *,
+.columna-indice__bloques > * {
+  flex-shrink: 0;
+}
+
 .columna-indice__rango {
   height: var(--alto-bloque-indice);
   /* Opaca sobre el lienzo: la columna ya pinta por encima de las flechas, pero
@@ -1509,6 +1520,26 @@ form.panel > .pantalla-tema__reproduccion {
 .columna-indice__bloque--en-curso {
   border-color: var(--estado-evaluacion-borde);
   background: var(--estado-evaluacion-relleno);
+}
+
+/* El último bloque, partido donde terminan las entradas que se usan (como en
+   la hoja del docente, 2026-09-30): la franja de abajo son las libres hasta
+   la capacidad, en el trazo punteado de lo vacío, y el número de la línea
+   —el resultado de la derivación del que sale la flecha— en tinta llena. */
+.columna-indice__rango--libres {
+  height: var(--alto-libres-indice);
+  justify-content: flex-end;
+}
+
+.columna-indice__usadas {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.columna-indice__libres {
+  height: var(--alto-libres-indice);
+  border: 1px dashed var(--borde-fuerte);
+  border-top: none;
 }
 
 /* El tramo elidido mide lo mismo en la escala y en la pila, o la escala

@@ -69,6 +69,7 @@
      (defecto visto por el usuario en la aplicación, 2026-09-17). */
   --alto-bloque-indice: 48px;
   --alto-tramo-indice: 30px;
+  --alto-libres-indice: 18px;
   --canal-indices: 52px;
 
   /* Radios */

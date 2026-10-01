@@ -1540,12 +1540,22 @@
         }
 
         const rango = dominio.indices.rangoDelBloque(columna, segmento.indice);
+        // **El último bloque se parte donde termina lo que se usa**, como en
+        // la hoja del docente (pedido del usuario, 2026-09-30): una línea en
+        // la última entrada ocupada —14.706 en B54, que son los bloques del
+        // archivo; 54 en la raíz, que son los bloques del nivel de abajo—, y
+        // debajo una franja con las libres hasta la capacidad. La flecha sale
+        // de esa línea, así que el número escrito y el bloque al que llega
+        // coinciden y la relación se lee sin deducirla.
+        const esUltimo = segmento.indice === columna.bloques;
+        const conLibres = esUltimo && columna.libres > 0;
         const par = document.createElement('div');
         par.className = 'columna-indice__rango';
         const desde = document.createElement('span');
         desde.textContent = mil(rango.primero);
         const hasta = document.createElement('span');
-        hasta.textContent = mil(rango.ultimo);
+        hasta.textContent = mil(conLibres ? columna.entradas : rango.ultimo);
+        if (conLibres) hasta.className = 'columna-indice__usadas';
         par.append(desde, hasta);
         escala.appendChild(par);
 
@@ -1558,6 +1568,22 @@
         bloque.textContent = `B${segmento.indice}`;
         bloques.appendChild(bloque);
         puestos.set(segmento.indice, bloque);
+
+        if (conLibres) {
+          // La franja de las libres y, en la escala, la capacidad a su pie.
+          // Van como un renglón más de cada lado, para que escala y pila sigan
+          // avanzando al mismo paso.
+          const parLibres = document.createElement('div');
+          parLibres.className = 'columna-indice__rango columna-indice__rango--libres';
+          const capacidad = document.createElement('span');
+          capacidad.textContent = mil(rango.ultimo);
+          parLibres.appendChild(capacidad);
+          escala.appendChild(parLibres);
+          const libres = document.createElement('div');
+          libres.className = 'columna-indice__libres';
+          libres.title = `${mil(columna.libres)} ${columna.libres === 1 ? 'libre' : 'libres'}`;
+          bloques.appendChild(libres);
+        }
       }
 
       const titulo = document.createElement('div');
@@ -1602,7 +1628,7 @@
     const MARGEN_DE_ENTRADA = 7;
     const RADIO_DEL_CODO = 5;
 
-    function trazarFlechas(svg, pista, dibujadas, definidas) {
+    function trazarFlechas(svg, pista, dibujadas, definidas, tipo) {
       svg.innerHTML = '';
       const base = pista.getBoundingClientRect();
       const caja = (el) => {
@@ -1612,7 +1638,10 @@
           der: r.right - base.left,
           centro: r.top - base.top + r.height / 2,
           primera: r.top - base.top + MARGEN_DE_ENTRADA,
-          ultima: r.bottom - base.top - MARGEN_DE_ENTRADA
+          ultima: r.bottom - base.top - MARGEN_DE_ENTRADA,
+          // La línea donde terminan las entradas que se usan: el borde de
+          // abajo del bloque, porque debajo empieza la franja de las libres.
+          usadas: r.bottom - base.top
         };
       };
 
@@ -1683,8 +1712,20 @@
         if (primeroOrigen && fronteraDestino && destino.columna.frontera > 1) {
           uniones.push({ desde: primeroOrigen, entrada: 'ultima', hasta: fronteraDestino });
         }
-        if (ultimoOrigen && ultimoDestino && origen.columna.bloques > 1) {
-          uniones.push({ desde: ultimoOrigen, entrada: 'ultima', hasta: ultimoDestino });
+        // La última entrada **que se usa**, desde su línea, al último bloque
+        // de la columna siguiente. También desde la raíz, que es un solo
+        // bloque: su 54 —o su 7— va a b54 —o a B7—, que es la flecha que el
+        // docente dibuja y que antes no salía (2026-09-30). Cuando las
+        // entradas son registros (el secundario, hacia los datos) llega al
+        // registro mismo, la línea de los usados del último bloque de datos:
+        // la entrada 500.000 apunta al registro 500.000.
+        if (ultimoOrigen && ultimoDestino && destino.columna.bloques > 1) {
+          uniones.push({
+            desde: ultimoOrigen,
+            entrada: origen.columna.libres > 0 ? 'usadas' : 'ultima',
+            hasta: ultimoDestino,
+            alRegistro: destino.columna.clase === 'datos' && tipo !== dominio.indices.TIPOS.PRIMARIO
+          });
         }
 
         uniones.forEach((union, k) => {
@@ -1692,8 +1733,9 @@
           const llegada = caja(union.hasta);
           const x1 = salida.der;
           const y1 = salida[union.entrada];
+          const y2 = union.alRegistro && destino.columna.libres > 0 ? llegada.usadas : llegada.centro;
           entrada(x1, y1);
-          codo(x1, y1, x1 + CARRIL_INICIAL + k * ENTRE_CARRILES, llegada.izq, llegada.centro);
+          codo(x1, y1, x1 + CARRIL_INICIAL + k * ENTRE_CARRILES, llegada.izq, y2);
         });
       }
     }
@@ -1734,8 +1776,16 @@
         // Después de insertar, no antes: las flechas se trazan con lo que el
         // DOM mide de verdad, y hasta que la pista no está en el documento no
         // mide nada.
-        trazarFlechas(svg, pista, dibujadas, definidas);
+        trazarFlechas(svg, pista, dibujadas, definidas, estructura.tipo);
         llevarALaVista(seguida);
+        // Si la pista cambia de tamaño después —la derivación que se angosta,
+        // la ventana que cambia—, las flechas se vuelven a trazar con lo que
+        // el DOM mida entonces.
+        if (window.ResizeObserver) {
+          new ResizeObserver(() => {
+            if (pista.isConnected) trazarFlechas(svg, pista, dibujadas, definidas, estructura.tipo);
+          }).observe(pista);
+        }
       }, opciones);
       apretarDerivacion();
     }

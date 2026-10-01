@@ -256,6 +256,28 @@
       afirmar(sueltas === 0, `${contexto}: cada arista une sus dos nodos (${sueltas} suelta(s), ${enVuelo} animación(es) en curso)`);
     }
 
+    // Cada flecha de índices sale del borde derecho de un bloque y llega al
+    // borde izquierdo de otro, dentro de su alto (2026-09-30: con la columna
+    // encogida de alto, la flecha del 7 llegaba a B6). Se mide contra la
+    // pista, que es donde vive el SVG.
+    function afirmarFlechasDeIndicesPegadas(contexto) {
+      const pista = document.querySelector('.indices__pista');
+      const base = pista.getBoundingClientRect();
+      const bloques = [...pista.querySelectorAll('.columna-indice__bloque')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { izq: r.left - base.left, der: r.right - base.left, arriba: r.top - base.top, abajo: r.bottom - base.top };
+      });
+      const sueltas = [...pista.querySelectorAll('.indices__flechas > g path')].filter((trazo) => {
+        const numeros = trazo.getAttribute('d').match(/-?[\d.]+/g).map(Number);
+        const [x1, y1] = numeros;
+        const [x2, y2] = numeros.slice(-2);
+        const sale = bloques.some((b) => Math.abs(b.der - x1) < 2 && y1 >= b.arriba - 1 && y1 <= b.abajo + 1);
+        const llega = bloques.some((b) => Math.abs(b.izq - x2) < 2 && y2 >= b.arriba - 1 && y2 <= b.abajo + 1);
+        return !sale || !llega;
+      });
+      afirmar(sueltas.length === 0, `${contexto}: cada flecha sale de un bloque y llega a otro (${sueltas.length} suelta(s))`);
+    }
+
     const estadoDe = (casilla) =>
       casilla.className.replace(/casilla(--)?/g, '').trim().replace(/\s+/g, '+');
 
@@ -2778,6 +2800,27 @@
       enviar(formularios[0], { r: 500000, B: 4096, R: 120, Ri: 15, tipo: 'secundario', niveles: 'multinivel' });
       agotarTraza(14);
       afirmar(columnas().length === 4, `el multinivel con secundarios dibuja cuatro columnas (dibuja ${columnas().length})`);
+      // La derivación no se encoge por debajo de sus fórmulas: si no cabe con
+      // la estructura, se angosta a 300 px y la estructura se desplaza
+      // (2026-09-30). Antes se quedaba en lo que sobrara y partía las
+      // fórmulas a media expresión.
+      const derivacion = document.querySelector('.calculo');
+      registro.push(`  derivación: ${derivacion.offsetWidth} px${document.querySelector('.lienzo__escenario--apretado') ? ' (angosta)' : ''}`);
+      afirmar(derivacion.offsetWidth >= 300, `la derivación no baja de 300 px (mide ${derivacion.offsetWidth})`);
+      afirmarFlechasDeIndicesPegadas('multinivel con secundarios');
+      // El último bloque de cada columna se parte en la última entrada que se
+      // usa, como en la hoja del docente (2026-09-30): 7, 1.832, 500.000 y
+      // 500.000, con la franja de las libres debajo.
+      const usadas = [...document.querySelectorAll('.columna-indice__usadas')].map((el) => el.textContent);
+      registro.push('  línea de las usadas: ' + usadas.join(' · '));
+      afirmar(
+        usadas.join(' ') === '7 1.832 500.000 500.000',
+        `cada último bloque marca su última entrada usada (marca ${usadas.join(', ')})`
+      );
+      afirmar(
+        document.querySelectorAll('.columna-indice__libres').length === 4,
+        'y debajo, la franja de las libres en las cuatro columnas'
+      );
 
       // Los títulos, todos a la misma línea de base. Sin esto cada uno colgaba
       // del pie de su propia columna —«Nivel 3» tiene un bloque y «Nivel 2»
