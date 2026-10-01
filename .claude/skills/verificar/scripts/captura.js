@@ -1,6 +1,6 @@
 // Fotografía la aplicación en un estado concreto, con pruebas/captura.html.
 //
-//   node .claude/skills/verificar/scripts/captura.js <consulta> [destino.png] [--alto 950] [--ancho 1500]
+//   node .claude/skills/verificar/scripts/captura.js <consulta> [destino.png] [--alto 950] [--ancho 1500] [--quieto]
 //
 //   node .claude/skills/verificar/scripts/captura.js "vista=anidados&n=10&l=4&paso=fin"
 //   node .claude/skills/verificar/scripts/captura.js vista=encadenamiento cadena.png
@@ -12,7 +12,9 @@ const os = require('os');
 const path = require('path');
 const { fotografiar } = require('./navegador.js');
 
-const argumentos = process.argv.slice(2);
+// `--quieto` no lleva valor: se saca antes de leer los demás.
+const quieto = process.argv.includes('--quieto');
+const argumentos = process.argv.slice(2).filter((a) => a !== '--quieto');
 const valorDe = (bandera, porDefecto) => {
   const i = argumentos.indexOf(bandera);
   return i === -1 ? porDefecto : Number(argumentos[i + 1]);
@@ -46,7 +48,8 @@ const escrita = fotografiar({
   consulta,
   destino,
   alto: valorDe('--alto', 950),
-  ancho: valorDe('--ancho', 1500)
+  ancho: valorDe('--ancho', 1500),
+  quieto
 });
 
 console.log(escrita);

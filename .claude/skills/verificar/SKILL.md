@@ -45,7 +45,7 @@ Dos ayudas ya escritas en `humo.html` para las regresiones de dibujo: `afirmarCa
 node .claude/skills/verificar/scripts/captura.js "vista=anidados&n=10&l=4&paso=fin"
 ```
 
-Imprime la ruta del PNG (por defecto, en el directorio temporal del sistema; las capturas son material de trabajo, no del proyecto). Un segundo argumento suelto fija el destino, y `--alto` / `--ancho` el tamaño de ventana.
+Con `--quieto` la foto se toma con movimiento reducido: sin él, el navegador sin interfaz congela las animaciones en su primer cuadro y un árbol o un bosque a mitad de FLIP sale desarmado (2026-09-30). Imprime la ruta del PNG (por defecto, en el directorio temporal del sistema; las capturas son material de trabajo, no del proyecto). Un segundo argumento suelto fija el destino, y `--alto` / `--ancho` el tamaño de ventana.
 
 Vistas de `pruebas/captura.html`: `menu` (con `&recientes=5` siembra la tira de recientes), `secuencial`, `binaria`, `hash`, `hash-libre`, `anidados`, `encadenamiento`, `arbol-digital`, `residuos`, `residuos-multiples`, `cubetas`, `secuencial-externa`, `binaria-externa`, `eliminar-secuencial`, `eliminar-binaria`, `eliminar-hash`, y `entrar&titulo=<tema tal como sale en el índice>`, que deja la pantalla recién entrada, sin operar: es lo primero que ve el estudiante y lo que más fácil se olvida revisar (así se escapó el cuadro vacío de Reproducción, 2026-09-30).
 

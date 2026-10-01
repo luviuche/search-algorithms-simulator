@@ -65,7 +65,10 @@ function volcar({ ruta, consulta = '', ancho = 1500, alto = 950, presupuesto = 3
   ], { capturarSalida: true });
 }
 
-function fotografiar({ ruta, consulta = '', destino, ancho = 1500, alto = 950, presupuesto = 15000 }) {
+// `quieto` pide al navegador movimiento reducido: la aplicación salta las
+// animaciones (FLIP, fundidos) y la foto sale con todo ya en su sitio. Sin
+// él, el navegador sin interfaz congela las animaciones en su primer cuadro.
+function fotografiar({ ruta, consulta = '', destino, ancho = 1500, alto = 950, presupuesto = 15000, quieto = false }) {
   // Absoluta siempre: es la trampa 1.
   const absoluto = path.resolve(destino);
   fs.mkdirSync(path.dirname(absoluto), { recursive: true });
@@ -73,6 +76,7 @@ function fotografiar({ ruta, consulta = '', destino, ancho = 1500, alto = 950, p
     `--window-size=${ancho},${alto}`,
     `--virtual-time-budget=${presupuesto}`,
     `--screenshot=${absoluto}`,
+    ...(quieto ? ['--force-prefers-reduced-motion'] : []),
     urlDe(ruta, consulta)
   ]);
   if (!fs.existsSync(absoluto)) {
