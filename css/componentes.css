@@ -315,6 +315,13 @@ form input[type="checkbox"] {
 
 /* Bitácora */
 .bitacora {
+  /* Posicionada para que la hora repetida —fuera del flujo, ver
+     `.bitacora__hora:empty`— se ubique dentro de ella y la recorte su propio
+     desplazamiento. Sin esto se ubicaba contra la página entera: cada renglón
+     de la bitácora la empujaba más abajo y la página crecía hasta sacar una
+     barra que desplazaba el lienzo y el panel lateral (visto por el usuario
+     construyendo un árbol, 2026-10-01). */
+  position: relative;
   display: flex;
   flex-direction: column;
   max-height: 260px;

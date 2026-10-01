@@ -328,7 +328,33 @@
     // sobran una vez agotada la traza.
     function agotarTraza(pasos = 12) {
       for (let i = 0; i < pasos; i++) control('siguiente').click();
+      vigilarQueNadaSeSalga();
       return retratarEstructura();
+    }
+
+    // **Nada de la pantalla se posiciona contra la página** (2026-10-01). La
+    // pantalla se ancla al viewport y recorta lo que no cabe, pero un elemento
+    // fuera del flujo se ubica contra su ancestro posicionado más cercano, y
+    // si no lo hay dentro de la pantalla, contra la página: ahí no lo recorta
+    // nadie y la estira. Así se escapaba la hora repetida de la bitácora, y
+    // cada renglón nuevo sacaba más la barra de la página. Se vigila cada vez
+    // que se agota una traza, en todos los temas, y se afirma una vez al final.
+    const escapadas = new Set();
+    function vigilarQueNadaSeSalga() {
+      const pantalla = document.querySelector('.pantalla-tema');
+      if (!pantalla) return;
+      const titulo = (document.querySelector('.pantalla-tema__titulo, h1') || {}).textContent || '?';
+      for (const el of pantalla.querySelectorAll('*')) {
+        const posicion = getComputedStyle(el).position;
+        if (posicion !== 'absolute' && posicion !== 'fixed') continue;
+        if (el.getClientRects().length === 0) continue;
+        // El ancestro posicionado más cercano, buscado a mano: `offsetParent`
+        // no existe en los SVG (las aristas, las flechas de índices).
+        let ancla = el.parentElement;
+        while (ancla && ancla !== document.body && getComputedStyle(ancla).position === 'static') ancla = ancla.parentElement;
+        if (posicion === 'absolute' && ancla && pantalla.contains(ancla)) continue;
+        escapadas.add(`${titulo.trim()}: ${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`);
+      }
     }
 
     // Toda operación cierra con un paso sin resaltados, la estructura como
@@ -587,6 +613,10 @@
     document.addEventListener('DOMContentLoaded', () => {
       try {
         ejecutar();
+        afirmar(
+          escapadas.size === 0,
+          `nada de la pantalla se posiciona contra la página (${[...escapadas].join(' · ') || 'ninguno'})`
+        );
       } catch (error) {
         fallas++;
         registro.push(`EXCEPCIÓN: ${error && error.stack ? error.stack : error}`);
