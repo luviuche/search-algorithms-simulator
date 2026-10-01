@@ -2058,6 +2058,10 @@
     // `opciones.duracionMs` alarga el reordenamiento: lo usa el llenado
     // automático, que va más despacio que una inserción suelta.
     function renderizarEstructura(paso, indicePaso, opciones) {
+      // Todo lo que cambia la estructura pasa por aquí —crear, vaciar,
+      // insertar, abrir un archivo, cada paso—: es el sitio donde los botones
+      // de la cabecera se enteran de si ya hay algo.
+      sincronizarAccionesDeEstructura();
       // Sin estructura no hay nada que dibujar, pero un rectángulo gris y mudo
       // no le dice al estudiante que le toca crearla (defecto visto al revisar
       // el diseño, 2026-09-11). Es lo primero que se ve al entrar a cualquier
@@ -2776,9 +2780,6 @@
       // decisión que el estudiante acaba de tomar y puede rehacer.
       const aviso = advertencia || resultado.advertencia;
       if (aviso) mostrarAlerta('advertencia', aviso);
-      if (dom.reiniciar) dom.reiniciar.hidden = false;
-      // Guardar aparece con la estructura: sin ella no hay nada que guardar.
-      if (dom.guardar) dom.guardar.hidden = false;
       renderizarEstructura(null);
       actualizarMetricas(null);
       estado.editandoConfiguracion = false;
@@ -3026,6 +3027,23 @@
     // 2026-09-30). Reiniciar no hace ni lo uno ni lo otro —la bitácora se vacía
     // y la reciente ya está anotada—, y por eso son dos entradas distintas a
     // la misma función.
+    // **«Guardar» y «Vaciar» aparecen cuando hay algo que guardar o vaciar.**
+    // Con configuración, eso es en cuanto la estructura existe: se guardan
+    // sus parámetros aunque esté vacía. En los temas que la crean solos al
+    // entrar (los árboles), no: la estructura existe desde el principio, pero
+    // para el estudiante ahí todavía no hay árbol, y los botones se veían sin
+    // que hubiera nada (visto por el usuario, 2026-09-30). Ahí aparecen con
+    // la primera clave o la primera operación —en Huffman, la palabra—, y se
+    // van al vaciar. Se llama desde `renderizarEstructura`.
+    function sincronizarAccionesDeEstructura() {
+      let hayAlgo = Boolean(estado.estructura);
+      if (hayAlgo && config.sinConfiguracion) {
+        hayAlgo = Boolean(estado.pasos) || estado.estructura.claves.some((clave) => clave !== undefined);
+      }
+      if (dom.reiniciar) dom.reiniciar.hidden = !hayAlgo;
+      if (dom.guardar) dom.guardar.hidden = !hayAlgo;
+    }
+
     function crearYRegistrar({ n, l, tratamiento, parametros, advertencia, alEntrar = false }) {
       const estructura = establecerEstructura({ n, l, tratamiento, parametros, advertencia });
       if (!estructura) return null;
@@ -3373,8 +3391,8 @@
       dom.reiniciar.className = 'boton';
       dom.reiniciar.dataset.accion = 'vaciar';
       dom.reiniciar.textContent = `Vaciar ${nombreEstructura()}`;
-      // Sin estructura no hay nada que vaciar: el botón aparece cuando la hay,
-      // y en los temas que la crean solas eso es de entrada.
+      // Sin estructura no hay nada que vaciar: el botón aparece cuando la hay
+      // (ver `sincronizarAccionesDeEstructura`).
       dom.reiniciar.hidden = true;
       dom.reiniciar.addEventListener('click', pedirVaciar);
 

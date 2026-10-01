@@ -1361,6 +1361,17 @@
         document.querySelectorAll('.bitacora__fila').length === 0,
         'al entrar al tema la bitácora está vacía'
       );
+      // Ni Guardar ni Vaciar mientras el árbol no tenga nada (usuario,
+      // 2026-09-30): la estructura existe, pero para el estudiante no hay
+      // árbol todavía. Cargar sí, como en todos los temas.
+      const botonVisible = (accion) => {
+        const el = document.querySelector(`[data-accion="${accion}"]`);
+        return !!el && el.getClientRects().length > 0;
+      };
+      afirmar(
+        botonVisible('cargar') && !botonVisible('guardar') && !botonVisible('vaciar'),
+        'el árbol vacío ofrece cargar, pero no guardar ni vaciar'
+      );
       afirmarEstructuraCentrada('árbol de búsqueda digital');
 
       // El ejercicio de clase: «prueba», en una sola operación.
@@ -1368,6 +1379,7 @@
       operaciones.querySelector('[data-accion="insertar-palabra"]').click();
       const retrato = hastaElUltimoPasoDelAlgoritmo();
       registro.push('  traza de la palabra: ' + retrato);
+      afirmar(botonVisible('guardar') && botonVisible('vaciar'), 'con claves aparecen guardar y vaciar');
       const bitacora = [...document.querySelectorAll('.bitacora__fila')].map((f) => f.textContent);
       afirmar(
         bitacora.some((linea) => linea.includes('Inserción iniciada: palabra prueba')),
