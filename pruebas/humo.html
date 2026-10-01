@@ -231,6 +231,31 @@
       afirmar(sueltas.length === 0, `${contexto}: cada arista llega a su nodo (${sueltas.length} suelta(s), ${enVuelo} animación(es) en curso)`);
     }
 
+    // Lo mismo en el bosque de Huffman, donde cada árbol lleva su SVG y los
+    // nodos internos son círculos de peso: cada arista sale del pie de un
+    // nodo y llega al borde de arriba de otro, tal como se ven **ahora**
+    // (2026-09-30: antes solo viajaban las letras).
+    function afirmarAristasDelBosquePegadas(contexto) {
+      let sueltas = 0;
+      let enVuelo = 0;
+      for (const arbol of document.querySelectorAll('.estructura-bosque .arbol')) {
+        const svg = arbol.querySelector('.arbol__aristas');
+        const lienzo = svg.getBoundingClientRect();
+        const nodos = [...arbol.querySelectorAll('.casilla, .nodo-peso')].map((el) => {
+          const caja = el.getBoundingClientRect();
+          return { x: caja.left + caja.width / 2 - lienzo.left, arriba: caja.top - lienzo.top, pie: caja.bottom - lienzo.top };
+        });
+        const cerca = (x, y, borde) => nodos.some((n) => Math.abs(n.x - x) < 2 && Math.abs(n[borde] - y) < 2);
+        for (const linea of svg.querySelectorAll('.arbol__arista')) {
+          const sale = cerca(Number(linea.getAttribute('x1')), Number(linea.getAttribute('y1')), 'pie');
+          const llega = cerca(Number(linea.getAttribute('x2')), Number(linea.getAttribute('y2')), 'arriba');
+          if (!sale || !llega) sueltas++;
+        }
+        enVuelo += arbol.getAnimations({ subtree: true }).length;
+      }
+      afirmar(sueltas === 0, `${contexto}: cada arista une sus dos nodos (${sueltas} suelta(s), ${enVuelo} animación(es) en curso)`);
+    }
+
     const estadoDe = (casilla) =>
       casilla.className.replace(/casilla(--)?/g, '').trim().replace(/\s+/g, '+');
 
@@ -2497,12 +2522,28 @@
       operaciones.querySelector('[name="palabra"]').value = 'ciencias';
       operaciones.querySelector('[data-accion="insertar-palabra"]').click();
 
-      // Tres pasos: la lista inicial y las dos primeras uniones. El bosque
-      // tiene entonces cuatro árboles —c, i, (e+n), (a+s)— y el siguiente paso
-      // une las dos letras, que es la regla fina del método.
+      // Cada unión va en tres tiempos (2026-09-30): se marca la pareja, se
+      // junta donde está y el nodo nuevo vuelve a su sitio por peso. A los
+      // dos pasos, e y n ya son un árbol, al principio de la lista y con su
+      // nodo resaltado.
       control('siguiente').click();
       control('siguiente').click();
+      const recienNacido = document.querySelector('.bosque__arbol');
+      afirmar(
+        !!recienNacido && !!recienNacido.querySelector('.nodo-peso--en-curso')
+          && document.querySelectorAll('.nodo-peso').length === 1,
+        'el nodo nuevo nace donde estaban los dos que se unen, y resaltado'
+      );
+      // Y en el paso siguiente se va a su sitio por peso: el árbol entero
+      // cruza el lienzo, y sus aristas tienen que ir pegadas a él.
       control('siguiente').click();
+      afirmarAristasDelBosquePegadas('Huffman, al volver e + n a su sitio');
+
+      // Siete pasos: la lista inicial y las dos primeras uniones con sus tres
+      // tiempos. El bosque tiene entonces cuatro árboles —c, i, (e+n), (a+s)—
+      // y el siguiente paso une las dos letras, que es la regla fina del
+      // método.
+      for (let i = 0; i < 4; i++) control('siguiente').click();
       const arboles = document.querySelectorAll('.bosque__arbol');
       registro.push('  bosque a mitad: ' + [...arboles].map((a) => a.textContent).join(' | '));
       afirmar(arboles.length === 4, `a mitad de la construcción el bosque tiene cuatro árboles (tiene ${arboles.length})`);

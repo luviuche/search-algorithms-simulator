@@ -127,3 +127,44 @@ test('una palabra de una sola letra distinta se rechaza en vez de inventar un c�
   assert.equal(validacion.valido, false);
   assert.match(validacion.mensaje, /dos letras distintas/);
 });
+
+// ── La traza: cada reducción en tres tiempos (2026-09-30) ────────────────
+
+const { construirDesdePalabra } = CC2.algoritmos.huffman;
+const nombres = (bosque) => bosque.map((nodo) => (nodo.letra !== undefined ? nodo.letra : nodo.peso)).join(' ');
+
+test('cada unión se marca, se junta donde está y vuelve a su sitio por peso, cada cosa en su paso', () => {
+  const pasos = construirDesdePalabra({ letras: CIENCIAS });
+  const [, marca, junta, ubica] = pasos;
+
+  assert.equal(nombres(marca.bosque), 'e n a s c i');
+  assert.deepEqual(marca.uniendo.map((nodo) => nodo.letra), ['e', 'n']);
+
+  // Nace al principio de la lista, donde estaban e y n, y queda resaltado.
+  assert.equal(nombres(junta.bosque), '2 a s c i');
+  assert.deepEqual(junta.uniendo, [junta.bosque[0]]);
+  assert.match(junta.mensaje, /Nace el nodo de 2\/8: e a la izquierda \(0\) y n a la derecha \(1\)/);
+
+  // Y en su propio paso se va detrás de c e i, que pesan lo mismo.
+  assert.equal(nombres(ubica.bosque), 'a s c i 2');
+  assert.deepEqual(ubica.uniendo, [junta.bosque[0]]);
+  assert.match(ubica.mensaje, /en su sitio por peso, detrás de c y i, que pesan lo mismo y estaban antes\./);
+});
+
+test('si el nodo nuevo ya va primero, no hay paso de ubicarlo', () => {
+  const pasos = construirDesdePalabra({ letras: CIENCIAS });
+  // Cinco reducciones: la última deja un solo nodo y no tiene adónde ir, así
+  // que hay tres tiempos en cuatro de ellas y dos en la última. Más el paso
+  // inicial y el que cierra con la tabla.
+  assert.equal(pasos.length, 1 + 4 * 3 + 2 + 1);
+  assert.equal(pasos.filter((paso) => /vuelve a la lista/.test(paso.mensaje)).length, 4);
+  assert.match(pasos[pasos.length - 2].mensaje, /Nace el nodo de 8\/8/);
+});
+
+test('sin empate, el mensaje de ubicación no inventa a nadie detrás de quien ir', () => {
+  const pasos = construirDesdePalabra({ letras: CIENCIAS });
+  const ubicaciones = pasos.filter((paso) => /vuelve a la lista/.test(paso.mensaje)).map((paso) => paso.mensaje);
+  // c + i = 4/8 va detrás de los dos nodos de 2/8, que pesan menos.
+  assert.ok(ubicaciones.includes('El nodo de 4/8 vuelve a la lista en su sitio por peso.'));
+  assert.ok(ubicaciones.includes('El nodo de 4/8 vuelve a la lista en su sitio por peso, detrás de (4/8), que pesa lo mismo y estaba antes.'));
+});

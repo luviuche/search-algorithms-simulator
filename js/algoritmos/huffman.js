@@ -16,12 +16,40 @@
 
   const fraccion = (numerador, total) => `${numerador}/${total}`;
 
-  // Una reducción se anuncia **antes** de unir: el bosque que se dibuja es el
-  // de ese momento, con los dos nodos que se van a juntar marcados. Así se ve
-  // por qué se eligen esos dos —son los dos primeros de la lista— y no el
-  // resultado ya hecho, que es lo que se verá en el paso siguiente.
+  // **Cada reducción va en tres tiempos, y cada uno hace una sola cosa**
+  // (opción C de la maqueta, elegida por el usuario el 2026-09-30):
+  //
+  //   1. Se marcan los dos nodos que se van a juntar, **antes** de juntarlos:
+  //      así se ve por qué se eligen esos dos —son los dos primeros de la
+  //      lista—.
+  //   2. Se juntan **donde están**: el nodo nuevo nace encima de ellos, al
+  //      principio de la lista, y queda resaltado.
+  //   3. El nodo nuevo **vuelve a la lista en su sitio por peso**, en un paso
+  //      propio y con su porqué en la bitácora. Es la regla que decide el
+  //      empate de CIENCIAS (CLAUDE.md 5.9). Si le toca el primer lugar no
+  //      se mueve, y el paso no aparece.
+  //
+  // Hasta entonces juntarse e ir a su sitio eran un mismo paso: las letras
+  // cruzaban el lienzo hasta un círculo que aparecía ya en su sitio, y no se
+  // veían por separado las dos cosas que pasaban.
   function nombreDeNodo(nodo, total) {
     return nodo.letra !== undefined ? nodo.letra : `(${fraccion(nodo.peso, total)})`;
+  }
+
+  const enumerar = (nombres) => (nombres.length === 1
+    ? nombres[0]
+    : `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`);
+
+  // Por qué el nodo nuevo va donde va: detrás de los que pesan menos, y
+  // **detrás de los que pesan lo mismo**, porque ellos estaban antes.
+  function mensajeDeUbicacion(reduccion, total) {
+    const { nodo, posicion, lista } = reduccion;
+    const empatados = lista.slice(0, posicion).filter((otro) => otro.peso === nodo.peso);
+    const base = `El nodo de ${fraccion(nodo.peso, total)} vuelve a la lista en su sitio por peso`;
+    if (empatados.length === 0) return `${base}.`;
+    const uno = empatados.length === 1;
+    return `${base}, detrás de ${enumerar(empatados.map((otro) => nombreDeNodo(otro, total)))}, `
+      + `que ${uno ? 'pesa' : 'pesan'} lo mismo y ${uno ? 'estaba' : 'estaban'} antes.`;
   }
 
   function construirDesdePalabra({ letras }) {
@@ -44,19 +72,38 @@
 
     let bosque = arbol.inicial;
     arbol.reducciones.forEach((reduccion, indice) => {
+      const { izquierda, derecha, nodo } = reduccion;
       calculo.push({
         etiqueta: `Reducción ${indice + 1}`,
-        expresion: `${nombreDeNodo(reduccion.izquierda, total)} + ${nombreDeNodo(reduccion.derecha, total)}`,
-        resultado: fraccion(reduccion.nodo.peso, total)
+        expresion: `${nombreDeNodo(izquierda, total)} + ${nombreDeNodo(derecha, total)}`,
+        resultado: fraccion(nodo.peso, total)
       });
-      pasos.push(crearPaso(TIPOS_PASO.UNION, {
-        total,
+      const comun = () => ({ total, calculo: calculo.slice() });
+
+      pasos.push(crearPaso(TIPOS_PASO.UNION, Object.assign(comun(), {
         bosque,
-        uniendo: [reduccion.izquierda, reduccion.derecha],
-        calculo: calculo.slice(),
-        mensaje: `Se unen ${nombreDeNodo(reduccion.izquierda, total)} y `
-          + `${nombreDeNodo(reduccion.derecha, total)}: ${fraccion(reduccion.nodo.peso, total)}.`
-      }));
+        uniendo: [izquierda, derecha],
+        mensaje: `Se unen ${nombreDeNodo(izquierda, total)} y `
+          + `${nombreDeNodo(derecha, total)}: ${fraccion(nodo.peso, total)}.`
+      })));
+
+      // Los dos que se unen son siempre los dos primeros de la lista: el
+      // nodo nuevo ocupa su lugar.
+      pasos.push(crearPaso(TIPOS_PASO.UNION, Object.assign(comun(), {
+        bosque: [nodo, ...bosque.slice(2)],
+        uniendo: [nodo],
+        mensaje: `Nace el nodo de ${fraccion(nodo.peso, total)}: `
+          + `${nombreDeNodo(izquierda, total)} a la izquierda (0) y `
+          + `${nombreDeNodo(derecha, total)} a la derecha (1).`
+      })));
+
+      if (reduccion.posicion > 0) {
+        pasos.push(crearPaso(TIPOS_PASO.UNION, Object.assign(comun(), {
+          bosque: reduccion.lista,
+          uniendo: [nodo],
+          mensaje: mensajeDeUbicacion(reduccion, total)
+        })));
+      }
       bosque = reduccion.lista;
     });
 

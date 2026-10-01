@@ -1028,7 +1028,13 @@
     // ya en su sitio final, uniendo huecos, mientras los nodos iban de
     // camino. Cuadro a cuadro, mientras en el árbol haya algo animándose, se
     // retrazan desde donde cada nodo se ve; al terminar, con la retícula.
-    function seguirAristas(lienzoArbol, trazar, nodos, centroFinal) {
+    //
+    // `nodos` lleva de lo que `trazar` le pide —el índice del nodo, o el nodo
+    // mismo en Huffman— a su elemento. `vigente` dice si el dibujo sigue
+    // siendo el de la pantalla: un árbol solo lo es mientras sea
+    // `dom.lienzoArbol`; los del bosque de Huffman son varios, y les basta con
+    // seguir en el documento.
+    function seguirAristas(lienzoArbol, trazar, nodos, centroFinal, vigente = () => dom.lienzoArbol === lienzoArbol) {
       const centroVivo = (indice) => {
         const nodo = nodos.get(indice);
         if (!nodo) return centroFinal(indice);
@@ -1046,7 +1052,7 @@
       const enCurso = () => lienzoArbol.getAnimations({ subtree: true })
         .some((animacion) => animacion.playState === 'running' || animacion.pending);
       const cuadro = () => {
-        if (!lienzoArbol.isConnected || dom.lienzoArbol !== lienzoArbol) return;
+        if (!lienzoArbol.isConnected || !vigente()) return;
         if (!enCurso()) {
           trazar(centroFinal);
           return;
@@ -1795,6 +1801,9 @@
       });
     }
 
+    // Como `crearAristas` en los otros árboles: las crea sin colocarlas y
+    // devuelve `trazar`, que las coloca a partir de dónde está cada nodo, para
+    // que puedan seguirlos mientras viajan (ver `seguirAristas`).
     function crearAristasHuffman(puestos, ancho, alto) {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('class', 'arbol__aristas');
@@ -1802,32 +1811,46 @@
       svg.setAttribute('height', alto);
       svg.setAttribute('aria-hidden', 'true');
 
-      const sitioDe = new Map(puestos.map((p) => [p.nodo, p]));
-      for (const { nodo, centro, nivel } of puestos) {
+      const aristas = [];
+      for (const { nodo } of puestos) {
         if (esHojaDeHuffman(nodo)) continue;
-        const pie = nivel * SEPARACION_NIVEL + DIAMETRO_PESO;
         for (const [hijo, bit] of [[nodo.izquierda, '0'], [nodo.derecha, '1']]) {
-          const sitio = sitioDe.get(hijo);
-          const y = sitio.nivel * SEPARACION_NIVEL;
-
           const linea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           linea.setAttribute('class', 'arbol__arista');
-          linea.setAttribute('x1', centro);
-          linea.setAttribute('y1', pie);
-          linea.setAttribute('x2', sitio.centro);
-          linea.setAttribute('y2', y);
           svg.appendChild(linea);
 
           const rotulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           rotulo.setAttribute('class', 'arbol__bit');
-          rotulo.setAttribute('x', centro + (sitio.centro - centro) * 0.45 + (sitio.centro < centro ? -8 : 8));
-          rotulo.setAttribute('y', pie + (y - pie) * 0.45);
           rotulo.textContent = bit;
           svg.appendChild(rotulo);
+          aristas.push({ padre: nodo, hijo, linea, rotulo });
         }
       }
-      return svg;
+
+      function trazar(centroDe) {
+        for (const { padre, hijo, linea, rotulo } of aristas) {
+          const desde = centroDe(padre);
+          const hasta = centroDe(hijo);
+          linea.setAttribute('x1', desde.x);
+          linea.setAttribute('y1', desde.pie);
+          linea.setAttribute('x2', hasta.x);
+          linea.setAttribute('y2', hasta.arriba);
+          rotulo.setAttribute('x', desde.x + (hasta.x - desde.x) * 0.45 + (hasta.x < desde.x ? -8 : 8));
+          rotulo.setAttribute('y', desde.pie + (hasta.arriba - desde.pie) * 0.45);
+        }
+      }
+      return { svg, aristas, trazar };
     }
+
+    // La identidad de un nodo para el FLIP: la letra en una hoja, y en un nodo
+    // interno las letras que cuelgan de él —cada letra está en un solo
+    // subárbol, así que no se repite—. Sin ella solo viajaban las letras: los
+    // círculos de peso y las aristas saltaban a su sitio mientras las letras
+    // iban de camino, y la unión se veía como un salto (visto por el usuario,
+    // 2026-09-30).
+    const letrasDe = (nodo) => (esHojaDeHuffman(nodo)
+      ? nodo.letra
+      : letrasDe(nodo.izquierda) + letrasDe(nodo.derecha));
 
     // Un árbol del bosque, con su peso debajo: el peso del nodo raíz es lo que
     // ordena la lista, así que se lee al pie de cada uno sin tener que buscarlo
@@ -1845,18 +1868,29 @@
       lienzoArbol.className = 'arbol';
       lienzoArbol.style.width = `${ancho}px`;
       lienzoArbol.style.height = `${alto}px`;
-      lienzoArbol.appendChild(crearAristasHuffman(puestos, ancho, alto));
+      const aristas = crearAristasHuffman(puestos, ancho, alto);
+      const sitioDe = new Map(puestos.map((p) => [p.nodo, p]));
+      const centroFinal = (nodo) => {
+        const { centro, nivel } = sitioDe.get(nodo);
+        const arriba = nivel * SEPARACION_NIVEL;
+        return { x: centro, arriba, pie: arriba + (esHojaDeHuffman(nodo) ? DIAMETRO_NODO : DIAMETRO_PESO) };
+      };
+      aristas.trazar(centroFinal);
+      lienzoArbol.appendChild(aristas.svg);
 
+      const nodos = new Map();
       for (const { nodo, centro, nivel } of puestos) {
         const marcado = marcados.includes(nodo);
         const el = esHojaDeHuffman(nodo)
           ? crearHojaDeHuffman(nodo, marcado)
           : crearNodoDePeso(nodo, total, marcado);
+        el.dataset.clave = esHojaDeHuffman(nodo) ? nodo.letra : `peso-${letrasDe(nodo)}`;
         const anchoEl = esHojaDeHuffman(nodo) ? DIAMETRO_NODO : DIAMETRO_PESO;
         el.style.position = 'absolute';
         el.style.left = `${centro - anchoEl / 2}px`;
         el.style.top = `${nivel * SEPARACION_NIVEL}px`;
         lienzoArbol.appendChild(el);
+        nodos.set(nodo, el);
       }
 
       // El peso solo se escribe al pie cuando el árbol es **una letra suelta**:
@@ -1870,7 +1904,7 @@
         peso.textContent = `${raiz.peso}/${total}`;
         caja.appendChild(peso);
       }
-      return caja;
+      return { caja, lienzo: lienzoArbol, aristas, nodos, centroFinal };
     }
 
     // La tabla de codificación, que aparece solo al terminar (pedido del
@@ -1909,7 +1943,11 @@
       const bosque = (paso && paso.bosque) || [];
       const total = (paso && paso.total) || 0;
       const marcados = (paso && paso.uniendo) || [];
+      // Lo que ya estaba dibujado antes de este paso: lo que no, aparece.
+      const previos = new Set([...dom.estructuraEl.querySelectorAll('[data-clave]')]
+        .map((el) => el.dataset.clave));
 
+      const arboles = [];
       vista.animacion.animarFlip(dom.estructuraEl, () => {
         dom.estructuraEl.className = 'estructura-bosque';
         dom.estructuraEl.removeAttribute('style');
@@ -1923,7 +1961,9 @@
           return;
         }
         for (const raiz of bosque) {
-          dom.estructuraEl.appendChild(crearArbolDelBosque(raiz, total, marcados));
+          const arbol = crearArbolDelBosque(raiz, total, marcados);
+          dom.estructuraEl.appendChild(arbol.caja);
+          arboles.push(arbol);
         }
       }, opciones);
 
@@ -1938,6 +1978,29 @@
         if (dom.calculo) dom.calculo.el.hidden = true;
       } else if (dom.calculo) {
         dom.calculo.el.hidden = false;
+      }
+
+      // Como en los otros árboles: **lo nuevo aparece, no salta**. En cada
+      // unión lo nuevo es el círculo de la suma y sus dos aristas, que se
+      // desvanecen hacia dentro mientras los dos hijos bajan a su sitio; y
+      // las aristas siguen a los nodos mientras viajan.
+      if (vista.animacion.prefiereMovimientoReducido()) return;
+      const aparecer = (el) => el.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: DURACION_APARICION_MS, delay: DURACION_APARICION_MS / 2, fill: 'backwards'
+      });
+      for (const { lienzo, aristas, nodos, centroFinal } of arboles) {
+        if (previos.size > 0) {
+          for (const [nodo, el] of nodos) {
+            if (previos.has(el.dataset.clave)) continue;
+            aparecer(el);
+            for (const arista of aristas.aristas) {
+              if (arista.padre !== nodo) continue;
+              aparecer(arista.linea);
+              aparecer(arista.rotulo);
+            }
+          }
+        }
+        seguirAristas(lienzo, aristas.trazar, nodos, centroFinal, () => true);
       }
     }
 
