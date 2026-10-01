@@ -2665,16 +2665,23 @@
       // Guardar y abrir sí valen aquí, aunque no haya claves: lo que el archivo
       // lleva son los parámetros, y con ellos se recupera la misma estructura
       // (pedido del usuario, 2026-09-17). Lo que no hace es cruzar de tema.
+      // Se mide lo que se ve y no el atributo: con `hidden` puesto, el
+      // `display` de `.boton` los seguía dibujando (2026-09-30), y una
+      // comprobación que miraba el atributo pasaba sin verlo.
+      const seVe = (accion) => {
+        const el = document.querySelector(`[data-accion="${accion}"]`);
+        return !!el && el.getClientRects().length > 0;
+      };
       afirmar(
-        !!document.querySelector('[data-accion="cargar"]') && !!document.querySelector('[data-accion="vaciar"]'),
-        'ofrece cargar y vaciar desde que se entra al tema'
+        seVe('cargar') && !seVe('guardar') && !seVe('vaciar') && !seVe('cancelar-configuracion'),
+        'al entrar ofrece cargar, y todavía no guardar, vaciar ni cancelar: no hay estructura'
       );
 
       enviar(formularios[0], { r: 500000, B: 4096, R: 120, Ri: 15, tipo: 'primario', niveles: 'un-nivel' });
 
       afirmar(
-        !document.querySelector('[data-accion="guardar"]').hidden,
-        'y guardar aparece en cuanto hay estructura que guardar'
+        seVe('guardar') && seVe('vaciar'),
+        'guardar y vaciar aparecen en cuanto hay estructura'
       );
 
       // Crear es la operación: la derivación tiene que estar en marcha sin que

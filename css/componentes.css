@@ -139,9 +139,13 @@ form input[type="checkbox"] {
 /* `hidden` tiene que ganarle al `display` propio: sin esto, `form.panel
    { display: flex }` deja a la vista la configuración plegada y
    `.panel__resumen { display: flex }` el resumen que todavía no toca
-   (defecto encontrado al construir el plegado, 2026-09-27). */
+   (defecto encontrado al construir el plegado, 2026-09-27). Y lo mismo
+   `.boton { display: inline-flex }`: «Guardar», «Vaciar» y «Cancelar» se
+   veían al entrar a los once temas con configuración, sin estructura que
+   guardar, vaciar ni a la que volver (2026-09-30). */
 .panel[hidden],
-.panel__resumen[hidden] {
+.panel__resumen[hidden],
+.boton[hidden] {
   display: none;
 }
 

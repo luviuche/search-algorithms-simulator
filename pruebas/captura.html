@@ -469,6 +469,12 @@
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');
       prepararBusqueda(vista === 'binaria' ? 'Búsqueda binaria' : 'Búsqueda secuencial');
     });
+    // `&editar=1` abre la configuración plegada, como el enlace «Editar» del
+    // resumen: es donde aparece «Cancelar».
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!parametros.get('editar')) return;
+      setTimeout(() => document.querySelector('[data-accion="editar-configuracion"]').click(), 50);
+    });
   </script>
 </body>
 </html>
