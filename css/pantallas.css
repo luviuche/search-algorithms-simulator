@@ -370,11 +370,25 @@
 .pantalla-tema__panel-lateral {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
+  gap: var(--espacio-3);
   min-height: 0;
   overflow-y: auto;
   /* Aire para que la barra de desplazamiento no se monte sobre los paneles. */
   padding-right: var(--espacio-2);
+}
+
+/* Ritmo más apretado que el de los paneles de siempre (2026-09-30, opción
+   A + C de la maqueta): 12 px entre tarjetas, 12 de relleno y el título a 8
+   de su contenido, en vez de 16, 16 y 12. Junto con quitarle el título a
+   Reproducción, es lo que hacía falta para que en el portátil se vean todas
+   las métricas: «Altura» en los árboles de bits y la segunda fila de las
+   búsquedas externas. Solo aquí: el menú no tiene esa presión. */
+.pantalla-tema__panel-lateral .panel {
+  padding: var(--espacio-3);
+}
+
+.pantalla-tema__panel-lateral .panel__titulo {
+  margin-bottom: var(--espacio-2);
 }
 
 /* El aviso flota sobre el lienzo, arriba a la izquierda, en la fila del

@@ -3154,7 +3154,12 @@
         if (estado.reproductor) estado.reproductor.establecerVelocidad(ms);
       });
 
-      return vista.componentes.panel.crearPanel({ titulo: 'Reproducción', contenido });
+      // Sin título (2026-09-30): los pasos, «Reproducir» y la velocidad ya
+      // dicen qué son, y ese renglón era parte de lo que le faltaba al
+      // portátil para las métricas. El nombre queda para el lector de pantalla.
+      const panel = vista.componentes.panel.crearPanel({ contenido });
+      panel.setAttribute('aria-label', 'Reproducción');
+      return panel;
     }
 
     function crearPanelMetricas() {
