@@ -1737,6 +1737,36 @@
         trazarFlechas(svg, pista, dibujadas, definidas);
         llevarALaVista(seguida);
       }, opciones);
+      apretarDerivacion();
+    }
+
+    // **Cuando la estructura y la derivación no caben juntas, la derivación
+    // se angosta** a 300 px, con la fórmula en su renglón y el resultado
+    // debajo (opción B de la maqueta de externas, elegida por el usuario el
+    // 2026-09-30). Pasa en el portátil: el panel se encogía por debajo de sus
+    // fórmulas, las partía a media expresión y tapaba la columna de datos
+    // del multinivel. La estructura sigue desplazándose como se decidió el
+    // 2026-09-17 («estrechar y desplazar», CLAUDE.md 5.10). Solo cuando no
+    // cabe: en una ventana ancha, angosta, la derivación se alargaba y había
+    // que desplazarla.
+    function apretarDerivacion() {
+      if (!esIndices() || !dom.calculo || !dom.escenario) return;
+      const escenario = dom.escenario;
+      const panel = dom.calculo.el;
+      escenario.classList.remove('lienzo__escenario--apretado');
+      if (panel.hidden) return;
+      const estilo = getComputedStyle(escenario);
+      const disponible = escenario.clientWidth
+        - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight)
+        - (parseFloat(estilo.columnGap) || 0);
+      // Lo que la derivación pide si se la deja: su ancho natural, con el
+      // tope que ya le pone la hoja de estilos.
+      panel.style.width = 'max-content';
+      const natural = Math.min(panel.offsetWidth, parseFloat(getComputedStyle(panel).maxWidth) || Infinity);
+      panel.style.width = '';
+      if (dom.estructuraEl.scrollWidth + natural > disponible) {
+        escenario.classList.add('lienzo__escenario--apretado');
+      }
     }
 
     // Árbol de Huffman (CLAUDE.md 5.x): quinta orientación de la pantalla. No
@@ -3429,6 +3459,9 @@
       escenario.classList.add('lienzo__escenario--posicionado');
       dom.calculo.el.hidden = true;
     }
+    // La derivación de índices se angosta si con la estructura no cabe (ver
+    // `apretarDerivacion`): cambiar la ventana lo vuelve a medir.
+    if (esIndices() && window.ResizeObserver) new ResizeObserver(apretarDerivacion).observe(escenario);
     // El árbol se encoge si con el cálculo no cabe (ver `encogerArbol`), así
     // que cambiar la ventana lo vuelve a medir.
     if (esArbol()) {

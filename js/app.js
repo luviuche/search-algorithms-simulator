@@ -287,6 +287,9 @@
       // porque cambia de fase: primero por bloques, después dentro de uno.
       calculo: true,
       tituloCalculo: 'Comparación',
+      // Sin operación no se dibuja, como en hash y en los árboles (maqueta de
+      // la parada de externas, elegida por el usuario el 2026-09-30).
+      calculoSoloEnOperacion: true,
       buscar: ({ estructura, objetivo }) => leer(estructura, objetivo),
       // Borrar lee el archivo como buscar: la eliminación no tiene camino
       // propio, usa el del tema (CLAUDE.md 5.6). Lo único suyo es cómo nombra
@@ -327,9 +330,13 @@
           const { inicio, fin } = paso.rangoRegistros;
           if (indice < inicio || indice > fin) return { estado: 'descartada' };
         }
-        // Rastro de los registros ya mirados dentro del bloque en curso.
+        // Los registros ya mirados dentro del bloque en curso se apagan:
+        // la búsqueda los descartó. Hasta el 2026-09-30 llevaban el borde rojo
+        // punteado de la prueba lineal, que en hash ya se había cambiado por
+        // apagado: apagado es descartado, y el rojo es de la colisión
+        // (CLAUDE.md 8.2).
         if (paso.recorridas && paso.recorridas.includes(indice)) {
-          return { estado: base, modificadores: ['sondeada'] };
+          return { estado: 'descartada' };
         }
         return { estado: base };
       },
@@ -837,6 +844,9 @@
       orientacion: 'indices',
       calculo: true,
       tituloCalculo: 'Derivación',
+      // Sin estructura no se dibuja (2026-09-30); creada, la derivación se
+      // queda, porque el paso final la conserva (`conservarAlFinal`).
+      calculoSoloEnOperacion: true,
       sinTamano: true,
       sinLongitud: true,
       sinOperaciones: true,
@@ -930,6 +940,9 @@
       // claves. Se declaran igual porque la pantalla las pide para todos.
       casillasRelevantes: () => [],
       describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+      // Las cuatro, cada una en su renglón (`ancha`, 2026-09-30): en dos
+      // columnas, rótulos como «Bloques del archivo» junto a un valor de
+      // cinco cifras se partían en dos y tres renglones.
       metricas: [
         {
           // La conclusión del tema, y la que se compara entre las cuatro
@@ -937,11 +950,13 @@
           // 3 y 4 con sus multiniveles.
           id: 'accesos',
           etiqueta: 'Accesos por búsqueda',
+          ancha: true,
           valor: ({ paso }) => (paso && paso.estructura ? String(paso.estructura.accesos) : '—')
         },
         {
           id: 'bloques-indice',
           etiqueta: 'Bloques del índice',
+          ancha: true,
           valor: ({ paso }) => (paso && paso.estructura
             ? dominio.indices.mil(paso.estructura.escalones[0].bloques)
             : '—')
@@ -949,6 +964,7 @@
         {
           id: 'bloques-datos',
           etiqueta: 'Bloques del archivo',
+          ancha: true,
           valor: ({ paso }) => (paso && paso.estructura
             ? dominio.indices.mil(paso.estructura.archivo.bloques)
             : '—')
@@ -956,6 +972,7 @@
         {
           id: 'niveles',
           etiqueta: 'Niveles del índice',
+          ancha: true,
           valor: ({ paso }) => (paso && paso.estructura ? String(paso.estructura.escalones.length) : '—')
         }
       ]
@@ -975,6 +992,9 @@
       orientacion: 'horizontal',
       modo: dominio.estructura.MODOS.DISPERSA,
       calculo: true,
+      // Sin operación no se dibuja, como en hash y en los árboles (maqueta de
+      // la parada de externas, elegida por el usuario el 2026-09-30).
+      calculoSoloEnOperacion: true,
       // Las cubetas se numeran desde 0 (pedido del usuario, 2026-09-06): así
       // las dibuja el docente y así calcula H(k) = k mod n. Es la única
       // excepción a "toda salida numera desde 1" (CLAUDE.md 3.1) — los
@@ -1048,8 +1068,11 @@
           return { estado: 'en-evaluacion', modificadores };
         }
         if (posicion === undefined && paso.colision === indice) return { estado: 'colision', modificadores };
+        // Los renglones de la cubeta que ya se pasaron de largo, apagados,
+        // como lo que el sondeo salta en hash (2026-09-30). El renglón de la
+        // colisión conserva su rojo: lo pinta el paso, más arriba.
         if (posicion !== undefined && paso.casilla === indice) {
-          if (paso.recorridas && paso.recorridas.includes(posicion)) modificadores.push('sondeada');
+          if (paso.recorridas && paso.recorridas.includes(posicion)) return { estado: 'descartada', modificadores };
         }
         return { estado: base, modificadores };
       },
@@ -1065,13 +1088,17 @@
         {
           id: 'densidad',
           etiqueta: 'Densidad de ocupación',
+          // En su renglón y con coma decimal, como el resto de la aplicación
+          // («2,5 bits»): en la columna se leía «70.8» con el «%» debajo. El
+          // espacio que lo separa del número no se parte.
+          ancha: true,
           // Cuenta la clave que está esperando en la fila «Col»: en ese
           // instante el taller escribe 8/9 y no 7/9, porque la densidad mide
           // claves intentadas y esa ya se intentó (CLAUDE.md 5.7).
           valor: ({ estructura, paso }) => (
             estructura
-              ? `${(dominio.cubetas.densidadExpandir(estructura, paso && paso.rechazada ? 1 : 0) * 100).toFixed(1)} %`
-              : '0.0 %'
+              ? `${(dominio.cubetas.densidadExpandir(estructura, paso && paso.rechazada ? 1 : 0) * 100).toFixed(1).replace('.', ',')}\u00a0%`
+              : '0,0\u00a0%'
           )
         }
       ]

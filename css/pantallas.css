@@ -1345,6 +1345,23 @@ form.panel > .pantalla-tema__reproduccion {
   grid-column: 1 / -1;
 }
 
+/* Cuando la estructura y la derivación no caben juntas —en el portátil—, la
+   derivación se angosta y apila la fórmula sobre su resultado, en vez de
+   encogerse hasta partir las fórmulas a media expresión (opción B de la
+   maqueta de externas, 2026-09-30). Lo decide `apretarDerivacion`. */
+.lienzo__escenario--apretado .calculo {
+  flex: 0 0 auto;
+  width: 300px;
+}
+
+.lienzo__escenario--apretado .calculo__linea {
+  grid-template-columns: 1fr;
+}
+
+.lienzo__escenario--apretado .calculo__resultado {
+  justify-self: end;
+}
+
 /* La pista es lo que se desplaza, y lo que las flechas miden. El SVG va dentro
    de ella y no del contenedor que scrollea: puesto fuera, las flechas se
    quedarían quietas mientras las columnas se mueven por debajo. */

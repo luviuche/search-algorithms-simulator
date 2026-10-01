@@ -415,13 +415,6 @@ form input[type="checkbox"] {
   color: var(--estado-colision-borde);
 }
 
-/* Casilla que la prueba lineal recorrió y descartó: el trazo punteado la
-   distingue de la casilla ocupada que nadie tocó (CLAUDE.md 8.1). */
-.casilla--sondeada {
-  border-style: dashed;
-  border-color: var(--estado-colision-borde);
-}
-
 /* Dirección que devolvió la función hash cuando el sondeo ya se fue de ella:
    el subrayado deja ver de dónde salió la clave y cuánto se alejó. */
 .casilla--direccion {

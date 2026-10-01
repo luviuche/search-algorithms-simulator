@@ -2054,7 +2054,7 @@
       );
       registro.push('  densidad con la clave esperando: ' + metricas()[3]);
       afirmar(
-        metricas()[3] === '88.9 %',
+        metricas()[3] === '88,9\u00a0%',
         `la densidad cuenta la clave que espera: 8/9 = 88,9 % (reporta ${metricas()[3]})`
       );
 
@@ -2126,6 +2126,14 @@
         `leer dos bloques cuesta dos accesos, uno por bloque (reporta ${metricas()[1]})`
       );
       afirmar(metricas()[2] === '5' && metricas()[3] === '5', 'las métricas reportan B = 5 y r = 5');
+      // Lo mirado dentro del bloque se apaga y no lleva rojo (2026-09-30), y
+      // terminada la búsqueda el panel de la comparación se va.
+      afirmar(!document.querySelector('.casilla--sondeada'), 'ningún registro lleva el rojo punteado de antes');
+      // Oculto, o ya fuera del flujo y desvaneciéndose: la salida es animada.
+      afirmar(
+        [...document.querySelectorAll('.calculo')].every((el) => el.hidden || getComputedStyle(el).position === 'absolute'),
+        'terminada la búsqueda, el panel de la comparación se va'
+      );
 
       // Archivo grande: los renglones no caben y la elisión comprime los
       // bloques ya comparados. El retoque que el usuario pidió sobre la
