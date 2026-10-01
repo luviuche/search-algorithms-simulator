@@ -34,6 +34,10 @@
     'doble-hash': { sondear: sondearDobleHash, prueba: 'Doble función hash' }
   });
 
+  // «tras 1 sondeo», no «tras 1 sondeos»: con la primera casilla del sondeo
+  // libre, la cuenta es uno.
+  const sondeos = (cantidad) => `${cantidad} ${cantidad === 1 ? 'sondeo' : 'sondeos'}`;
+
   // Los renglones de los saltos, para el panel del cálculo: debajo de la
   // dirección que dio la función hash, una sección con el nombre de la prueba y
   // un renglón por casilla recorrida. Como `calculo`, cada paso lleva todo lo
@@ -251,7 +255,7 @@
         saltos: saltos.foto(),
         clave,
         efecto: { tipo: 'colocar', casilla: visita.casilla, clave },
-        mensaje: `Clave insertada: ${clave} en la casilla ${visita.casilla} (${visita.detalle}) tras ${sondeadas.length + 1} sondeos.`
+        mensaje: `Clave insertada: ${clave} en la casilla ${visita.casilla} (${visita.detalle}) tras ${sondeos(sondeadas.length + 1)}.`
       })));
     }
 
@@ -649,8 +653,8 @@
           clave: reubicada,
           efecto: { tipo: 'colocar', casilla: visita.casilla, clave: reubicada },
           mensaje: visita.casilla === origen
-            ? `La clave ${reubicada} vuelve a la casilla ${origen} tras ${sondeadas.length + 1} sondeos.`
-            : `La clave ${reubicada} se recoloca en la casilla ${visita.casilla} tras ${sondeadas.length + 1} sondeos.`
+            ? `La clave ${reubicada} vuelve a la casilla ${origen} tras ${sondeos(sondeadas.length + 1)}.`
+            : `La clave ${reubicada} se recoloca en la casilla ${visita.casilla} tras ${sondeos(sondeadas.length + 1)}.`
         })));
       }
 

@@ -50,6 +50,17 @@ const ocupadas = (estructura) => estructura.claves
 
 // ── Prueba cuadrática ────────────────────────────────────────────────────
 
+test('un solo sondeo se cuenta en singular', () => {
+  const estructura = nueva(10, TRATAMIENTOS.CUADRATICA);
+  insertarEn(estructura, 25);
+  const uno = insertarEn(estructura, 35);
+  const dos = insertarEn(estructura, 45);
+
+  assert.match(ultimo(uno).mensaje, /tras 1 sondeo\.$/);
+  assert.match(ultimo(dos).mensaje, /tras 2 sondeos\.$/);
+});
+
+
 test('la prueba cuadrática salta a D + 1², D + 2², D + 3²…', () => {
   const estructura = nueva(10, TRATAMIENTOS.CUADRATICA);
   insertarEn(estructura, 25);
