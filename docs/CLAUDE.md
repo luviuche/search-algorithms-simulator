@@ -751,6 +751,8 @@ El primero de cada pareja va a la izquierda. Con CIENCIAS da `c=00, i=01, e=100,
 
 **Nada de esto toca `estructura.claves`.** El bosque de cada paso viaja en el propio paso, porque se deduce entero de la construcción: retroceder es volver a dibujar y no hay efectos que deshacer. La estructura existe solo para que la pantalla tenga de qué colgar la operación.
 
+**El archivo guarda la palabra** (2026-10-01). Como el bosque viaja en los pasos y no toca `estructura.claves`, hasta entonces «Guardar» escribía `huffman-n1-l1.cc2` con `"claves": []`, y abrirlo no reconstruía nada. Ahora guarda la palabra entera con sus letras repetidas —las frecuencias son el dato— como orden de llegada, con su largo como `n` (que es contra lo que el archivo valida las claves), en `huffman-ciencias.cc2`. **Al abrirlo, el árbol se reconstruye y queda ya construido**, con su tabla; la construcción sigue ahí para recorrerla hacia atrás. Huffman se declara de claves de letras (`claveEsLetra`), como los otros tres árboles, así que su archivo abre en el árbol digital —donde las letras repetidas no caben dos veces y se avisa— y el de un árbol de letras abre aquí como palabra.
+
 **Una palabra de una sola letra distinta se rechaza.** No hay reducción posible y su código sería la cadena vacía; no se inventa la convención de que «vale 0», que el docente no ha dado.
 
 ---

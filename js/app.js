@@ -704,9 +704,15 @@
       tituloCalculo: 'Reducción',
       palabra: true,
       soloPalabra: true,
+      // Sus claves son letras, como en los otros tres árboles: es lo que deja
+      // abrir el archivo de uno en el otro (2026-10-01; hasta entonces se
+      // declaraba numérico y el cruce se rechazaba).
+      claveEsLetra: true,
       sinTamano: true,
       sinConfiguracion: true,
       tamano: () => ({ n: 1, l: 1 }),
+      // `huffman-ciencias.cc2`: la palabra es lo que distingue el archivo.
+      nombreArchivo: (estructura) => (estructura.ordenLlegada || []).join(''),
       nombreEstructura: 'árbol',
       mensajeReinicio: 'Árbol vaciado: sin palabra.',
       detalleReciente: () => 'árbol de Huffman',

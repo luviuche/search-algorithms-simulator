@@ -82,7 +82,11 @@
       clavesBase: null,
       mostrarCompleta: false,
       // «Editar» abrió la configuración plegada (ver `sincronizarConfiguracion`).
-      editandoConfiguracion: false
+      editandoConfiguracion: false,
+      // La palabra del árbol, en los temas que solo construyen desde ella
+      // (Huffman, `soloPalabra`): es lo que se guarda en el archivo, porque su
+      // bosque no toca `estructura.claves` (ver `estructuraAGuardar`).
+      palabra: null
     };
     const dom = { metricas: {} };
 
@@ -2577,6 +2581,7 @@
       }
       limpiarAlerta();
       invalidarReproduccion();
+      if (config.soloPalabra) estado.palabra = validacion.letras.slice();
       reproducirOperacion(
         config.insertarPalabra({ estructura: estado.estructura, letras: validacion.letras }),
         `Inserción iniciada: palabra ${validacion.valor}.`
@@ -2808,6 +2813,7 @@
       // inserción a medio reproducir, consumarla sobre la estructura nueva
       // colocaría en ella una clave que nunca se le insertó.
       invalidarReproduccion();
+      estado.palabra = null;
       resultado.estructura.parametros = parametros;
       // El `n` con que se creó, aparte del `n` con que quede la estructura:
       // en casi todos los temas son siempre el mismo valor, pero en otras
@@ -2911,18 +2917,33 @@
     // claves en su orden de llegada; la tabla se rehace al abrir reinsertando
     // en ese orden, que es lo único que reproduce las colisiones tal como
     // quedaron.
+    // **Huffman guarda su palabra** (2026-10-01): su bosque viaja en los
+    // pasos y no toca `estructura.claves`, así que el archivo salía con
+    // `"claves": []` y al abrirlo no había nada que reconstruir. Se guarda la
+    // palabra entera, con sus letras repetidas —las frecuencias son el dato—,
+    // como el orden de llegada de cualquier otro tema (CLAUDE.md 10.3), y con
+    // su largo como `n`, que es lo que el archivo valida contra las claves.
+    function estructuraAGuardar() {
+      if (!config.soloPalabra || !estado.palabra) return estado.estructura;
+      return Object.assign({}, estado.estructura, {
+        n: estado.palabra.length,
+        ordenLlegada: estado.palabra.slice()
+      });
+    }
+
     function guardarArchivo() {
       if (!requiereEstructura()) return;
+      const estructura = estructuraAGuardar();
       const datos = persistencia.archivo.serializar({
         tema: config.id,
-        estructura: estado.estructura,
+        estructura,
         titulo: config.titulo,
         sinClaves: !!config.sinClaves
       });
       const nombre = persistencia.archivo.nombreSugerido({
         tema: config.id,
-        estructura: estado.estructura,
-        detalle: config.nombreArchivo ? config.nombreArchivo(estado.estructura) : null
+        estructura,
+        detalle: config.nombreArchivo ? config.nombreArchivo(estructura) : null
       });
       persistencia.archivo.guardar({ datos, nombre }).then((resultado) => {
         if (!resultado.exito) return;
@@ -2935,7 +2956,9 @@
         // no hay: ahí lo que se guardó son los parámetros.
         registrarBitacora(config.sinClaves
           ? `Estructura guardada: sus parámetros, en ${resultado.nombre}.`
-          : `Estructura guardada: ${datos.claves.length} clave(s) en ${resultado.nombre}.`);
+          : config.soloPalabra
+            ? `Árbol guardado: palabra ${datos.claves.join('')}, en ${resultado.nombre}.`
+            : `Estructura guardada: ${datos.claves.length} clave(s) en ${resultado.nombre}.`);
       });
     }
 
@@ -3044,6 +3067,31 @@
         if (config.alCrear) {
           reproducirOperacion(config.alCrear({ estructura }), config.mensajeDerivacion || 'Derivación iniciada.');
         }
+        return;
+      }
+
+      // Huffman se reconstruye desde su palabra, y queda **ya construido**: abrir
+      // un archivo es preparar el escenario (CLAUDE.md 6.5). La construcción
+      // sigue ahí para recorrerla hacia atrás. Vale también para un archivo de
+      // otro árbol de letras: sus claves se leen como la palabra.
+      if (config.soloPalabra) {
+        const validacion = config.validarPalabra(datos.claves.join(''));
+        if (!validacion.valido) {
+          mostrarAlerta('error', `El archivo no trae una palabra con la que construir el árbol: ${validacion.mensaje}`);
+          return;
+        }
+        limpiarAlerta();
+        estado.palabra = validacion.letras.slice();
+        reproducirOperacion(
+          config.insertarPalabra({ estructura: estado.estructura, letras: validacion.letras }),
+          `Archivo abierto: palabra ${validacion.valor}.`
+        );
+        estado.reproductor.irAPaso(estado.pasos.length - 1);
+        // La bitácora dice lo que pasó: se abrió el archivo, no se recorrió la
+        // construcción —el primer paso se había apuntado al arrancarla—.
+        vista.componentes.bitacora.vaciar(dom.bitacora);
+        registrarBitacora(`Archivo abierto: palabra ${validacion.valor}.`);
+        mostrarAlerta('info', `Árbol abierto: palabra ${validacion.valor}, ya construido. Retroceda para ver cómo se formó.`);
         return;
       }
 

@@ -2680,6 +2680,24 @@
         document.querySelectorAll('.bosque__arbol').length === 1,
         'al terminar queda un solo árbol, que es el árbol final'
       );
+
+      // Guardar lleva la palabra (2026-10-01: el archivo salía con las claves
+      // vacías, porque el bosque no toca `estructura.claves`). Se intercepta
+      // la descarga para leer lo que se habría escrito.
+      const archivo = window.CC2.persistencia.archivo;
+      const guardarDeVerdad = archivo.guardar;
+      let guardado = null;
+      archivo.guardar = ({ datos, nombre }) => {
+        guardado = { datos, nombre };
+        return Promise.resolve({ exito: false });
+      };
+      control('guardar').click();
+      archivo.guardar = guardarDeVerdad;
+      afirmar(
+        !!guardado && guardado.datos.claves.join('') === 'ciencias' && guardado.datos.tipoClave === 'alfabetica'
+          && guardado.nombre === 'huffman-ciencias.cc2',
+        `guardar el árbol guarda su palabra (${guardado ? `${guardado.nombre}: ${guardado.datos.claves.join('')}` : 'nada'})`
+      );
       afirmar(
         document.querySelectorAll('.nodo-peso').length === 5,
         'los cinco nodos internos llevan su peso dentro'
