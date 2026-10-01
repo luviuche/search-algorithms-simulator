@@ -1066,6 +1066,18 @@
     function renderizarArbol(paso, opciones) {
       const claves = estado.estructura.claves;
       const dibujadas = formaArbol.posicionesDibujadas(estado.estructura, paso);
+      // **Sin claves, el lienzo dice qué hacer** en vez de quedar en blanco
+      // (pedido del usuario, 2026-09-30), como Huffman con su palabra. El
+      // árbol vacío no dibuja nada —ni siquiera el esqueleto de residuos
+      // múltiples, que suelto no se entendía (2026-08-30)—, y el lienzo gris
+      // y mudo no le decía al estudiante que le tocaba insertar.
+      if (dibujadas.size === 0) {
+        renderizarLienzoVacio(config.palabra
+          ? 'Inserte una letra o una palabra para empezar.'
+          : 'Inserte una clave para empezar.');
+        dom.lienzoArbol = null;
+        return;
+      }
       // El nodo del árbol es redondo, así que mide de ancho lo que de alto y
       // no lo que mediría una casilla de `l` cifras. De paso el árbol se
       // estrecha, que en residuos múltiples —donde el esqueleto entra justo—
@@ -2256,13 +2268,13 @@
       if (window.ResizeObserver) new ResizeObserver(() => marcarDesbordeAlAsentarse(el)).observe(el);
     }
 
-    function renderizarLienzoVacio() {
+    function renderizarLienzoVacio(mensaje) {
       dom.estructuraEl.className = 'estructura-vacia';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       const aviso = document.createElement('p');
       aviso.className = 'texto-nivel-5';
-      aviso.textContent = config.mensajeLienzoVacio
+      aviso.textContent = mensaje || config.mensajeLienzoVacio
         || 'Cree una estructura para empezar: elija su tamaño en el panel de la derecha.';
       dom.estructuraEl.appendChild(aviso);
       if (dom.controlElision) dom.controlElision.hidden = true;

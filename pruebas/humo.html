@@ -1348,7 +1348,13 @@
         document.querySelectorAll('.pantalla-tema__panel-lateral .panel').length === 3,
         'el panel lateral queda en tres paneles'
       );
-      afirmar(!!document.querySelector('.estructura-arbol'), 'el árbol existe desde que se entra al tema');
+      // El árbol existe desde que se entra al tema: vacío, el lienzo invita a
+      // insertar y no a crear la estructura (usuario, 2026-09-30: antes
+      // quedaba en blanco).
+      afirmar(
+        /Inserte una letra/.test((document.querySelector('.estructura-vacia') || {}).textContent || ''),
+        'el árbol existe desde que se entra al tema, y vacío dice qué hacer'
+      );
       afirmarEstructuraCentrada('árbol de búsqueda digital');
 
       // El ejercicio de clase: «prueba», en una sola operación.
@@ -1712,7 +1718,13 @@
       const operaciones = formularios[0];
 
       afirmar(formularios.length === 1, `el tema no dibuja panel de configuración (${formularios.length} formulario(s))`);
-      afirmar(!!document.querySelector('.estructura-arbol'), 'el árbol existe desde que se entra al tema');
+      // El árbol existe desde que se entra al tema: vacío, el lienzo invita a
+      // insertar y no a crear la estructura (usuario, 2026-09-30: antes
+      // quedaba en blanco).
+      afirmar(
+        /Inserte una letra/.test((document.querySelector('.estructura-vacia') || {}).textContent || ''),
+        'el árbol existe desde que se entra al tema, y vacío dice qué hacer'
+      );
       afirmarEstructuraCentrada('árbol de búsqueda digital');
 
       operaciones.querySelector('[name="palabra"]').value = 'prueba';
