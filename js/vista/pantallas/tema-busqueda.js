@@ -2384,6 +2384,11 @@
       calcularSegmentosApilado();
       habilitarReproduccion(true);
       registrarBitacora(mensajeInicial);
+      // **Cada paso se apunta una sola vez, la primera que se llega a él**
+      // (2026-09-30). La bitácora es lo que pasó, no por dónde anda la
+      // reproducción: al retroceder repetía el mensaje del paso al que se
+      // volvía, y al avanzar otra vez lo repetía de nuevo.
+      let ultimoApuntado = -1;
 
       estado.reproductor = vista.reproductor.crearReproductor({
         pasos,
@@ -2404,7 +2409,8 @@
           sincronizarAviso(indice);
           // El paso final no dice nada: el aviso sigue con la noticia de la
           // operación, y repetirla en la bitácora solo sería ruido.
-          if (paso && paso.mensaje && !paso.final) registrarBitacora(paso.mensaje);
+          if (paso && paso.mensaje && !paso.final && indice > ultimoApuntado) registrarBitacora(paso.mensaje);
+          ultimoApuntado = Math.max(ultimoApuntado, indice);
         }
       });
       // Toda operación arranca reproduciéndose sola (pedido del usuario,
@@ -2983,10 +2989,14 @@
     }
 
     // Crear: además de establecerla, la registra en la bitácora y en las
-    // recientes. Reiniciar no hace ni lo uno ni lo otro —la bitácora se vacía
+    // recientes. **Salvo en la bitácora cuando la crea la pantalla al entrar**
+    // (`alEntrar`, los temas sin configuración): la bitácora cuenta lo que el
+    // estudiante le hizo a la estructura, y al entrar a un árbol de bits decía
+    // «Árbol creado» sin que nadie hubiera creado nada (visto por el usuario,
+    // 2026-09-30). Reiniciar no hace ni lo uno ni lo otro —la bitácora se vacía
     // y la reciente ya está anotada—, y por eso son dos entradas distintas a
     // la misma función.
-    function crearYRegistrar({ n, l, tratamiento, parametros, advertencia }) {
+    function crearYRegistrar({ n, l, tratamiento, parametros, advertencia, alEntrar = false }) {
       const estructura = establecerEstructura({ n, l, tratamiento, parametros, advertencia });
       if (!estructura) return null;
 
@@ -3002,9 +3012,11 @@
       // Sin `l` no hay nada que anunciar ahí (CLAUDE.md 5.7): decir "l =
       // undefined" mentiría sobre un dato que la estructura no tiene.
       const detalleLongitud = config.sinLongitud ? '' : `, l = ${l}`;
-      registrarBitacora(config.mensajeCreacion
-        ? config.mensajeCreacion(estructura)
-        : `Estructura creada: n = ${n}${detalleLongitud}${detalleParametros}${detalleTratamiento}.`);
+      if (!alEntrar) {
+        registrarBitacora(config.mensajeCreacion
+          ? config.mensajeCreacion(estructura)
+          : `Estructura creada: n = ${n}${detalleLongitud}${detalleParametros}${detalleTratamiento}.`);
+      }
       // La estructura ya no lleva nombre propio: era el nombre por defecto del
       // archivo .cc2, y guardar quedó para el final del proyecto (CLAUDE.md
       // 10.3). La reciente se identifica por su tema y por los datos con que
@@ -3494,7 +3506,7 @@
     // decisión que tomar antes de empezar a insertar.
     if (config.sinConfiguracion) {
       const tamano = config.tamano();
-      crearYRegistrar({ n: tamano.n, l: tamano.l, tratamiento: null, parametros: {} });
+      crearYRegistrar({ n: tamano.n, l: tamano.l, tratamiento: null, parametros: {}, alEntrar: true });
     } else {
       // Y los demás entran con el lienzo diciendo qué falta, en vez de con un
       // rectángulo gris y mudo.

@@ -1355,6 +1355,12 @@
         /Inserte una letra/.test((document.querySelector('.estructura-vacia') || {}).textContent || ''),
         'el árbol existe desde que se entra al tema, y vacío dice qué hacer'
       );
+      // Pero nadie lo creó: la bitácora cuenta lo que hizo el estudiante, y al
+      // entrar decía «Árbol creado» (usuario, 2026-09-30).
+      afirmar(
+        document.querySelectorAll('.bitacora__fila').length === 0,
+        'al entrar al tema la bitácora está vacía'
+      );
       afirmarEstructuraCentrada('árbol de búsqueda digital');
 
       // El ejercicio de clase: «prueba», en una sola operación.
@@ -2579,6 +2585,23 @@
         'se marcan las dos que se van a unir'
       );
       afirmar(!document.querySelector('.tabla-codigos'), 'la tabla todavía no está: ninguna letra tiene código aún');
+
+      // Ir y volver por la traza no reescribe la historia: cada paso se
+      // apunta una vez, la primera que se llega a él (2026-09-30: al
+      // retroceder se repetía el mensaje).
+      const filasBitacora = () => document.querySelectorAll('.bitacora__fila').length;
+      const apuntadas = filasBitacora();
+      control('anterior').click();
+      control('anterior').click();
+      const alRetroceder = filasBitacora();
+      control('siguiente').click();
+      control('siguiente').click();
+      afirmar(
+        alRetroceder === apuntadas && filasBitacora() === apuntadas,
+        `retroceder y volver a avanzar no repite mensajes en la bitácora (${apuntadas} → ${alRetroceder} → ${filasBitacora()})`
+      );
+      control('siguiente').click();
+      afirmar(filasBitacora() === apuntadas + 1, 'un paso nuevo sí se apunta');
 
       agotarTraza(20);
       afirmar(

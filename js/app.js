@@ -501,7 +501,6 @@
         tamano: () => ({ n: arbol.posiciones(), l: 1 }),
         nombreEstructura: 'árbol',
         mensajeReinicio: 'Árbol vaciado: sin claves.',
-        mensajeCreacion: () => `Árbol creado: código de ${BITS} bits por letra, en bloques de ${arbol.BLOQUES.join(', ')}.`,
         detalleReciente: () => `bloques de ${arbol.BLOQUES.join(', ')} bits`,
         insertar: operar(algoritmos.residuosMultiples.insertar),
         buscar: operar(algoritmos.residuosMultiples.buscar),
@@ -573,7 +572,6 @@
         tamano: () => ({ n: dominio.arbol.posiciones(NIVELES), l: 1 }),
         nombreEstructura: 'árbol',
         mensajeReinicio: 'Árbol vaciado: sin claves.',
-        mensajeCreacion: () => `Árbol creado: código de ${BITS} bits por letra, claves solo en las hojas.`,
         detalleReciente: () => `código de ${BITS} bits por letra`,
         insertar: operar(algoritmos.residuos.insertar),
         buscar: operar(algoritmos.residuos.buscar),
@@ -645,7 +643,6 @@
         tamano: () => ({ n: dominio.arbol.posiciones(BITS), l: 1 }),
         nombreEstructura: 'árbol',
         mensajeReinicio: 'Árbol vaciado: sin claves.',
-        mensajeCreacion: () => `Árbol creado: código de ${BITS} bits por letra.`,
         detalleReciente: () => `código de ${BITS} bits por letra`,
         insertar: operar(algoritmos.arbolDigital.insertar),
         buscar: operar(algoritmos.arbolDigital.buscar),
@@ -705,7 +702,6 @@
       tamano: () => ({ n: 1, l: 1 }),
       nombreEstructura: 'árbol',
       mensajeReinicio: 'Árbol vaciado: sin palabra.',
-      mensajeCreacion: () => 'Escriba una palabra para construir su árbol.',
       detalleReciente: () => 'árbol de Huffman',
       // La palabra necesita al menos dos letras distintas: con una sola no hay
       // reducción posible y su código sería la cadena vacía.
