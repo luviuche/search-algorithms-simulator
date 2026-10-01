@@ -447,6 +447,10 @@
     document.addEventListener('DOMContentLoaded', () => {
       const vista = parametros.get('vista') || 'menu';
       if (vista === 'menu') return;
+      // La pantalla recién entrada, sin operar: ?vista=entrar&titulo=<tema del
+      // índice>. Es lo primero que ve el estudiante y lo que más fácil se
+      // olvida revisar (el cuadro vacío de Reproducción, 2026-09-30).
+      if (vista === 'entrar') return entrarATema(parametros.get('titulo'));
       if (vista === 'hash') return prepararHash({ colisiona: true });
       if (vista === 'hash-libre') return prepararHash({ colisiona: false });
       if (vista === 'anidados') return prepararAnidados();

@@ -387,16 +387,23 @@
         ['insertar', 'buscar', 'eliminar'].every((accion) => !!formularios[1].querySelector(`[data-accion="${accion}"]`)),
         'el panel de operaciones ofrece insertar, buscar y eliminar'
       );
-      // Cinco paneles y no siete: configuración, operaciones, reproducción,
-      // métricas y bitácora. No se afirma que todos quepan sin desplazar
+      // Cuatro paneles y no siete: configuración, operaciones —con la
+      // reproducción como su última fila desde el 2026-09-30—, métricas y
+      // bitácora. No se afirma que todos quepan sin desplazar
       // —a 700 px de alto no caben, y el panel lateral scrollea para eso—,
       // sino que ya no hay tres formularios repetidos empujándolos hacia
       // abajo. El alto medido queda en el registro para ver regresiones.
       const paneles = [...lateral.querySelectorAll('.panel')];
-      afirmar(paneles.length === 5, `el panel lateral tiene cinco paneles (tiene ${paneles.length})`);
+      afirmar(paneles.length === 4, `el panel lateral tiene cuatro paneles (tiene ${paneles.length})`);
       afirmar(
-        paneles[2].contains(control('siguiente')),
-        'la reproducción va justo después de las operaciones'
+        paneles[1].contains(control('siguiente')) && paneles[1].lastElementChild.contains(control('siguiente')),
+        'la reproducción es la última fila de las operaciones'
+      );
+      // Está desde que se entra, apagada hasta que hay una operación: antes
+      // nacía oculta y su tarjeta se veía como un cuadro vacío.
+      afirmar(
+        control('siguiente').getClientRects().length > 0,
+        'la reproducción está a la vista desde el principio'
       );
       registro.push(
         `  panel lateral: ${lateral.scrollHeight} px de contenido en ${lateral.clientHeight} px visibles`
@@ -1338,8 +1345,8 @@
       // entrar al tema.
       afirmar(formularios.length === 1, `el tema no dibuja panel de configuración (${formularios.length} formulario(s))`);
       afirmar(
-        document.querySelectorAll('.pantalla-tema__panel-lateral .panel').length === 4,
-        'el panel lateral queda en cuatro paneles'
+        document.querySelectorAll('.pantalla-tema__panel-lateral .panel').length === 3,
+        'el panel lateral queda en tres paneles'
       );
       afirmar(!!document.querySelector('.estructura-arbol'), 'el árbol existe desde que se entra al tema');
       afirmarEstructuraCentrada('árbol de búsqueda digital');
@@ -2519,6 +2526,14 @@
         'el panel no pide clave: en este tema no se busca ni se elimina, se construye'
       );
 
+      // Antes de la palabra no hay nada que reducir: ni el panel del cálculo
+      // ni la reproducción encendida (usuario, 2026-09-30).
+      afirmar(
+        [...document.querySelectorAll('.calculo')].every((el) => el.getClientRects().length === 0),
+        'antes de la palabra no se dibuja el panel de las reducciones'
+      );
+      afirmar(control('siguiente').disabled, 'antes de la palabra la reproducción está apagada');
+
       operaciones.querySelector('[name="palabra"]').value = 'ciencias';
       operaciones.querySelector('[data-accion="insertar-palabra"]').click();
 
@@ -2630,8 +2645,8 @@
       // Crear es la operación: la derivación tiene que estar en marcha sin que
       // nadie pulse nada más.
       afirmar(
-        !document.querySelector('[data-seccion="reproduccion"]').hidden,
-        'crear la estructura arranca la derivación: el reproductor aparece solo'
+        !document.querySelector('[data-accion="siguiente"]').disabled,
+        'crear la estructura arranca la derivación: el reproductor se enciende solo'
       );
 
       const columnas = () => [...document.querySelectorAll('.columna-indice')];

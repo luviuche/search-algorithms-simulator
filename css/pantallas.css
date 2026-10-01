@@ -433,6 +433,14 @@
   flex-wrap: wrap;
 }
 
+/* La reproducción como última fila de Operaciones (opción C, 2026-09-30),
+   separada de las operaciones por una línea. En índices va sola en su
+   tarjeta y no la lleva. */
+form.panel > .pantalla-tema__reproduccion {
+  border-top: 1px solid var(--borde);
+  padding-top: var(--espacio-3);
+}
+
 /* El reproductor en una fila (2026-09-27): los pasos a los lados, cuadrados,
    y en medio el botón que alterna entre reproducir y pausar. */
 .reproductor {

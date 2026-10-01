@@ -258,7 +258,7 @@
       estado.indicePaso = -1;
       estado.pasos = null;
       estado.segmentosApilado = null;
-      if (dom.seccionReproduccion) dom.seccionReproduccion.hidden = true;
+      habilitarReproduccion(false);
       sincronizarCalculo(null);
       aplicarVisibilidadCalculo();
       alinearCalculo();
@@ -1977,7 +1977,11 @@
         dom.escenario.appendChild(dom.tabla);
         if (dom.calculo) dom.calculo.el.hidden = true;
       } else if (dom.calculo) {
-        dom.calculo.el.hidden = false;
+        // Sin palabra no hay nada que reducir: el panel no se dibuja, como en
+        // los otros árboles (CLAUDE.md 6.7). Antes del primer árbol se leía
+        // «Reducción · Sin operación en curso» junto a la invitación a
+        // escribir una palabra (visto por el usuario, 2026-09-30).
+        dom.calculo.el.hidden = !(paso && paso.calculo && paso.calculo.length);
       }
 
       // Como en los otros árboles: **lo nuevo aparece, no salta**. En cada
@@ -2366,7 +2370,7 @@
         ordenLlegada: (estado.estructura.ordenLlegada || []).slice()
       };
       calcularSegmentosApilado();
-      dom.seccionReproduccion.hidden = false;
+      habilitarReproduccion(true);
       registrarBitacora(mensajeInicial);
 
       estado.reproductor = vista.reproductor.crearReproductor({
@@ -3172,12 +3176,22 @@
       return contenedor;
     }
 
-    // El reproductor es de la operación en curso, sea buscar o insertar: por
-    // eso vive en su propio panel y no dentro del formulario de búsqueda.
-    function crearPanelReproduccion() {
+    // **La reproducción es la última fila de Operaciones** (opción C de la
+    // maqueta, elegida por el usuario el 2026-09-30): lo que se hace y cómo
+    // se lo ve avanzar, juntos. Está siempre, con los pasos y «Reproducir»
+    // apagados hasta que hay una operación (`habilitarReproduccion`). Antes
+    // era una tarjeta propia que nacía vacía —sus botones estaban ocultos sin
+    // operación—, y sin título se veía como un cuadro blanco sin nada dentro.
+    // Donde no hay Operaciones (índices) va en una tarjeta propia, igual de
+    // siempre presente. La velocidad no se apaga: elegirla antes de operar
+    // también vale.
+    function crearReproduccion() {
       const contenido = document.createElement('div');
+      contenido.className = 'pantalla-tema__reproduccion';
+      contenido.setAttribute('role', 'group');
+      contenido.setAttribute('aria-label', 'Reproducción');
       contenido.innerHTML = `
-        <div data-seccion="reproduccion" hidden>
+        <div data-seccion="reproduccion">
           <div class="reproductor">
             <button type="button" class="boton" data-accion="anterior" title="Paso anterior" aria-label="Paso anterior">◀</button>
             <button type="button" class="boton" data-accion="reproducir">Reproducir</button>
@@ -3208,7 +3222,6 @@
         else estado.reproductor.reproducirContinuo();
       });
 
-      dom.seccionReproduccion = contenido.querySelector('[data-seccion="reproduccion"]');
       dom.controlVelocidad = contenido.querySelector('[data-control="velocidad"]');
       dom.lecturaVelocidad = contenido.querySelector('[data-salida="velocidad"]');
       dom.controlVelocidad.addEventListener('input', () => {
@@ -3217,12 +3230,13 @@
         if (estado.reproductor) estado.reproductor.establecerVelocidad(ms);
       });
 
-      // Sin título (2026-09-30): los pasos, «Reproducir» y la velocidad ya
-      // dicen qué son, y ese renglón era parte de lo que le faltaba al
-      // portátil para las métricas. El nombre queda para el lector de pantalla.
-      const panel = vista.componentes.panel.crearPanel({ contenido });
-      panel.setAttribute('aria-label', 'Reproducción');
-      return panel;
+      dom.botonesReproduccion = [...contenido.querySelectorAll('.reproductor .boton')];
+      habilitarReproduccion(false);
+      return contenido;
+    }
+
+    function habilitarReproduccion(activa) {
+      for (const boton of dom.botonesReproduccion || []) boton.disabled = !activa;
     }
 
     function crearPanelMetricas() {
@@ -3447,13 +3461,17 @@
     // Flota —no ocupa alto en el lienzo—, así que al aparecer o irse no
     // mueve la estructura.
     lienzo.appendChild(dom.alertas);
+    const reproduccion = crearReproduccion();
+    const operaciones = config.sinOperaciones ? null : crearPanelOperaciones();
+    if (operaciones) operaciones.appendChild(reproduccion);
     panelLateral.append(
       ...(config.sinConfiguracion ? [] : [(dom.configuracion = crearFormularioConfiguracion())]),
       // Índices no inserta, ni busca, ni elimina: su panel sería un campo de
       // clave que no opera sobre nada (CLAUDE.md 5.x). Crear la estructura
       // *es* la operación, y la derivación arranca con ella.
-      ...(config.sinOperaciones ? [] : [crearPanelOperaciones()]),
-      crearPanelReproduccion(),
+      ...(config.sinOperaciones
+        ? [vista.componentes.panel.crearPanel({ contenido: reproduccion })]
+        : [operaciones]),
       crearPanelMetricas(),
       vista.componentes.panel.crearPanel({ titulo: 'Bitácora', contenido: dom.bitacora })
     );
