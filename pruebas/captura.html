@@ -420,12 +420,14 @@
       // Con `?tema=` se abre el mismo archivo en otro tema, que es la gracia:
       // las claves de secuencial vistas en binaria, o en una tabla hash.
       const formularios = entrarATema(parametros.get('tema') || 'Búsqueda secuencial');
-      enviar(formularios[0], { n: 24, l: 2 });
+      enviar(formularios[0], { n: 24, l: 2, r: 3, umbralExpandir: 82, umbralReducir: 125 });
       // Insertar en una estructura ordenada es instantáneo: no hay traza que
       // agotar antes de abrir el archivo.
-      for (const clave of [11, 22, 33]) operar(formularios, 'insertar', clave);
+      if (!parametros.get('datos')) for (const clave of [11, 22, 33]) operar(formularios, 'insertar', clave);
 
-      const datos = {
+      // `&datos=<json>` reemplaza el archivo entero: así se fotografía abrir
+      // un archivo de cubetas expandido, o uno con claves que no valen aquí.
+      const datos = parametros.get('datos') ? JSON.parse(parametros.get('datos')) : {
         version: 1,
         tema: 'secuencial',
         tipoClave: 'numerica',

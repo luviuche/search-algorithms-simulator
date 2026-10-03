@@ -187,3 +187,34 @@ test('la clave rechazada viaja en el paso y cuenta para la densidad', () => {
     '88.89'
   );
 });
+
+// Guardar una tabla expandida y volver a abrirla (CLAUDE.md 10): el archivo
+// lleva más claves que cubetas —caben n × r—, y abrirlo tiene que rehacer la
+// misma tabla con el mismo n de partida, o la tabla reabierta ya no podría
+// reducirse hasta donde podía la original. Es lo que hace la pantalla al
+// abrir: crea la estructura con el `n` guardado y el `n0` de `nInicial`, y
+// reinserta en orden de llegada.
+for (const modoExpansion of ['total', 'parcial']) {
+  test(`guardar y abrir una tabla de cubetas expandida (${modoExpansion}) devuelve la misma tabla`, () => {
+    const archivo = CC2.persistencia.archivo;
+    const original = crear({ n: 2, r: 3, modoExpansion, umbralExpandir: 0.82, umbralReducir: 1.25 });
+    insertarTodas(original, CLAVES);
+    assert.ok(CLAVES.length > original.n, 'la tabla guarda más claves que cubetas');
+
+    const datos = JSON.parse(archivo.comoTexto(archivo.serializar({ tema: 'cubetas', estructura: original })));
+    assert.equal(archivo.validar(datos).valido, true);
+    assert.equal(archivo.nInicial(datos), 2);
+
+    const reabierta = crear({ n: datos.n, r: 3, modoExpansion, umbralExpandir: 0.82, umbralReducir: 1.25 });
+    reabierta.parametros.n0 = archivo.nInicial(datos);
+    insertarTodas(reabierta, datos.claves);
+    assert.equal(reabierta.n, original.n);
+    assert.equal(retrato(reabierta), retrato(original));
+
+    // Con el n0 de partida, eliminar reduce igual en las dos.
+    eliminarTodas(original, CLAVES_A_ELIMINAR);
+    eliminarTodas(reabierta, CLAVES_A_ELIMINAR);
+    assert.equal(reabierta.n, original.n);
+    assert.equal(retrato(reabierta), retrato(original));
+  });
+}

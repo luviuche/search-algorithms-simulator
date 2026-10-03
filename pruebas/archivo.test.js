@@ -165,10 +165,58 @@ test('validar rechaza versiones que no sabe leer', () => {
   assert.match(resultado.mensaje, /Versión no reconocida/);
 });
 
-test('validar rechaza un archivo con más claves de las que caben', () => {
-  const resultado = archivo.validar({ version: 1, tema: 'secuencial', n: 2, claves: [1, 2, 3] });
+// `n` es cuántas casillas tiene la tabla, no cuántas claves caben: con
+// encadenamiento la cadena no tiene tope, y una tabla así se tiene que poder
+// guardar y volver a abrir. Si caben o no lo decide el tema que abre.
+test('validar acepta más claves que n: una tabla encadenada guarda más claves que direcciones', () => {
+  const { estructura } = estructuras.crearEstructura({
+    n: 3, l: 4, tipoClave: 'numerica', modo: estructuras.MODOS.DISPERSA,
+    tratamiento: hash.TRATAMIENTOS.ENCADENAMIENTO
+  });
+  estructura.tamanoAnidado = Infinity;
+  const direccionDe = CC2.algoritmos.hash.modulo.direccionModulo;
+  for (const clave of [1000, 1003, 1006, 1009, 1001]) {
+    const pasos = hash.insertar({
+      claves: estructura.claves, n: estructura.n, clave, direccionDe, parametros: {},
+      tratamiento: estructura.tratamiento, anidados: estructura.anidados,
+      tamanoAnidado: estructura.tamanoAnidado, ordenLlegada: estructura.ordenLlegada
+    });
+    for (const paso of pasos) {
+      if (!paso.efecto) continue;
+      if (paso.efecto.posicion === undefined) estructuras.colocarEn(estructura, paso.efecto.casilla, paso.efecto.clave);
+      else estructuras.colocarEnAnidado(estructura, paso.efecto.casilla, paso.efecto.posicion, paso.efecto.clave);
+    }
+  }
+  assert.equal(estructuras.cantidadClaves(estructura), 5);
+  const datos = JSON.parse(archivo.comoTexto(archivo.serializar({ tema: 'hash-modulo', estructura })));
+  assert.equal(datos.claves.length, 5);
+  assert.equal(archivo.validar(datos).valido, true);
+});
+
+test('validar rechaza una clave que no es un número ni una letra', () => {
+  const resultado = archivo.validar({ version: 1, tema: 'secuencial', n: 4, l: 4, claves: [1000, {}, 2000] });
   assert.equal(resultado.valido, false);
-  assert.match(resultado.mensaje, /3 claves para una estructura de 2/);
+  assert.match(resultado.mensaje, /clave 2 de la lista/);
+  assert.equal(archivo.validar({ version: 1, n: 4, l: 4, claves: [[1000]] }).valido, false);
+});
+
+test('validar rechaza una longitud de clave que no es un entero positivo', () => {
+  for (const l of [0, -2, 2.5, '4']) {
+    const resultado = archivo.validar({ version: 1, tema: 'secuencial', n: 4, l, claves: [] });
+    assert.equal(resultado.valido, false, `l = ${JSON.stringify(l)}`);
+    assert.match(resultado.mensaje, /longitud de clave/);
+  }
+  // Sin `l` sí se abre: cubetas no la pide.
+  assert.equal(archivo.validar({ version: 1, tema: 'cubetas', n: 4, claves: [5, 123] }).valido, true);
+});
+
+test('nInicial devuelve el n de partida guardado, y si no cuadra, el n del archivo', () => {
+  assert.equal(archivo.nInicial({ n: 4, parametros: { n0: 2 } }), 2);
+  assert.equal(archivo.nInicial({ n: 4, parametros: {} }), 4);
+  assert.equal(archivo.nInicial({ n: 4 }), 4);
+  assert.equal(archivo.nInicial({ n: 4, parametros: { n0: 9 } }), 4);
+  assert.equal(archivo.nInicial({ n: 4, parametros: { n0: 0 } }), 4);
+  assert.equal(archivo.nInicial({ n: 4, parametros: { n0: '2' } }), 4);
 });
 
 // Una estructura a medio llenar se guarda como está: el archivo devuelve lo

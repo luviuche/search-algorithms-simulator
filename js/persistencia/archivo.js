@@ -72,15 +72,40 @@
     if (!Array.isArray(datos.claves)) {
       return { valido: false, mensaje: 'Archivo incompleto: no trae la lista de claves.' };
     }
-    // El archivo puede venir a medio llenar —se guarda como esté— pero no con
-    // más claves de las que caben.
-    if (datos.claves.length > datos.n) {
+    // **No se compara la cantidad de claves contra `n`.** `n` es cuántas
+    // casillas tiene la tabla, no cuántas claves caben: con cubetas caben
+    // `n × r`, con arreglos anidados `n × n` y con encadenamiento no hay tope.
+    // Exigir `claves ≤ n` dejaba sin poder abrir —ni en su propio tema— una
+    // tabla de cubetas expandida o una tabla encadenada. Si caben o no lo
+    // decide el tema que abre el archivo, al colocarlas, y lo avisa.
+    //
+    // Lo que sí se exige es que cada clave sea un valor y no una estructura:
+    // números, o letras en los temas de árboles. Que además valga en el tema
+    // —longitud, rango— se comprueba al abrir, con el mismo validador que una
+    // clave digitada.
+    const malformada = datos.claves.findIndex((clave) => typeof clave !== 'number' && typeof clave !== 'string');
+    if (malformada !== -1) {
       return {
         valido: false,
-        mensaje: `Archivo inconsistente: trae ${datos.claves.length} claves para una estructura de ${datos.n}.`
+        mensaje: `Archivo inconsistente: la clave ${malformada + 1} de la lista no es un número ni una letra.`
       };
     }
+    // `l` puede faltar —cubetas no la pide—, pero si viene tiene que ser una
+    // longitud: con otra cosa ninguna clave pasaría la validación.
+    if (datos.l !== undefined && datos.l !== null && (!Number.isInteger(datos.l) || datos.l < 1)) {
+      return { valido: false, mensaje: 'Archivo inconsistente: la longitud de clave (l) no es válida.' };
+    }
     return { valido: true, datos };
+  }
+
+  // El `n` con que se creó la estructura guardada. En casi todos los temas es
+  // el mismo `n` del archivo, pero en cubetas (CLAUDE.md 5.7) `n` crece al
+  // expandir y el archivo guarda el que alcanzó: el de partida va en
+  // `parametros.n0`, y es el que manda al reducir y al vaciar. Tomar el `n`
+  // expandido como `n0` dejaría la tabla reabierta sin poder volver a reducir.
+  function nInicial(datos) {
+    const n0 = datos.parametros && datos.parametros.n0;
+    return Number.isInteger(n0) && n0 >= 1 && n0 <= datos.n ? n0 : datos.n;
   }
 
   // **Un archivo se puede abrir en otro tema** (pedido del usuario,
@@ -213,6 +238,7 @@
     serializar,
     nombreSugerido,
     validar,
+    nInicial,
     compatibilidad,
     comoTexto,
     hayDialogoDeGuardado,

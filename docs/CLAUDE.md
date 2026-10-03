@@ -1279,6 +1279,12 @@ Hasta 5, en almacenamiento del navegador. **No son la copia real**: si el estudi
 
 Validar integridad antes de tocar nada: si el archivo no cuadra, la estructura que está en pantalla se queda como está.
 
+**Qué es «no cuadra»** (2026-10-02). `validar` exige que cada clave sea un número o una letra —no un objeto ni una lista— y que `l`, si viene, sea un entero positivo. **No compara la cantidad de claves contra `n`**: `n` es cuántas casillas tiene la tabla, no cuántas claves caben —con cubetas caben `n × r`, con arreglos anidados `n × n`, con encadenamiento no hay tope—, y esa comparación dejaba sin poder abrir, ni en su propio tema, una tabla de cubetas expandida o una encadenada. Si caben lo decide el tema que abre, al colocarlas, y lo avisa.
+
+**Cada clave del archivo pasa por el mismo validador que una digitada** (`validarClaveDigitada`, con la `l` de la estructura que se va a crear), antes de crearla: una clave guardada no vale más que una escrita a mano, y sin esto un archivo editado —o uno de cubetas, que no tiene `l`— colaba claves de otra longitud que rompían el orden de la binaria (§3.2). Si ninguna vale, no se abre; si valen algunas, se abre con ellas y el aviso separa las que no valían de las que no cupieron o estaban repetidas. Un archivo sin `l` abierto en un tema que la pide la toma de la configuración en pantalla, como los parámetros de un archivo ajeno.
+
+**En su propio tema, cubetas conserva su `n` de partida** (`archivo.nInicial`, que lee `parametros.n0`): la tabla se rehace con el `n` que alcanzó —reinsertar en orden de llegada sobre ese `n` da la misma tabla—, pero reducir y vaciar vuelven al de partida, no al expandido.
+
 **Un archivo se abre también en otro tema** (pedido del usuario, 2026-09-11). Era el objetivo desde el principio —«poder usar una estructura creada en secuencial en binaria»— y la primera versión lo impedía, porque exigía que el archivo fuera del tema activo. Lo que decide si se puede no es el nombre del tema sino **qué clase de claves guarda**:
 
 | | Qué pasa | Aviso |

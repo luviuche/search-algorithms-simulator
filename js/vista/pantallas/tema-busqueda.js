@@ -2511,14 +2511,16 @@
 
     // La clave que se digita no siempre es un número: los temas de búsqueda
     // por bits trabajan con letras (CLAUDE.md 5.5). Una sola puerta de entrada
-    // para las tres operaciones, que validan igual.
-    function validarClaveDigitada(texto) {
+    // para las tres operaciones, que validan igual. Abrir un archivo pasa por
+    // la misma puerta, con la `l` de la estructura que se va a crear: una clave
+    // guardada no vale más que una digitada (CLAUDE.md 3.2).
+    function validarClaveDigitada(texto, l = estado.estructura && estado.estructura.l) {
       if (config.claveEsLetra) return dominio.clave.validarLetra(texto);
       // Otras búsquedas dinámicas (CLAUDE.md 5.7) no pide l: sus claves no
       // tienen una longitud fija que exigir.
       return config.sinLongitud
         ? dominio.clave.validarClaveNumericaLibre(texto)
-        : dominio.clave.validarClaveNumerica(texto, estado.estructura.l);
+        : dominio.clave.validarClaveNumerica(texto, l);
     }
 
     function insertarClave(texto) {
@@ -2797,7 +2799,7 @@
     // la pantalla vuelve a su estado inicial. Por eso hay una sola función,
     // que el formulario llama con lo que el estudiante digitó y el botón de
     // reiniciar con lo que la estructura ya tenía.
-    function establecerEstructura({ n, l, tratamiento, parametros, advertencia }) {
+    function establecerEstructura({ n, n0 = n, l, tratamiento, parametros, advertencia }) {
       const resultado = dominio.estructura.crearEstructura({
         n,
         l,
@@ -2819,7 +2821,9 @@
       // en casi todos los temas son siempre el mismo valor, pero en otras
       // búsquedas dinámicas (CLAUDE.md 5.x) `n` cambia con las expansiones y
       // reducciones, y reiniciar tiene que volver a este, no al que alcanzó.
-      resultado.estructura.parametros.n0 = n;
+      // Al abrir un archivo de cubetas los dos difieren: la tabla se rehace
+      // con el `n` que alcanzó, pero el de partida sigue siendo el guardado.
+      resultado.estructura.parametros.n0 = n0;
       // El tamaño de la estructura secundaria no se pide: es forma de la
       // estructura y sale de `n` —o no tiene tope, con encadenamiento—. El
       // dominio lo necesita para saber cuánto cabe, y la vista para saber
@@ -3022,6 +3026,41 @@
         ? config.tamano()
         : { n: datos.n, l: config.sinLongitud ? undefined : datos.l };
 
+      // Un archivo de un tema sin `l` —cubetas— no trae longitud, y aquí hace
+      // falta una para saber qué claves valen. Se toma la de la pantalla, como
+      // los parámetros de un archivo ajeno; sin ella no se abre, en vez de
+      // crear una estructura que acepte claves de cualquier largo.
+      if (!config.sinTamano && !config.sinLongitud && tamano.l == null) {
+        const lPantalla = dom.configuracion ? Number(new FormData(dom.configuracion).get('l')) : NaN;
+        if (!Number.isInteger(lPantalla) || lPantalla < 1) {
+          mostrarAlerta('error',
+            'El archivo no trae longitud de clave (l): indíquela en la configuración antes de abrirlo.');
+          return;
+        }
+        tamano.l = lPantalla;
+      }
+
+      // **Cada clave del archivo pasa por la misma validación que una
+      // digitada** (CLAUDE.md 3.2), antes de tocar la estructura: un archivo
+      // editado a mano, o abierto en un tema con otra `l`, no puede colar una
+      // clave de otra longitud —ni un texto— que después rompa el orden de la
+      // binaria. Huffman valida su palabra aparte, y un tema sin claves no
+      // tiene ninguna que validar.
+      const validas = [];
+      const invalidas = [];
+      if (!config.sinClaves && !config.soloPalabra) {
+        for (const clave of datos.claves) {
+          const validacion = validarClaveDigitada(String(clave), tamano.l);
+          if (validacion.valido) validas.push(validacion.valor);
+          else invalidas.push({ clave, mensaje: validacion.mensaje });
+        }
+        if (invalidas.length > 0 && validas.length === 0) {
+          mostrarAlerta('error',
+            `Ninguna clave del archivo vale en este tema. La clave ${invalidas[0].clave}: ${invalidas[0].mensaje}`);
+          return;
+        }
+      }
+
       let parametros = datos.parametros || {};
       let tratamiento = datos.tratamiento || null;
       if (!propio) {
@@ -3041,6 +3080,10 @@
 
       const estructura = establecerEstructura({
         n: tamano.n,
+        // En su propio tema, el `n` de partida que se guardó (cubetas lo
+        // distingue del que alcanzó); en otro, el archivo no sabe nada del
+        // `n0` de aquí.
+        n0: propio && !config.sinTamano ? persistencia.archivo.nInicial(datos) : tamano.n,
         l: tamano.l,
         tratamiento,
         parametros
@@ -3051,7 +3094,9 @@
       // mostrando los valores anteriores, diría una cosa mientras el lienzo
       // dibuja otra, y bastaría pulsar "Crear estructura" para tirar sin querer
       // lo recién abierto.
-      reflejarEnConfiguracion({ n: tamano.n, l: tamano.l, tratamiento, parametros });
+      // El `n` que se refleja es el de partida: es el que el formulario crea, y
+      // al que vuelve «Vaciar» (en cubetas no es el que alcanzó la tabla).
+      reflejarEnConfiguracion({ n: estructura.parametros.n0, l: tamano.l, tratamiento, parametros });
 
       // En un tema sin claves no hay nada que reinsertar: la estructura ya
       // quedó definida al establecerla con sus parámetros. Lo que falta es
@@ -3096,7 +3141,7 @@
       }
 
       let colocadas = 0;
-      for (const clave of datos.claves) {
+      for (const clave of validas) {
         if (colocarSinTraza(clave).exito) colocadas++;
       }
       vista.componentes.bitacora.vaciar(dom.bitacora);
@@ -3105,8 +3150,17 @@
       actualizarMetricas(null);
       limpiarAlerta();
       if (colocadas < datos.claves.length) {
+        // Dos razones distintas, y se dicen por separado: una clave inválida
+        // es un problema del archivo; una que no cupo o estaba repetida, de
+        // la estructura en que se abrió.
+        const motivos = [];
+        if (invalidas.length > 0) {
+          motivos.push(`${invalidas.length} no valía(n) en este tema (la clave ${invalidas[0].clave}: ${invalidas[0].mensaje})`);
+        }
+        const sinSitio = validas.length - colocadas;
+        if (sinSitio > 0) motivos.push(`${sinSitio} no cupo(ieron) o estaba(n) repetida(s)`);
         mostrarAlerta('advertencia',
-          `Se colocaron ${colocadas} de ${datos.claves.length} claves: el resto no cupo o no era válido.`);
+          `Se colocaron ${colocadas} de ${datos.claves.length} claves: ${motivos.join('; ')}.`);
       } else if (cruce && cruce.recoloca) {
         // Las claves son las mismas; su sitio no. Decirlo, o parecerá que el
         // archivo se abrió mal.
