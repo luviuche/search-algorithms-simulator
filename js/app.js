@@ -4,6 +4,7 @@
   const vista = window.CC2.vista;
   const persistencia = window.CC2.persistencia;
   const hashOperaciones = algoritmos.hash.operaciones;
+  const { TIPOS_PASO } = algoritmos.traza;
 
   // Catálogo de temas (CLAUDE.md 2 y 12), organizado por dos grandes temas —
   // Búsquedas y Grafos— y no por unidad del curso (pedido del docente,
@@ -233,14 +234,14 @@
         }
 
         if (paso.casilla === indice && paso.posicion === posicion) {
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada', modificadores };
-          if (paso.tipo === 'insercion') return { estado: 'insertada', modificadores };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada', modificadores };
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada', modificadores };
           // La clave que sale y la que se levanta para volver a dispersarse
           // dejan la misma casilla vacía: lo que las distingue es la bitácora.
-          if (paso.tipo === 'eliminacion' || paso.tipo === 'extraccion') {
+          if (paso.tipo === TIPOS_PASO.ELIMINACION || paso.tipo === TIPOS_PASO.EXTRACCION) {
             return { estado: 'eliminada', modificadores };
           }
-          if (paso.tipo === 'colision' || paso.tipo === 'rechazada' || paso.tipo === 'saturada') {
+          if (paso.tipo === TIPOS_PASO.COLISION || paso.tipo === TIPOS_PASO.RECHAZADA || paso.tipo === TIPOS_PASO.SATURADA) {
             return { estado: 'colision', modificadores };
           }
           return { estado: 'en-evaluacion', modificadores };
@@ -313,8 +314,8 @@
         if (!paso) return { estado: base };
 
         if (paso.casilla === indice) {
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
           return { estado: 'en-evaluacion' };
         }
         // El bloque descartado se apaga entero: es la unidad con la que este
@@ -389,9 +390,9 @@
       casillasRelevantes: (paso) => (paso.casilla ? [paso.casilla] : []),
       describirCasilla: ({ paso, indice, ocupada }) => {
         if (paso && paso.casilla === indice) {
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
-          if (paso.tipo === 'comparacion') return { estado: 'en-evaluacion' };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
+          if (paso.tipo === TIPOS_PASO.COMPARACION) return { estado: 'en-evaluacion' };
         }
         // **El rastro del recorrido** (2026-09-27): las casillas ya comparadas
         // se apagan, como lo que descarta binaria —secuencial descarta una
@@ -400,8 +401,8 @@
         // búsqueda que se agotó las descartó todas. El paso final deja la
         // estructura como queda, sin rastro (CLAUDE.md 7).
         if (paso && !paso.final && ocupada) {
-          const recorrido = paso.tipo === 'comparacion' || paso.tipo === 'encontrada';
-          if ((recorrido && indice < paso.casilla) || paso.tipo === 'no-encontrada') {
+          const recorrido = paso.tipo === TIPOS_PASO.COMPARACION || paso.tipo === TIPOS_PASO.ENCONTRADA;
+          if ((recorrido && indice < paso.casilla) || paso.tipo === TIPOS_PASO.NO_ENCONTRADA) {
             return { estado: 'descartada' };
           }
         }
@@ -432,13 +433,13 @@
         // desplazamiento se ve moverse.
         // Tampoco el paso final: el apilado se va y queda la estructura como
         // queda, con la clave hallada (CLAUDE.md 6.3).
-        aplicaA: (paso) => paso.tipo !== 'eliminacion' && paso.tipo !== 'desplazamiento' && !paso.final
+        aplicaA: (paso) => paso.tipo !== TIPOS_PASO.ELIMINACION && paso.tipo !== TIPOS_PASO.DESPLAZAMIENTO && !paso.final
       },
       casillasRelevantes: (paso) => [paso.inicio, paso.medio, paso.fin, paso.casilla].filter(Boolean),
       describirCasilla: ({ paso, indice, ocupada }) => {
         if (!paso) return { estado: ocupada ? 'ocupada' : 'vacia' };
 
-        if (paso.tipo === 'eliminacion' && paso.casilla === indice) {
+        if (paso.tipo === TIPOS_PASO.ELIMINACION && paso.casilla === indice) {
           return { estado: 'eliminada' };
         }
 
@@ -451,7 +452,7 @@
         // regla que secuencial —«apagado es descartado»—, y con lo descartado
         // apagado el azul ya no decía nada que no se viera.
         if (paso.medio === indice) {
-          return { estado: paso.tipo === 'encontrada' ? 'encontrada' : 'en-evaluacion' };
+          return { estado: paso.tipo === TIPOS_PASO.ENCONTRADA ? 'encontrada' : 'en-evaluacion' };
         }
         return { estado: ocupada ? 'ocupada' : 'vacia' };
       },
@@ -517,13 +518,13 @@
         describirCasilla: ({ paso, indice, ocupada }) => {
           const base = ocupada ? 'ocupada' : 'vacia';
           if (!paso || paso.casilla !== indice) return { estado: base };
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'insercion') return { estado: 'insertada' };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
-          if (paso.tipo === 'rechazada') return { estado: 'colision' };
-          if (paso.tipo === 'colision') return { estado: 'colision' };
-          if (paso.tipo === 'no-encontrada') return { estado: base, modificadores: ['direccion'] };
-          if (paso.tipo === 'ramificacion') return { estado: 'en-evaluacion' };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada' };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
+          if (paso.tipo === TIPOS_PASO.RECHAZADA) return { estado: 'colision' };
+          if (paso.tipo === TIPOS_PASO.COLISION) return { estado: 'colision' };
+          if (paso.tipo === TIPOS_PASO.NO_ENCONTRADA) return { estado: base, modificadores: ['direccion'] };
+          if (paso.tipo === TIPOS_PASO.RAMIFICACION) return { estado: 'en-evaluacion' };
           return { estado: base };
         },
         metricas: [
@@ -588,17 +589,17 @@
         describirCasilla: ({ paso, indice, ocupada }) => {
           const base = ocupada ? 'ocupada' : 'vacia';
           if (!paso || paso.casilla !== indice) return { estado: base };
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'insercion') return { estado: 'insertada' };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
-          if (paso.tipo === 'rechazada') return { estado: 'colision' };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada' };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
+          if (paso.tipo === TIPOS_PASO.RECHAZADA) return { estado: 'colision' };
           // El choque de dos claves en la misma hoja no es un error sino el
           // caso normal, pero es el momento que hay que mirar: las dos bajan.
-          if (paso.tipo === 'colision') return { estado: 'colision' };
+          if (paso.tipo === TIPOS_PASO.COLISION) return { estado: 'colision' };
           // La posición vacía donde se cortó el camino se dibuja como casilla
           // —no como punto— para que se vea que ahí es donde la clave iría.
-          if (paso.tipo === 'no-encontrada') return { estado: base, modificadores: ['direccion'] };
-          if (paso.tipo === 'ramificacion') return { estado: 'en-evaluacion' };
+          if (paso.tipo === TIPOS_PASO.NO_ENCONTRADA) return { estado: base, modificadores: ['direccion'] };
+          if (paso.tipo === TIPOS_PASO.RAMIFICACION) return { estado: 'en-evaluacion' };
           return { estado: base };
         },
         metricas: [
@@ -659,14 +660,14 @@
         describirCasilla: ({ paso, indice, ocupada }) => {
           const base = ocupada ? 'ocupada' : 'vacia';
           if (!paso || paso.casilla !== indice) return { estado: base };
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada' };
-          if (paso.tipo === 'insercion') return { estado: 'insertada' };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada' };
           // La clave que sale y la hoja que sube dejan la misma posición
           // vacía: lo que las distingue es la bitácora.
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada' };
-          if (paso.tipo === 'rechazada') return { estado: 'colision' };
-          if (paso.tipo === 'no-encontrada') return { estado: base, modificadores: ['direccion'] };
-          if (paso.tipo === 'comparacion') return { estado: 'en-evaluacion' };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
+          if (paso.tipo === TIPOS_PASO.RECHAZADA) return { estado: 'colision' };
+          if (paso.tipo === TIPOS_PASO.NO_ENCONTRADA) return { estado: base, modificadores: ['direccion'] };
+          if (paso.tipo === TIPOS_PASO.COMPARACION) return { estado: 'en-evaluacion' };
           return { estado: base };
         },
         metricas: [
@@ -1071,10 +1072,10 @@
 
         const modificadores = [];
         if (paso.casilla === indice && paso.posicion === posicion) {
-          if (paso.tipo === 'encontrada') return { estado: 'encontrada', modificadores };
-          if (paso.tipo === 'insercion') return { estado: 'insertada', modificadores };
-          if (paso.tipo === 'eliminacion') return { estado: 'eliminada', modificadores };
-          if (paso.tipo === 'colision') return { estado: 'colision', modificadores };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada', modificadores };
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada', modificadores };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada', modificadores };
+          if (paso.tipo === TIPOS_PASO.COLISION) return { estado: 'colision', modificadores };
           return { estado: 'en-evaluacion', modificadores };
         }
         if (posicion === undefined && paso.colision === indice) return { estado: 'colision', modificadores };

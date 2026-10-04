@@ -2,6 +2,7 @@
   const dominio = window.CC2.dominio;
   const vista = window.CC2.vista;
   const persistencia = window.CC2.persistencia;
+  const { TIPOS_PASO } = window.CC2.algoritmos.traza;
 
   // Ritmo del llenado automático (CLAUDE.md 7). No reproduce la traza de cada
   // clave —llenar es preparar el escenario, no la lección— pero sí tiene que
@@ -905,7 +906,7 @@
     function esBifurcacion(indice, paso) {
       if (!config.clavesSoloEnHojas) return false;
       if (estado.estructura.claves[indice - 1] !== undefined) return false;
-      return !(paso && paso.casilla === indice && paso.tipo !== 'ramificacion');
+      return !(paso && paso.casilla === indice && paso.tipo !== TIPOS_PASO.RAMIFICACION);
     }
 
     // Con identidad propia, como las casillas: sin ella el FLIP no la veía, y
@@ -2443,7 +2444,6 @@
     const CONSERVAR_SIEMPRE = ['comparaciones', 'accesos'];
     const UBICACION_DE_LA_CLAVE = ['casilla', 'posicion', 'medio'];
     function pasoFinal(ultimo) {
-      const { TIPOS_PASO } = window.CC2.algoritmos.traza;
       const hallada = ultimo.tipo === TIPOS_PASO.ENCONTRADA;
       const final = {
         tipo: hallada ? TIPOS_PASO.ENCONTRADA : TIPOS_PASO.FINAL,
