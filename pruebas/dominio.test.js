@@ -76,3 +76,41 @@ test('insertar devuelve el índice en base 1', () => {
   const resultado = estructura.insertar(e, 1000);
   assert.equal(resultado.indice, 1);
 });
+
+// Las invariantes no dependen del formulario (CLAUDE.md 3.2): abrir un
+// archivo, o cualquier otro camino, llega al dominio sin pasar por él.
+test('validarTamano rechaza un n que no es un entero positivo', () => {
+  for (const n of [0, -3, 2.5, NaN, undefined, '10']) {
+    const resultado = limites.validarTamano(n, 4);
+    assert.equal(resultado.valido, false, `n = ${String(n)}`);
+    assert.match(resultado.mensaje, /Tamaño inválido/);
+  }
+});
+
+test('validarTamano acota l entre 1 y L_MAXIMA, y la deja faltar', () => {
+  assert.equal(limites.L_MAXIMA, 15);
+  for (const l of [0, 16, 2.5, NaN, null, '4']) {
+    const resultado = limites.validarTamano(10, l);
+    assert.equal(resultado.valido, false, `l = ${String(l)}`);
+    assert.match(resultado.mensaje, /Longitud de clave inválida/);
+  }
+  assert.equal(limites.validarTamano(10, 15).valido, true);
+  // Sin `l` —cubetas— sigue valiendo: solo queda el límite duro.
+  assert.equal(limites.validarTamano(10, undefined).valido, true);
+});
+
+test('crearEstructura no crea una estructura con n o l inválidos', () => {
+  assert.equal(estructura.crearEstructura({ n: 0, l: 4, tipoClave: 'numerica' }).exito, false);
+  assert.equal(estructura.crearEstructura({ n: 10, l: NaN, tipoClave: 'numerica' }).exito, false);
+  assert.equal(estructura.crearEstructura({ n: 10, l: 16, tipoClave: 'numerica' }).exito, false);
+  assert.equal(estructura.crearEstructura({ n: 10, l: 15, tipoClave: 'numerica' }).exito, true);
+});
+
+// Con 15 cifras la clave más grande (999 999 999 999 999) todavía es un entero
+// seguro; con 17, dos claves distintas salían como el mismo número.
+test('una clave numérica que no cabe en un entero seguro se rechaza, no se falsea', () => {
+  assert.deepEqual(clave.validarClaveNumerica('999999999999999', 15), { valido: true, valor: 999999999999999 });
+  const grande = clave.validarClaveNumerica('10000000000000001', 17);
+  assert.equal(grande.valido, false);
+  assert.match(grande.mensaje, /demasiado grande/);
+});

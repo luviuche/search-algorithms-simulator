@@ -916,7 +916,7 @@
         </label>
         ${config.sinLongitud ? '' : `
         <label class="texto-nivel-3">Longitud de clave (l)
-          <input type="number" name="l" min="1" required>
+          <input type="number" name="l" min="1" max="${dominio.limites.L_MAXIMA}" required>
         </label>`}`;
       contenedor.innerHTML = `
         <h2 class="panel__titulo texto-nivel-2">Configuración de la estructura</h2>

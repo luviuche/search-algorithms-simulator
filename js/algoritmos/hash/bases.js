@@ -52,9 +52,14 @@
     const cifrasClave = String(clave).split('').map(Number);
     const mayorExponente = cifrasClave.length - 1;
 
-    let valor = 0;
-    for (let i = 0; i < cifrasClave.length; i++) {
-      valor += cifrasClave[i] * Math.pow(base, mayorExponente - i);
+    // BigInt y no aritmética normal, como en la función cuadrado: en base 36
+    // una clave de 11 cifras ya supera el entero seguro de JavaScript, y desde
+    // las 14 el total se escribía como `1.57e+21` —y las «últimas cifras»
+    // salían del exponente—. Se acumula por Horner: cada cifra multiplica lo
+    // anterior por la base, que es el mismo polinomio del desarrollo.
+    let valor = BigInt(0);
+    for (const cifra of cifrasClave) {
+      valor = valor * BigInt(base) + BigInt(cifra);
     }
 
     // El desarrollo entero y no solo el total: es el contenido didáctico del

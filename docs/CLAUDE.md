@@ -99,6 +99,9 @@ La restricción de unicidad no es cosmética: en binaria los duplicados hacen am
 | Límite duro | 10 000 casillas | Guarda de seguridad |
 | Umbral de advertencia | 500 casillas | Sobre esto la ejecución paso a paso deja de ser observable; se advierte sin bloquear |
 | Límite derivado de `l` | Claves distintas posibles | Consecuencia de la unicidad |
+| Longitud máxima de clave | `l ≤ 15` (`limites.L_MAXIMA`) | Una clave de 15 cifras todavía es un entero seguro de JavaScript; con 16 o más, dos claves distintas podían salir como el mismo número (2026-10-04) |
+
+**`n` y `l` se validan en el dominio, no solo en el formulario** (2026-10-04): `validarTamano` exige que `n` sea un entero de al menos 1 y que `l`, si el tema la pide, sea un entero entre 1 y 15. El formulario ya los bloqueaba con `min`/`max`, pero abrir un archivo llega al dominio sin pasar por él, y las invariantes (§3.2) no pueden depender de quién llame. Por lo mismo, las funciones hash que hacen cuentas con la clave entera —cuadrado, plegamiento con producto, conversión de bases— calculan con `BigInt`: en base 36 una clave de 11 cifras ya se sale del entero seguro.
 
 **El límite derivado se valida al crear la estructura, no al insertar.** Como no hay duplicados, `n` no puede exceder la cantidad de claves distintas que existen para esa longitud: `9 × 10^(l−1)` para numéricas. Con `l = 2` solo existen 90 claves (10–99), así que `n = 150` es imposible de llenar por definición y debe rechazarse en el formulario.
 

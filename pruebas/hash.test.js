@@ -475,3 +475,18 @@ test('la base se valida al crear la estructura', () => {
   assert.equal(validarBase('10').valido, true);
   assert.match(validarBase('10').advertencia, /no transforma nada/);
 });
+
+// En base 36 una clave de 11 cifras ya supera el entero seguro, y desde las 14
+// el total se escribía como `1.57e+21`: las «últimas cifras» salían del
+// exponente. El total tiene que ser exacto, cifra por cifra.
+test('conversión de bases calcula exacto con claves largas en base alta', () => {
+  const { direccionBases } = CC2.algoritmos.hash.bases;
+  for (const clave of [12345678901, 99999999999999, 999999999999999]) {
+    const exacto = String([...String(clave)].reduce((total, cifra) => total * 36n + BigInt(cifra), 0n));
+    const resultado = direccionBases(clave, 100, { base: 36 });
+    assert.equal(resultado.calculo[1].resultado, exacto, `clave ${clave}`);
+    assert.ok(!/e/.test(resultado.calculo[1].resultado), 'sin notación exponencial');
+    // Las dos últimas cifras del total exacto, más uno.
+    assert.equal(resultado.direccion, Number(exacto.slice(-2)) + 1, `clave ${clave}`);
+  }
+});

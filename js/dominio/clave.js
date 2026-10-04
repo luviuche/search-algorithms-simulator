@@ -15,7 +15,14 @@
     if (texto[0] === '0') {
       return { valido: false, mensaje: 'Carácter no admitido: no se aceptan ceros a la izquierda.' };
     }
-    return { valido: true, valor: Number(texto) };
+    // Con `l` acotada a 15 (`limites.L_MAXIMA`) no debería pasar, pero si una
+    // clave no cabe en un entero seguro, convertirla la falsearía en silencio:
+    // mejor rechazarla, como `validarClaveNumericaLibre`.
+    const valor = Number(texto);
+    if (!Number.isSafeInteger(valor)) {
+      return { valido: false, mensaje: 'Clave demasiado grande.' };
+    }
+    return { valido: true, valor };
   }
 
   // Claves numéricas sin longitud fija (otras búsquedas dinámicas, CLAUDE.md
