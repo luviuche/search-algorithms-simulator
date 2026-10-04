@@ -97,9 +97,11 @@
 }
 
 /*
-  Tipografías locales (CLAUDE.md 8, stack sin dependencias): copiar los .woff2
-  reales a fuentes/ con estos nombres de archivo. Mientras no existan, el
-  navegador cae al stack de respaldo declarado arriba y la app sigue legible.
+  Tipografías locales (CLAUDE.md 8.3, stack sin dependencias): los .woff2
+  viven en fuentes/ con estos nombres, con sus licencias OFL al lado. Viajan
+  con la aplicación para que el computador del aula dibuje lo mismo que el de
+  quien la prepara; el stack de respaldo de arriba queda solo por si un
+  archivo falla.
 */
 @font-face {
   font-family: 'Plex Sans Condensed';

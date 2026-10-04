@@ -569,7 +569,8 @@
       document.querySelector('.pantalla-tema__volver').click();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).
+    window.CC2.listo.then(() => {
       try {
         ejecutar();
         afirmar(

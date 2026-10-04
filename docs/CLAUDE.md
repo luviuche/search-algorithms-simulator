@@ -1153,6 +1153,10 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 | 5 | Texto auxiliar y ayuda | 12 px | Plex Sans 400, `--tinta-suave` |
 | — | Claves, índices, métricas | según contexto | JetBrains Mono, **cifras tabulares obligatorias** |
 
+**Las tipografías viajan con la aplicación, en `fuentes/`** (2026-10-04). Hasta entonces la carpeta no existía: `tokens.css` declaraba los `.woff2` pero nadie los había copiado, y cada computador dibujaba con lo que tuviera instalado —Liberation Sans en uno, Arial o Segoe UI y las claves en Courier New en un Windows—. Cada letra tiene otro ancho, así que lo que cabía en una pantalla podía no caber en otra del mismo tamaño, y el computador del aula, desde el que se proyecta, es justo el que no se puede probar de antemano. Son IBM Plex Sans (400, 500), Plex Sans Condensed (400, 600) y JetBrains Mono (400, la versión completa y no el subconjunto «latin», que no trae `⌈ ⌉ ⌊ ⌋ → ⋯ ◂`), todas con licencia SIL OFL 1.1 (los `OFL-*.txt` van al lado). Cargan desde `file://` en Chromium.
+
+**La aplicación arranca con las fuentes cargadas** (`cargarFuentes` en `app.js`): el ancho de casilla se mide una sola vez y se guarda (`casilla.anchoParaCifras`), y medido con la fuente de respaldo quedaría mal toda la sesión. Si una fuente falla, al segundo arranca igual. Las páginas de prueba esperan `CC2.listo` en vez de `DOMContentLoaded`.
+
 Las cifras tabulares no son opcionales: los dígitos deben alinearse en columna al comparar claves.
 
 **Mayúsculas de verdad y no versalitas en los niveles 1 y 2** (pedido del usuario, 2026-09-11). Las versalitas solo se ven bien cuando la fuente las trae dibujadas, y mientras falten los `.woff2` de Plex Sans Condensed el navegador las falsea encogiendo las mayúsculas: el rótulo salía con la inicial grande y el resto en otra proporción —«Cᴏɴғɪɢᴜʀᴀᴄɪóɴ ᴅᴇ ʟᴀ ᴇsᴛʀᴜᴄᴛᴜʀᴀ»— y las tildes de MÉTRICAS y BITÁCORA quedaban despegadas. Se leía como otra tipografía dentro de la misma pantalla, que es justo lo que esta escala existe para evitar.

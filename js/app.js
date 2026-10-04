@@ -1173,5 +1173,39 @@
     montarPantalla(pantalla);
   }
 
-  document.addEventListener('DOMContentLoaded', mostrarMenu);
+  // **Se arranca con las fuentes ya cargadas** (2026-10-04). Las tipografías
+  // viajan con la aplicación (fuentes/, CLAUDE.md 8.3), pero el navegador las
+  // carga recién cuando algo las usa, y el ancho de casilla se mide una vez y
+  // se guarda (`casilla.anchoParaCifras`): medido con la fuente de respaldo
+  // —la del computador del aula, que no sabemos cuál es—, las casillas
+  // quedarían de otro ancho que las claves que llevan dentro durante toda la
+  // sesión. Desde archivos locales la espera es de milisegundos; si una
+  // fuente falla o tarda, al segundo se arranca igual, con la de respaldo.
+  const FUENTES = [
+    '400 16px "Plex Sans"',
+    '500 16px "Plex Sans"',
+    '400 16px "Plex Sans Condensed"',
+    '600 16px "Plex Sans Condensed"',
+    '400 16px "JetBrains Mono"'
+  ];
+  const ESPERA_MAXIMA_FUENTES_MS = 1000;
+
+  function cargarFuentes() {
+    if (!document.fonts || typeof document.fonts.load !== 'function') return Promise.resolve();
+    const todas = Promise.all(FUENTES.map((fuente) => document.fonts.load(fuente).catch(() => null)));
+    const tope = new Promise((resolver) => setTimeout(resolver, ESPERA_MAXIMA_FUENTES_MS));
+    return Promise.race([todas, tope]);
+  }
+
+  // `CC2.listo` se cumple con el menú ya montado: es lo que esperan las
+  // páginas de prueba (humo.html, captura.html) para empezar a operar, en vez
+  // de `DOMContentLoaded`, que ahora llega antes que el menú.
+  window.CC2.listo = new Promise((resolver) => {
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarFuentes().then(() => {
+        mostrarMenu();
+        resolver();
+      });
+    });
+  });
 })();

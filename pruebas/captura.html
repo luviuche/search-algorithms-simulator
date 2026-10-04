@@ -405,7 +405,8 @@
       selector.dispatchEvent(new Event('change'));
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).
+    window.CC2.listo.then(() => {
       const vista = parametros.get('vista') || 'menu';
       if (vista === 'menu') return;
       // La pantalla recién entrada, sin operar: ?vista=entrar&titulo=<tema del
@@ -432,7 +433,8 @@
     });
     // `&editar=1` abre la configuración plegada, como el enlace «Editar» del
     // resumen: es donde aparece «Cancelar».
-    document.addEventListener('DOMContentLoaded', () => {
+    // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).
+    window.CC2.listo.then(() => {
       if (!parametros.get('editar')) return;
       setTimeout(() => document.querySelector('[data-accion="editar-configuracion"]').click(), 50);
     });
