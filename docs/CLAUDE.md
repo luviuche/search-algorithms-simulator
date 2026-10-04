@@ -212,6 +212,8 @@ Quien cambia el estado es la capa de vista, que vuelve a pedir el elemento o act
 
 `vista/pantallas/tema-busqueda.js` contiene **toda** la pantalla de trabajo —configurar, operar sobre una clave (insertar, buscar, eliminar), llenado automático, reproducir la traza, elidir, métricas, bitácora, alertas— y la comparten todos los temas de búsqueda interna. Un tema nuevo no escribe pantalla: escribe una entrada en `TEMAS` (en `app.js`) con lo único que le es propio:
 
+**Los dibujos de la estructura viven aparte, en `vista/dibujos/`** (2026-10-03). La pantalla pasaba de 3700 líneas y casi la mitad era cómo dibujar cada forma —fila o tabla, apilado, árbol, bloques, índices, bosque—, todo dentro del closure de `crearPantallaTema`. Se sacó tal cual, un archivo por forma: cada uno exporta una función que la pantalla llama al armarse con lo que comparten —`estado`, `dom`, `config`, y lo que haga falta de otro dibujo (`comunes`, o el árbol para el bosque)— y devuelve sus funciones (`renderizarArbol`, `esBloques`…). Son objetos y no copias, así que lo que la pantalla cambie en ellos el dibujo lo ve. La pantalla se queda con todo lo demás: configurar, operar, reproducir, el cálculo, guardar y abrir. **Una forma nueva de dibujar va en su propio archivo de `dibujos/`**, registrado en el manifiesto antes de `tema-busqueda.js`.
+
 ```js
 {
   titulo, descripcion, orientacion, modo,        // orientacion: horizontal | vertical | arbol
@@ -315,6 +317,14 @@ Dos consecuencias para quien toque las pruebas: **se entra a un tema con un solo
 │   │   ├── pantallas/
 │   │   │   ├── menu.js           catálogo de temas y recientes
 │   │   │   └── tema-busqueda.js  pantalla de trabajo, parametrizada
+│   │   ├── dibujos/        cómo se dibuja cada forma de estructura (ver §4, «La pantalla de tema»)
+│   │   │   ├── comun.js          marcas, tramos, anidados y cadenas, llevar a la vista
+│   │   │   ├── fila.js           fila horizontal o tabla vertical (hash)
+│   │   │   ├── apilado.js        filas de binaria (§6.3)
+│   │   │   ├── arbol.js          árboles por residuo (§6.7)
+│   │   │   ├── bloques.js        búsquedas externas
+│   │   │   ├── indices.js        columnas de índices y flechas
+│   │   │   └── bosque.js         Huffman: bosque y tabla de códigos
 │   │   ├── elision.js      cálculo de casillas visibles
 │   │   ├── reproductor.js  reproduce la traza: paso, continuo, velocidad
 │   │   └── animacion.js    FLIP y utilidades de movimiento
@@ -1011,7 +1021,7 @@ Dos consecuencias:
 **El nodo de un árbol es redondo** (pedido del usuario, 2026-09-11). Los árboles se parecen a los grafos —que vienen después en el temario— y conviene que hablen el mismo idioma visual desde ya. Es **un ajuste de la casilla de siempre y no un componente nuevo**: `.arbol .casilla` redondea y ajusta el ancho, así que hereda sin tocar nada sus estados —ocupada, vacía, en evaluación, encontrada, insertada, eliminada— y sus marcas.
 
 - **Solo dentro del árbol.** En una tabla o en una fila, la cuadrícula es lo que deja comparar columna con columna, y redondear las casillas la rompería (decisión del usuario).
-- **El nodo mide 44 px y no los 40 de la casilla**, porque una caja redonda pierde las esquinas: con 40, una clave con su marca —«a ◂»— quedaba pegada al borde. El número vive en dos sitios que tienen que seguirse: `--diametro-nodo` en `tokens.css` y `DIAMETRO_NODO` en `tema-busqueda.js`, que es el que reparte las columnas.
+- **El nodo mide 44 px y no los 40 de la casilla**, porque una caja redonda pierde las esquinas: con 40, una clave con su marca —«a ◂»— quedaba pegada al borde. El número vive en dos sitios que tienen que seguirse: `--diametro-nodo` en `tokens.css` y `DIAMETRO_NODO` en `vista/dibujos/arbol.js`, que es el que reparte las columnas.
 - **El árbol se estrechó de paso**, porque el nodo redondo es más angosto que la casilla que reservaba sitio para `l` cifras: 68 px por nodo en vez de 72. En residuos múltiples, donde el esqueleto entraba justo (más abajo), es aire ganado.
 
 **En residuos el nodo interno se dibuja como un punto y no como una casilla** (decisión del usuario sobre maqueta, 2026-08-30). En todos los demás temas una casilla vacía significa «aquí cabe una clave», y en residuos eso sería mentira: ese nodo bifurca y nunca podrá guardar nada. Dibujado como punto, lo único con caja en el árbol son las claves, que es lo que hay que leer. Lo enciende `config.clavesSoloEnHojas`.

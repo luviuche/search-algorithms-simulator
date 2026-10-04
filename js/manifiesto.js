@@ -66,6 +66,13 @@
     'vista/reproductor.js',
     'vista/animacion.js',
     'vista/pantallas/menu.js',
+    'vista/dibujos/comun.js',
+    'vista/dibujos/fila.js',
+    'vista/dibujos/apilado.js',
+    'vista/dibujos/arbol.js',
+    'vista/dibujos/bloques.js',
+    'vista/dibujos/indices.js',
+    'vista/dibujos/bosque.js',
     'vista/pantallas/tema-busqueda.js'
   ];
 
