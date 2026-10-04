@@ -1034,7 +1034,10 @@
           tipo: 'numero',
           marcador: '82',
           ayuda: 'Al llegar o superar este porcentaje de ocupación —o al chocar una cubeta llena—, la estructura se expande.',
-          validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para expandir')
+          validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para expandir'),
+          // Se guarda como fracción y se digita como porcentaje: al abrir un
+          // archivo hay que volverlo a escribir como se digita para validarlo.
+          comoTexto: dominio.cubetas.umbralComoTexto
         },
         {
           nombre: 'umbralReducir',
@@ -1042,7 +1045,8 @@
           tipo: 'numero',
           marcador: '125',
           ayuda: 'Al caer por debajo de este porcentaje (claves por cubeta, sin contar los renglones), la estructura se reduce.',
-          validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para reducir')
+          validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para reducir'),
+          comoTexto: dominio.cubetas.umbralComoTexto
         }
       ],
       // La matriz "casilla principal + arreglo anidado" ya existe (CLAUDE.md

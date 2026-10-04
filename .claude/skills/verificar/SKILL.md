@@ -61,7 +61,7 @@ Las tres viven resueltas en `scripts/navegador.js`; están aquí por si hay que 
 - **El `#salida` del volcado se extrae con una expresión regular sobre el HTML, no con `sed`.** El `<pre>` lleva atributo `style` y su texto es multilínea; grepear el volcado entero cuenta las palabras del propio script y da falsos positivos.
 - **Sin `--virtual-time-budget` suficiente el volcado sale a medias**, con pruebas que ni llegaron a correr. La prueba de humo usa 30 s de tiempo virtual, que no es tiempo de reloj.
 
-Edge se busca en las rutas habituales de Windows; si está en otro sitio, indicarlo con la variable de entorno `CC2_EDGE`. **En esta máquina (Linux) no hay Edge**: los dos comandos funcionan igual con cualquier navegador de la familia Chromium, con `CC2_EDGE=/usr/bin/brave node …`.
+Se busca Edge en las rutas habituales de Windows y, si no está, el primer navegador de la familia Chromium que haya en el `PATH` (`microsoft-edge`, `chromium`, `google-chrome`…): **en Linux funciona sin configurar nada**. Para forzar otro, la variable de entorno `CC2_EDGE` (p. ej. `CC2_EDGE=/usr/bin/brave node …`).
 
 ## Qué se reporta al terminar
 

@@ -102,6 +102,14 @@
     return { valido: true, valor: porcentaje / 100 };
   }
 
+  // La inversa de `validarUmbral`: el umbral guardado (fracción) como se
+  // digita (porcentaje), para volver a validarlo al abrir un archivo. Se
+  // redondea a doce cifras porque la fracción ya trae el error de dividir
+  // por cien: 0.29 × 100 da 28.999999999999996, no 29.
+  function umbralComoTexto(fraccion) {
+    return String(Number((Number(fraccion) * 100).toPrecision(12)));
+  }
+
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
   window.CC2.dominio.cubetas = {
@@ -112,6 +120,7 @@
     densidadReducir,
     validarR,
     validarModoExpansion,
-    validarUmbral
+    validarUmbral,
+    umbralComoTexto
   };
 })();

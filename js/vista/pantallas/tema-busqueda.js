@@ -3007,7 +3007,13 @@
       poner('n', datos.n);
       poner('l', datos.l);
       poner('tratamiento', datos.tratamiento);
-      for (const [nombre, valor] of Object.entries(datos.parametros || {})) poner(nombre, valor);
+      // Escritos como se digitan, no como se guardan: el umbral de cubetas es
+      // 0.82 en la estructura y 82 en su campo. Y solo los que el tema
+      // declara, que son los que tienen campo.
+      const comoTexto = persistencia.archivo.parametrosComoTexto(datos.parametros, config.parametros);
+      for (const [nombre, texto] of comoTexto) {
+        if (texto !== '') poner(nombre, texto);
+      }
     }
 
     // Rehace la estructura y vuelve a meter las claves **en el orden en que
@@ -3061,9 +3067,32 @@
         }
       }
 
-      let parametros = datos.parametros || {};
+      let parametros;
       let tratamiento = datos.tratamiento || null;
-      if (!propio) {
+      if (propio) {
+        // **Los parámetros del propio tema se validan igual que al crear**: un
+        // archivo editado a mano —`r: 0`, una base fuera de rango, un tipo de
+        // índice que no existe— dejaría la estructura en un estado que el
+        // formulario nunca permitiría. Se reescriben como se digitan y pasan
+        // por los mismos validadores.
+        const desdeArchivo = leerParametros(
+          persistencia.archivo.parametrosComoTexto(datos.parametros, config.parametros), tamano
+        );
+        if (!desdeArchivo.valido) {
+          mostrarAlerta('error', `El archivo trae parámetros que no valen: ${desdeArchivo.mensaje}`);
+          return;
+        }
+        parametros = desdeArchivo.parametros;
+        // El tratamiento, igual: uno de los que ofrece el tema, o ninguno si
+        // el tema no los tiene.
+        if (!config.tratamientos) {
+          tratamiento = null;
+        } else if (!config.tratamientos.some((opcion) => opcion.valor === tratamiento)) {
+          mostrarAlerta('error',
+            `El archivo trae un tratamiento de colisiones que no existe: ${datos.tratamiento}.`);
+          return;
+        }
+      } else {
         const desdePantalla = dom.configuracion
           ? leerParametros(new FormData(dom.configuracion), tamano)
           : { valido: true, parametros: {} };

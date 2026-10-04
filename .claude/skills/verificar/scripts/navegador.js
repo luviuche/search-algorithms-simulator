@@ -19,18 +19,35 @@ const { pathToFileURL } = require('url');
 // scripts/ → verificar/ → skills/ → .claude/ → raíz del repositorio.
 const RAIZ = path.resolve(__dirname, '..', '..', '..', '..');
 
+// Edge en Windows, y en Linux cualquier Chromium del PATH: las banderas
+// headless son las mismas en todos (Edge es Chromium).
 const CANDIDATOS = [
   process.env.CC2_EDGE,
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
 ].filter(Boolean);
 
+const EN_EL_PATH = ['microsoft-edge', 'microsoft-edge-stable', 'chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable'];
+
+function buscarEnPath(nombre) {
+  for (const carpeta of (process.env.PATH || '').split(path.delimiter)) {
+    if (!carpeta) continue;
+    const ruta = path.join(carpeta, nombre);
+    if (fs.existsSync(ruta)) return ruta;
+  }
+  return null;
+}
+
 function navegador() {
   for (const ruta of CANDIDATOS) {
     if (fs.existsSync(ruta)) return ruta;
   }
+  for (const nombre of EN_EL_PATH) {
+    const ruta = buscarEnPath(nombre);
+    if (ruta) return ruta;
+  }
   throw new Error(
-    'No se encontró msedge.exe. Buscado en:\n  ' + CANDIDATOS.join('\n  ')
+    'No se encontró el navegador. Buscado en:\n  ' + CANDIDATOS.concat(EN_EL_PATH.map((n) => `${n} (PATH)`)).join('\n  ')
     + '\nSi está en otro sitio, indicarlo con la variable de entorno CC2_EDGE.'
   );
 }

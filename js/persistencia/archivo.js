@@ -108,6 +108,28 @@
     return Number.isInteger(n0) && n0 >= 1 && n0 <= datos.n ? n0 : datos.n;
   }
 
+  // Los parámetros guardados, escritos como los habría digitado el estudiante.
+  // Al abrir un archivo en su propio tema, sus parámetros pasan por los mismos
+  // validadores del formulario —un archivo editado a mano con `r: 0` no puede
+  // crear una tabla de cubetas sin renglones—, y esos validadores leen texto
+  // y devuelven el valor ya convertido. Por eso cada parámetro puede declarar
+  // `comoTexto`, la conversión inversa: los umbrales de cubetas se guardan
+  // como fracción (0.82) y se digitan como porcentaje (82). Sin ella vale
+  // `String`, que ya sirve para números, opciones y listas de posiciones
+  // (`[1, 3]` → `"1,3"`). Lo que falta queda vacío, como un campo sin llenar:
+  // el validador decide si tiene valor por omisión o si es un error.
+  //
+  // Devuelve un `Map`, que responde a `get` igual que el `FormData` del
+  // formulario, para que la pantalla valide las dos cosas con la misma pieza.
+  function parametrosComoTexto(guardados, declarados) {
+    const origen = guardados && typeof guardados === 'object' ? guardados : {};
+    return new Map((declarados || []).map((parametro) => {
+      const valor = origen[parametro.nombre];
+      if (valor === undefined || valor === null) return [parametro.nombre, ''];
+      return [parametro.nombre, parametro.comoTexto ? parametro.comoTexto(valor) : String(valor)];
+    }));
+  }
+
   // **Un archivo se puede abrir en otro tema** (pedido del usuario,
   // 2026-09-11): la gracia de tener las claves guardadas es poder ver las
   // mismas en secuencial y en binaria, o en dos funciones hash distintas. Lo
@@ -239,6 +261,7 @@
     nombreSugerido,
     validar,
     nInicial,
+    parametrosComoTexto,
     compatibilidad,
     comoTexto,
     hayDialogoDeGuardado,

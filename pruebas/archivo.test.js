@@ -237,3 +237,41 @@ test('lo que se escribe es JSON legible', () => {
   assert.deepEqual(JSON.parse(texto).claves, [11]);
   assert.ok(texto.includes('\n'), 'se guarda con saltos de línea, para poder leerlo a ojo');
 });
+
+// Al abrir en su propio tema, los parámetros guardados se reescriben como se
+// digitan y pasan por los validadores del formulario (CLAUDE.md 10).
+test('parametrosComoTexto escribe cada parámetro declarado como se digita', () => {
+  const declarados = [
+    { nombre: 'r' },
+    { nombre: 'posiciones' },
+    { nombre: 'umbralExpandir', comoTexto: CC2.dominio.cubetas.umbralComoTexto },
+    { nombre: 'faltante' }
+  ];
+  const texto = archivo.parametrosComoTexto(
+    { r: 3, posiciones: [1, 3], umbralExpandir: 0.82, n0: 2, ajeno: 'x' }, declarados
+  );
+  assert.deepEqual([...texto], [['r', '3'], ['posiciones', '1,3'], ['umbralExpandir', '82'], ['faltante', '']]);
+  // Responde a `get` como el FormData del formulario.
+  assert.equal(texto.get('r'), '3');
+  // Un archivo sin parámetros, o con algo que no es un objeto, deja todo vacío.
+  assert.deepEqual([...archivo.parametrosComoTexto(undefined, declarados)].map(([, valor]) => valor), ['', '', '', '']);
+  assert.deepEqual([...archivo.parametrosComoTexto('basura', [{ nombre: 'r' }])], [['r', '']]);
+});
+
+test('el umbral de cubetas sobrevive a guardarse como fracción y volver a validarse', () => {
+  const cubetas = CC2.dominio.cubetas;
+  for (const porcentaje of ['82', '125', '29', '57.5', '1']) {
+    const guardado = cubetas.validarUmbral(porcentaje, 'Umbral').valor;
+    assert.equal(cubetas.umbralComoTexto(guardado), porcentaje);
+    assert.equal(cubetas.validarUmbral(cubetas.umbralComoTexto(guardado), 'Umbral').valor, guardado);
+  }
+});
+
+test('un parámetro guardado fuera de rango no pasa el validador del tema', () => {
+  const cubetas = CC2.dominio.cubetas;
+  const texto = archivo.parametrosComoTexto({ r: 0, umbralExpandir: -0.5 }, [
+    { nombre: 'r' }, { nombre: 'umbralExpandir', comoTexto: cubetas.umbralComoTexto }
+  ]);
+  assert.equal(cubetas.validarR(texto.get('r')).valido, false);
+  assert.equal(cubetas.validarUmbral(texto.get('umbralExpandir'), 'Umbral').valido, false);
+});
