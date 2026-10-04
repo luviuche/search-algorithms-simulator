@@ -1034,7 +1034,9 @@ Dos consecuencias:
 Dos cosas que ese punto arrastró:
 
 - **El nodo por el que se está bajando sigue siendo un punto, solo que resaltado.** Hincharlo a casilla en cada paso recolocaría el árbol entero debajo del reproductor. La excepción es la posición vacía en la que **termina** un paso —donde se corta el camino de una búsqueda—: esa sí se dibuja como casilla, porque es donde la clave tendría que estar.
-- **Cada posición ocupa lo que ocupa su dibujo**, no una columna fija: un punto pide menos aire que una casilla. Con columnas de ancho único el árbol de `prueba` no cabía a lo ancho del lienzo y se ponía a scrollear. Y cuando aun así el árbol y el cálculo no caben juntos, **el árbol se encoge lo justo** (`encogerArbol`, maqueta elegida por el usuario, 2026-09-28): el panel conserva el ancho que su contenido pide y el árbol toma el resto con `zoom`, nunca por debajo de 0,6. Pasa en el portátil con residuos múltiples, que queda en torno al 75 %. Hasta entonces cedía el cálculo, y cedía cortándose: con el escenario centrado a secas, lo que no cabía se salía por los dos lados, y se perdían a la vez la primera hoja del árbol y los valores del panel. El escenario centra ahora con `safe center`: si algo no cabe, se sale solo por la derecha.
+- **Cada posición ocupa lo que ocupa su dibujo**, no una columna fija: un punto pide menos aire que una casilla. Con columnas de ancho único el árbol de `prueba` no cabía a lo ancho del lienzo y se ponía a scrollear. Y cuando aun así el árbol y el cálculo no caben juntos, **el árbol se encoge lo justo** (`ajustarArbol`, maqueta elegida por el usuario, 2026-09-28): el panel conserva el ancho que su contenido pide y el árbol toma el resto con `zoom`, nunca por debajo de 0,6. Pasa en el portátil con residuos múltiples, que queda en torno al 75 %. Hasta entonces cedía el cálculo, y cedía cortándose: con el escenario centrado a secas, lo que no cabía se salía por los dos lados, y se perdían a la vez la primera hoja del árbol y los valores del panel. El escenario centra ahora con `safe center`: si algo no cabe, se sale solo por la derecha.
+
+**Y cuando sobra lienzo, el árbol crece** (revisión de diseño, 2026-10-04), hasta 1,5×, y solo si cabe también a lo alto: con medidas fijas, en la pantalla de referencia (§6.9) el árbol ocupaba una fracción del lienzo y sus bits —la lección del tema— quedaban chicos. Dos cuidados: **el sitio del cálculo se reserva siempre**, con el mayor ancho que haya tenido el panel, para que el árbol no cambie de tamaño cuando el panel aparece o se va entre pasos; y el alto se comprueba sobre el resultado —si al crecer se sale de su caja, se recorta el crecimiento—. Los bits de las aristas van en tinta y a 13 px (antes gris a 11). **FLIP divide el delta por el zoom del elemento** (`animacion.js`): mide en la pantalla y aplica dentro del árbol ampliado, y sin esa conversión, avanzar pasos seguidos acumulaba el error hasta mandar las casillas a decenas de miles de píxeles.
 
 **Solo llevan bit las ramas que conducen a una clave** (opción 1a de la maqueta, elegida por el usuario el 2026-09-28). Las que no llevan a ninguna se dibujan punteadas y sin rótulo: siguen ahí porque el espacio sin usar es la mitad de lo que el método cuesta, pero su bit no decía nada, y en residuos múltiples los de las ramas vacías de dos subárboles vecinos se montaban («11 01 01») y el del extremo derecho se cortaba («1:»). Es también como rotula el docente en su tablero (§5.5). La rama del camino del paso lleva su bit aunque no llegue a una clave: es donde la clave tendría que estar. Se descartó la opción de rotularlas todas dándoles más aire a las vacías: el árbol se ensanchaba y en los extremos los rótulos seguían casi pegados.
 
@@ -1063,6 +1065,18 @@ Los controles no se van: paso anterior, paso siguiente y el botón que alterna e
 **El deslizador crece hacia la derecha y lleva su lectura en segundos al lado** (pedido del usuario, 2026-08-30). Se llama «Velocidad», así que a la derecha tiene que ir más rápido; pero lo que el reproductor consume es el tiempo *entre* pasos, que crece al revés. La conversión es un espejo —`min + max − valor`, en `espejarVelocidad`— y por eso sirve para los dos sentidos con una sola función. Al tocar esto hay que acordarse de que **el valor del `<input type="range">` ya no es milisegundos**: quien lo lea directo pondrá la traza al revés sin que nada más falle. Lo vigila la comprobación `controlDeVelocidad` de la prueba de humo, que mide los dos extremos y el centro.
 
 ---
+
+### 6.9 Pantallas y escala (2026-10-04)
+
+**La pantalla de referencia es la del usuario: 1920 × 1080, ventana del navegador ≈ 1920 × 950.** El usuario trabaja en escritorio y no tiene portátil; en clase se proyecta desde el computador del aula, de resolución desconocida. Las menciones a «el portátil 1366 × 640» en secciones anteriores son de repasos hechos con esa suposición: un ajuste pensado solo para ese portátil no tiene que sacrificar nada en la pantalla de referencia.
+
+**No se escala la pantalla de tema automáticamente.** Se evaluó con maquetas (diseñar a 1280 × 600 y ampliar o reducir para llenar la ventana, como el menú) y se descartó:
+
+- Una sola escala para todos los temas favorece a los que dejan lienzo vacío —hash, binaria, árboles— y perjudica a índices: a 1,5× el multinivel secundario muestra dos de sus cuatro columnas y la derivación tapa el resto, cuando en la pantalla de referencia entra entero.
+- **El zoom del navegador ya hace ese escalado**, uniforme y sin desalinear nada, porque para la página es simplemente una ventana más chica. Y es mejor que una regla fija porque se elige por tema: `Ctrl` + `+` para que hash o binaria se lean desde el fondo del salón, `Ctrl` + `0` para índices, `Ctrl` + `−` si el proyector resulta pequeño. Las maquetas «con escalado» se fotografiaron justamente así (`--force-device-scale-factor`).
+- Escalar dentro de la aplicación habría exigido que las 43 medidas que el código toma del DOM (flechas de índices, pico del cálculo, árbol) supieran de la escala.
+
+Lo que sí protege al aula desconocida es que **las fuentes viajen con la aplicación** (§8.3). Lo que queda por cuidar es que nada se rompa con el zoom del navegador entre el 80 % y el 150 % de la pantalla de referencia: ese es el rango en que se va a usar.
 
 ## 7. Animación
 
@@ -1122,21 +1136,23 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 --superficie:         #FFFFFF;  /* paneles, tarjetas, casillas ocupadas */
 --superficie-hundida: #E4E8EC;  /* lienzo de la estructura, campos */
 --tinta:              #24303B;  /* texto principal, bordes de casilla */
---tinta-suave:        #5C6B78;  /* texto secundario, índices */
+--tinta-suave:        #5C6A77;  /* texto secundario, índices — 4,5:1 sobre el lienzo */
 --borde:              #C6D0D8;  /* separadores */
---borde-fuerte:       #9AA8B4;  /* contorno de paneles */
+--borde-fuerte:       #748798;  /* contorno de paneles, aristas, tramos — 3:1 sobre el lienzo */
 ```
 
 **Estados del algoritmo** — cada uno con su refuerzo no cromático:
 
 | Estado | Borde | Relleno | Refuerzo |
 |---|---|---|---|
-| Vacía | `#B7C2CB` | `--superficie-hundida` | Contorno punteado |
+| Vacía | `#728799` | `--superficie-hundida` | Contorno punteado |
 | Ocupada | `#24303B` | `#FFFFFF` | — |
-| En evaluación | `#C77C1E` | `#F7E2BD` | Borde de 2 px |
+| En evaluación | `#B8731C` | `#F7E2BD` | Borde de 2 px |
 | Descartada | `#97A3AC` | `#E5E9EC` | Opacidad 0.5 |
 | Encontrada | `#1B7A63` | `#CFE9E1` | Glifo de verificación |
 | Colisión | `#A8324A` | `#F3D6DC` | Trama diagonal |
+
+**Contraste pensado para proyectar** (revisión de diseño, 2026-10-04). Un proyector aclara los negros y lava los colores, así que lo que hay que *ver* —bordes de casilla, líneas, el naranja de «en evaluación»— llega al menos a **3:1** contra el lienzo, y el texto gris a **4,5:1**. Antes el borde de la vacía estaba en 1,47:1, el naranja en 2,69:1 y el gris de líneas en 1,98:1: en una simulación de proyector las casillas vacías —las que muestran el tamaño de la tabla— desaparecían. Cada valor nuevo es el más claro que conserva el matiz y llega a la meta, así que los colores siguen significando lo mismo. **La descartada queda como estaba** a propósito: apagado es descartado, y que ceda es su función. Si se toca un token, medirlo de nuevo.
 
 **Ya no hay estado «rango activo»** (decisión del usuario sobre maqueta, 2026-09-27). Era el azul del tramo en juego en binaria —con un corchete encima como refuerzo— y el de los renglones en juego dentro del bloque en binaria externa. Al apagar lo descartado en el apilado de binaria y llevar el rastro a secuencial, la pregunta fue si el azul tenía que ir también a secuencial, a las externas y al hashing. El análisis: el azul significa «donde la clave todavía puede estar», y esa región solo existe en la familia de búsquedas por comparación —en hashing la clave está en su dirección o en su secuencia de sondeos, que no es un tramo; en los árboles, en el camino—. Se eligió **quitarlo en vez de extenderlo**: con lo descartado apagado, lo que sigue en juego ya se lee por contraste, y queda una sola regla para toda la aplicación, **apagado es descartado; normal, todavía puede estar**. Los tokens `--estado-rango-*` siguen existiendo porque otros usos no de estado los toman —el foco del teclado y los bloques del índice en índices—.
 

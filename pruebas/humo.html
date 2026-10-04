@@ -1799,6 +1799,10 @@
       // siempre cae dentro del viewport aunque por dentro sobresalga: hay que
       // medir el contenido y no la caja.
       const lienzo = document.querySelector('.estructura-arbol');
+      // Lo que se mide es el dibujo final, no un cuadro del FLIP: esta prueba
+      // avanza sin dejar correr el tiempo, y una casilla en vuelo todavía está
+      // donde salió (desde que el árbol se ajusta al lienzo, 2026-10-04).
+      for (const animacion of document.getAnimations()) animacion.finish();
       afirmar(
         lienzo.scrollWidth <= lienzo.clientWidth + 1,
         `el árbol cabe a lo ancho de su lienzo (${lienzo.scrollWidth} en ${lienzo.clientWidth})`
@@ -1939,6 +1943,7 @@
       afirmar(encimados.length === 0, `ningún rótulo se monta sobre otro (${encimados.length} encimado(s))`);
 
       const lienzo = document.querySelector('.estructura-arbol');
+      for (const animacion of document.getAnimations()) animacion.finish();
       afirmar(
         lienzo.scrollWidth <= lienzo.clientWidth + 1,
         `el esqueleto cabe a lo ancho de su lienzo (${lienzo.scrollWidth} en ${lienzo.clientWidth})`

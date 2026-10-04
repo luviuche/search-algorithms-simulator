@@ -17,8 +17,28 @@
     return animacion;
   }
 
+  // Cuánto amplía la pantalla al elemento: el producto del `zoom` de él y de
+  // sus ancestros. `currentCSSZoom` lo da hecho donde existe (Chrome 128,
+  // Firefox 126); si no, se recorre la cadena.
+  function zoomEfectivo(el) {
+    if (typeof el.currentCSSZoom === 'number') return el.currentCSSZoom || 1;
+    let zoom = 1;
+    for (let nodo = el; nodo && nodo.nodeType === 1; nodo = nodo.parentElement) {
+      zoom *= parseFloat(getComputedStyle(nodo).zoom) || 1;
+    }
+    return zoom;
+  }
+
   // Técnica FLIP: mide posición antes, deja que aplicarCambio() modifique el
   // DOM, mide después y anima solo el delta con transform (CLAUDE.md 7).
+  //
+  // **El delta se mide en la pantalla y se aplica dentro del elemento**: con
+  // el árbol ajustado al lienzo (`zoom`, vista/dibujos/arbol.js) un píxel del
+  // elemento no mide un píxel de pantalla, así que el delta se divide por su
+  // zoom. Sin eso el nodo salía de otro sitio, y como cada FLIP arranca de
+  // donde el anterior lo dejó en vuelo, avanzar pasos seguidos acumulaba el
+  // error hasta mandar las casillas a decenas de miles de píxeles (visto por
+  // la prueba de humo, 2026-10-04).
   function animarFlip(contenedor, aplicarCambio, { duracionMs = 400, easing = 'ease-in-out' } = {}) {
     const posicionesPrevias = new Map();
     for (const el of contenedor.querySelectorAll('[data-clave]')) {
@@ -33,8 +53,9 @@
       const previa = posicionesPrevias.get(el.dataset.clave);
       if (!previa) continue;
       const actual = el.getBoundingClientRect();
-      const deltaX = previa.left - actual.left;
-      const deltaY = previa.top - actual.top;
+      const zoom = zoomEfectivo(el);
+      const deltaX = (previa.left - actual.left) / zoom;
+      const deltaY = (previa.top - actual.top) / zoom;
       if (deltaX === 0 && deltaY === 0) continue;
       reemplazarAnimacion(el, [
         { transform: `translate(${deltaX}px, ${deltaY}px)` },

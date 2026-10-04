@@ -1,21 +1,27 @@
 :root {
-  /* Paleta (CLAUDE.md 8.2) */
+  /* Paleta (CLAUDE.md 8.2). **Pensada para proyectar** (2026-10-04): un
+     proyector aclara los negros y lava los colores, así que todo lo que hay
+     que *ver* —bordes de casilla, líneas, el naranja de «en evaluación»—
+     llega al menos a 3:1 contra el lienzo, y el texto gris a 4,5:1. Antes el
+     borde de una casilla vacía estaba en 1,47:1 y desaparecía en el
+     proyector. Cada valor es el más claro que conserva su matiz y llega a la
+     meta: si se toca uno, medirlo de nuevo. */
   --papel: #EDF0F3;
   --superficie: #FFFFFF;
   --superficie-hundida: #E4E8EC;
   --tinta: #24303B;
-  --tinta-suave: #5C6B78;
+  --tinta-suave: #5C6A77;
   --borde: #C6D0D8;
-  --borde-fuerte: #9AA8B4;
+  --borde-fuerte: #748798;
 
   /* Estados del algoritmo: únicos, no se reutilizan fuera de la casilla (CLAUDE.md 8.1) */
-  --estado-vacia-borde: #B7C2CB;
+  --estado-vacia-borde: #728799;
   --estado-vacia-relleno: var(--superficie-hundida);
   --estado-ocupada-borde: #24303B;
   --estado-ocupada-relleno: #FFFFFF;
   --estado-rango-borde: #2F6E96;
   --estado-rango-relleno: #DCE9F1;
-  --estado-evaluacion-borde: #C77C1E;
+  --estado-evaluacion-borde: #B8731C;
   --estado-evaluacion-relleno: #F7E2BD;
   --estado-descartada-borde: #97A3AC;
   --estado-descartada-relleno: #E5E9EC;

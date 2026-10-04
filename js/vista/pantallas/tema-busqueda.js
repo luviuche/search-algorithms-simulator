@@ -281,7 +281,7 @@
     const { renderizarFilaUnica } = dibujos.fila({ estado, dom, config, comunes });
     const { renderizarApilado } = dibujos.apilado({ estado, dom, config, comunes });
     const dibujoArbol = dibujos.arbol({ estado, dom, config, formaArbol, renderizarLienzoVacio, comunes });
-    const { encogerArbol, renderizarArbol } = dibujoArbol;
+    const { ajustarArbol, renderizarArbol } = dibujoArbol;
     const { esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
     const { esBosque, renderizarBosque } = dibujos.bosque({ dom, config, arbol: dibujoArbol });
@@ -422,7 +422,7 @@
       panel.style.top = '';
       panel.hidden = !dom.calculoVisible;
       if (panel.hidden) panel.style.transform = '';
-      encogerArbol();
+      ajustarArbol();
     }
 
     // La línea activa del cálculo, a la altura de la casilla que el paso sigue
@@ -1844,11 +1844,11 @@
     // La derivación de índices se angosta si con la estructura no cabe (ver
     // `apretarDerivacion`): cambiar la ventana lo vuelve a medir.
     if (esIndices() && window.ResizeObserver) new ResizeObserver(apretarDerivacion).observe(escenario);
-    // El árbol se encoge si con el cálculo no cabe (ver `encogerArbol`), así
+    // El árbol se ajusta al sitio que le deja el cálculo (ver `ajustarArbol`), así
     // que cambiar la ventana lo vuelve a medir.
     if (esArbol()) {
       escenario.classList.add('lienzo__escenario--arbol');
-      if (window.ResizeObserver) new ResizeObserver(encogerArbol).observe(escenario);
+      if (window.ResizeObserver) new ResizeObserver(ajustarArbol).observe(escenario);
     }
     // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
     // no parte de él: el panel recorta lo que se le sale a los lados.

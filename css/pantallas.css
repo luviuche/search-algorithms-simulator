@@ -1039,10 +1039,14 @@ form.panel > .pantalla-tema__reproduccion {
 
 /* El bit que hubo que leer para bajar por esa arista. Sin él el dibujo no
    dice por qué la clave tomó ese camino, que es justo lo que el tema enseña. */
+/* El bit de cada arista es la lección del tema —el camino de la clave se lee
+   en ellos—, así que va en tinta y no en gris, y a 13 px como el resto de lo
+   que se lee en la estructura (revisión de diseño, 2026-10-04). Antes era
+   gris a 11 px y en el proyector se perdía. */
 .arbol__bit {
-  fill: var(--tinta-suave);
+  fill: var(--tinta);
   font-family: var(--fuente-mono);
-  font-size: 11px;
+  font-size: 13px;
   text-anchor: middle;
 }
 
