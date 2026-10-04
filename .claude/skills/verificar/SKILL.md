@@ -17,7 +17,7 @@ npm test
 
 `node --test pruebas/*.test.js`. Cubre dominio, algoritmos, elisión — todo lo que es cálculo puro. Los archivos se cargan con el shim `pruebas/apoyo.js`, que simula `window` para poder requerir los scripts clásicos tal cual.
 
-**Un archivo nuevo en `js/` hay que registrarlo en cuatro sitios**: `index.html`, `pruebas/captura.html`, `pruebas/humo.html` y `pruebas/apoyo.js`. Si una prueba nueva falla con "no es una función", es esto.
+**Un archivo nuevo en `js/` se registra solo en `js/manifiesto.js`**: de ahí lo cargan `index.html`, `pruebas/humo.html`, `pruebas/captura.html` y `pruebas/apoyo.js`. Si no toca el DOM va en `PUROS`, o las pruebas de Node no lo verán: si una prueba nueva falla con "no es una función", es esto.
 
 ## 2. Prueba de humo por el DOM real
 

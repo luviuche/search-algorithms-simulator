@@ -185,7 +185,9 @@ Reglas concretas:
 })();
 ```
 
-`index.html` carga los scripts con `<script src="…">` normales, **en orden de dependencia** (dominio antes que algoritmos, algoritmos antes que vista, vista antes que `app.js`). No hay bundler ni resolución automática: si un archivo nuevo depende de otro, su `<script>` va después en el HTML.
+Los scripts se cargan con `<script src="…">` normales, **en orden de dependencia** (dominio antes que algoritmos, algoritmos antes que vista, vista antes que `app.js`). No hay bundler ni resolución automática: si un archivo nuevo depende de otro, va después en la lista.
+
+**La lista vive en un solo sitio: `js/manifiesto.js`** (2026-10-03). Antes estaba copiada en `index.html`, `pruebas/humo.html`, `pruebas/captura.html` y `pruebas/apoyo.js`, y olvidar una al agregar un archivo era el tropiezo de siempre. El manifiesto tiene dos grupos —`PUROS` (dominio, algoritmos, `persistencia/archivo.js`, `vista/elision.js`: nada que toque el DOM al cargarse) y `PANTALLA`— y hace dos cosas según dónde corra: en el navegador escribe un `<script>` por archivo con `document.write`, que los carga en orden y antes de lo que sigue en la página, exactamente como escritos a mano (`appendChild` los volvería asíncronos); en Node exporta las listas, y `pruebas/apoyo.js` requiere `PUROS`. Las páginas cargan `manifiesto.js` y después `app.js`, que queda fuera de la lista por ser el punto de entrada: `captura.html` mete un script suyo justo antes de él. **Un archivo nuevo se agrega en el manifiesto y en ningún otro sitio**, en `PUROS` si no toca el DOM —así lo alcanzan las pruebas de Node—.
 
 ### Convención de componentes
 
@@ -290,6 +292,7 @@ Dos consecuencias para quien toque las pruebas: **se entra a un tema con un solo
 │   ├── pantallas.css       menú, tema, alertas
 │   └── impresion.css       hoja de estilos del PDF
 ├── js/
+│   ├── manifiesto.js       la lista de scripts, en orden: la leen las páginas y las pruebas
 │   ├── dominio/
 │   │   ├── clave.js        validación, normalización, mapeo alfabético
 │   │   ├── estructura.js   invariantes, insertar, eliminar, ordenar
