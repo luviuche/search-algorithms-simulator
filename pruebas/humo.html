@@ -1113,14 +1113,20 @@
       registro.push(`  aviso de ${Math.round(cajaAviso.top)} a ${Math.round(cajaAviso.bottom)}; la tabla empieza en ${Math.round(primeraCasilla.top)}`);
       afirmar(cajaAviso.bottom <= primeraCasilla.top, 'y no se monta sobre la tabla');
 
-      // Los pasos de trámite no avisan: sin eso el aviso parpadearía en cada
-      // clic y dejaría de leerse como una noticia.
+      // Desde el 2026-10-07 el aviso narra todos los pasos (opción B de las
+      // maquetas): uno de trámite va con su número y borde neutro, para no
+      // leerse como una noticia. Y aunque mide más que el aviso de antes —un
+      // rótulo y hasta dos renglones a 16 px—, tampoco se monta sobre la tabla.
       operar(formularios, 'buscar', 7412);
       control('siguiente').click();
       afirmar(
-        !aviso(),
-        'los primeros pasos del cálculo no levantan aviso'
+        !!aviso() && aviso().classList.contains('alerta--tramite') && /Paso \d+ de \d+/.test(aviso().textContent),
+        'un paso de trámite se narra con su número y sin color de noticia'
       );
+      const cajaNarracion = aviso().getBoundingClientRect();
+      const primeraVisible = document.querySelector('.estructura-vertical .casilla').getBoundingClientRect();
+      registro.push(`  narración de ${Math.round(cajaNarracion.top)} a ${Math.round(cajaNarracion.bottom)}; la tabla empieza en ${Math.round(primeraVisible.top)}`);
+      afirmar(cajaNarracion.bottom <= primeraVisible.top, 'la narración del paso no se monta sobre la tabla');
       agotarTraza();
       afirmar(
         !!aviso() && aviso().textContent.includes('localizada'),

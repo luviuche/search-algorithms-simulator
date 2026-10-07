@@ -37,17 +37,30 @@
     return el;
   }
 
-  function crearAlerta({ tipo = 'info', icono, mensaje }) {
+  // `tipo` es la gravedad —info, advertencia, error, o `tramite` para un paso
+  // que no es noticia— y pinta el borde y el ícono. `icono` es el nombre de un
+  // ícono de iconos.js —el tipo de paso, cuando el aviso narra uno—; sin él,
+  // el de la gravedad. `rotulo` va encima del mensaje: «Paso 3 de 5».
+  function crearAlerta({ tipo = 'info', icono, rotulo, mensaje }) {
+    const iconos = window.CC2.vista.componentes.iconos;
     const el = document.createElement('div');
     el.className = `alerta alerta--${tipo}`;
     const iconoEl = document.createElement('span');
     iconoEl.className = 'alerta__icono';
-    iconoEl.setAttribute('aria-hidden', 'true');
-    iconoEl.textContent = icono || '!';
+    iconoEl.appendChild(iconos.crearIcono(iconos.existe(icono) ? icono : tipo));
+    const cuerpo = document.createElement('span');
+    cuerpo.className = 'alerta__cuerpo';
+    if (rotulo) {
+      const rotuloEl = document.createElement('span');
+      rotuloEl.className = 'alerta__rotulo';
+      rotuloEl.textContent = rotulo;
+      cuerpo.appendChild(rotuloEl);
+    }
     const mensajeEl = document.createElement('span');
-    mensajeEl.className = 'texto-nivel-4';
+    mensajeEl.className = 'alerta__mensaje texto-nivel-4';
     mensajeEl.textContent = mensaje;
-    el.append(iconoEl, mensajeEl);
+    cuerpo.appendChild(mensajeEl);
+    el.append(iconoEl, cuerpo);
     return el;
   }
 

@@ -1156,8 +1156,7 @@
   function mostrarAlertaMenu(tipo, mensaje) {
     if (!elementosDomMenu.alertas) return;
     elementosDomMenu.alertas.innerHTML = '';
-    const icono = tipo === 'error' ? '✕' : tipo === 'advertencia' ? '!' : 'i';
-    elementosDomMenu.alertas.appendChild(vista.componentes.panel.crearAlerta({ tipo, mensaje, icono }));
+    elementosDomMenu.alertas.appendChild(vista.componentes.panel.crearAlerta({ tipo, mensaje }));
   }
 
   function mostrarMenu() {

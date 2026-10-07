@@ -274,8 +274,34 @@ form input[type="checkbox"] {
 
 .alerta__icono {
   flex: none;
-  font-family: var(--fuente-mono);
-  line-height: 1;
+  display: inline-flex;
+  color: var(--tinta-suave);
+}
+
+/* Los íconos dibujados (iconos.js): trazo del color del texto, sin relleno. */
+.icono {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.alerta__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* «Paso 3 de 5»: lo que ubica el mensaje en la operación. */
+.alerta__rotulo {
+  font: 600 11px/1.3 var(--fuente-condensada);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
 }
 
 .alerta--advertencia {
@@ -289,6 +315,24 @@ form input[type="checkbox"] {
 .alerta--info {
   border-left-color: var(--alerta-info-borde);
 }
+
+/* Un paso de trámite —comparación, cálculo, sondeo—: no es noticia, y su
+   borde no compite con el de las que sí lo son. */
+.alerta--tramite {
+  border-left-color: var(--borde-fuerte);
+}
+
+/* El ícono toma el color de la gravedad: forma y color dicen lo mismo. */
+.alerta--advertencia .alerta__icono { color: var(--alerta-advertencia-borde); }
+.alerta--error .alerta__icono { color: var(--alerta-error-borde); }
+.alerta--info .alerta__icono { color: var(--alerta-info-borde); }
+
+/* Una clave hallada: el verde de la casilla encontrada (2026-10-07). */
+.alerta--exito {
+  border-left-color: var(--estado-encontrada-borde);
+}
+
+.alerta--exito .alerta__icono { color: var(--estado-encontrada-borde); }
 
 /* Métrica */
 .metrica {

@@ -924,9 +924,17 @@ Solo la inserción limpia el campo al terminar: es la que se repite clave tras c
 | `colision` | advertencia |
 | `rechazada` · `saturada` | error |
 | `no-encontrada` | advertencia |
-| `encontrada` · `insercion` · `eliminacion` | información |
+| `encontrada` | éxito (verde, como la casilla hallada; desde el 2026-10-07) |
+| `insercion` · `eliminacion` | información |
 
 Los pasos de recorrido —comparación, sondeo, cálculo, desplazamiento, extracción— **no avisan**: son el trámite, no la noticia, y avisar en cada uno haría parpadear el panel y dejaría de leerse. El aviso **se deduce del punto de la traza y no se acumula**: al retroceder vuelve a decir lo que correspondía ahí, buscando hacia atrás la última noticia, igual que la estructura se rehace desde su estado base (§5.6).
+
+**Desde el 2026-10-07 el aviso narra todos los pasos, no solo las noticias** (opción B de las maquetas, elegida por el usuario, también en la pantalla de referencia). Con el zoom del navegador a 150 % —como se proyecta— la bitácora queda bajo el borde, y el mensaje de un paso de trámite («se compara 84 con la casilla 11…») no se veía en ninguna parte. El párrafo anterior describe la regla de antes; lo que sigue valiendo de él es que el aviso se deduce del punto de la traza y no se acumula.
+
+- **Un paso de trámite va con borde neutro** (`tramite`), y las noticias con el color de la tabla: así la narración no se lee entera como una alarma. Cada uno lleva **«Paso n de N»** y el mensaje a 16 px. **Todos los avisos del lienzo van a ese tamaño**, narren un paso o no: los sueltos —un carácter no admitido, una clave de otra longitud— se habían quedado en 13 px y se veían más chicos que la narración (visto por el usuario). En binaria, ese número coincide con el rótulo de la fila del apilado.
+- **Cada tipo de paso tiene su ícono, además del color** (pedido del usuario): proyectado, los colores se lavan hasta parecerse, y hay estudiantes que no distinguen el rojo del verde. Los íconos están dibujados en SVG (`vista/componentes/iconos.js`), no son caracteres: el computador del aula tiene fuentes que no se conocen. Los avisos sueltos también los usan, en lugar de `i`, `!` y `✕`.
+- **El paso final muestra el resultado de la operación**, como antes, con el rótulo «Resultado» y al mismo tamaño que la narración.
+- **La fila de arriba del lienzo le guarda su alto al aviso** (`--alto-aviso`, `reservarAltoDelAviso`). Narrando, el aviso mide un rótulo y hasta dos renglones, y en una ventana de 700 px se montaba sobre la primera fila de la tabla hash (lo destapó la prueba de humo). La reserva solo crece mientras haya aviso, para que la estructura no suba y baje cada vez que un mensaje pasa de uno a dos renglones; vuelve a cero al limpiar el aviso o cambiar el ancho del lienzo.
 
 Detalle que hace falta y es fácil de omitir: las filas del grid van con `minmax(0, 1fr)`, no `1fr`. Sin el `minmax(0, …)` una fila de grid no puede encogerse por debajo de su contenido, y el panel lateral vuelve a estirar el lienzo aunque la pantalla tenga el alto fijado.
 

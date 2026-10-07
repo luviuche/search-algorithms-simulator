@@ -60,6 +60,7 @@
   const PANTALLA = [
     'persistencia/recientes.js',
     'vista/componentes/casilla.js',
+    'vista/componentes/iconos.js',
     'vista/componentes/panel.js',
     'vista/componentes/bitacora.js',
     'vista/componentes/calculo.js',

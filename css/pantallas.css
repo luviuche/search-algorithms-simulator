@@ -341,8 +341,10 @@
      completa», esté o no: es la fila donde flota el aviso, y si colapsaba a
      cero cuando el control se ocultaba, una tabla que llena el lienzo subía
      hasta montarse debajo del aviso (lo destapó la prueba de humo a 700 px,
-     2026-09-27). Cuando el control está, no cambia nada. */
-  grid-template-rows: minmax(20px, auto) minmax(0, 1fr);
+     2026-09-27). Cuando el control está, no cambia nada. Y mide al menos lo
+     que el aviso que flota en ella (`--alto-aviso`, ver
+     `reservarAltoDelAviso`): narrando los pasos mide más que el control. */
+  grid-template-rows: minmax(max(20px, var(--alto-aviso, 0px)), auto) minmax(0, 1fr);
   gap: var(--espacio-3);
   background: var(--superficie-hundida);
   border: 1px solid var(--borde);
@@ -411,14 +413,25 @@
   z-index: 3;
 }
 
+/* **Todos los avisos del lienzo al mismo tamaño** (2026-10-07): el mensaje a
+   16 px y el ícono a 22, narren un paso o no. Al pasar la narración a 16 px,
+   los avisos sueltos —un carácter no admitido, una clave de otra longitud—
+   se quedaron en 13 y se veían más chicos que el resto (visto por el
+   usuario). Se leen desde el fondo del aula, igual que la narración. */
 .pantalla-tema__alertas .alerta {
-  padding: 6px var(--espacio-3);
+  align-items: center;
+  padding: var(--espacio-2) var(--espacio-4) var(--espacio-2) var(--espacio-3);
   box-shadow: var(--elev-1);
 }
 
-.pantalla-tema__alertas .alerta .texto-nivel-4 {
-  font-size: 13px;
-  line-height: 1.35;
+.pantalla-tema__alertas .alerta__mensaje {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.pantalla-tema__alertas .alerta .icono {
+  width: 22px;
+  height: 22px;
 }
 
 /* Sin mensaje no se dibuja: ni su sombra queda sobre el lienzo. */

@@ -103,22 +103,49 @@
       vista.componentes.bitacora.agregarEntrada(dom.bitacora, { hora: horaActual(), mensaje });
     }
 
-    function mostrarAlerta(tipo, mensaje) {
+    // `opciones` lleva el ícono y el rótulo cuando el aviso narra un paso (ver
+    // `sincronizarAviso`); sin ellas es un aviso suelto, con el ícono de su
+    // gravedad.
+    function mostrarAlerta(tipo, mensaje, { icono, rotulo } = {}) {
       // Repintar el mismo aviso lo haría anunciarse otra vez al lector de
       // pantalla y parpadear en cada paso: si no cambió, se deja como está.
+      const clave = [tipo, icono || '', rotulo || '', mensaje].join('|');
       const vigente = dom.alertas.firstChild;
-      if (vigente && vigente.dataset.tipo === tipo && vigente.dataset.mensaje === mensaje) return;
+      if (vigente && vigente.dataset.clave === clave) return;
 
       dom.alertas.innerHTML = '';
-      const icono = tipo === 'error' ? '✕' : tipo === 'advertencia' ? '!' : 'i';
-      const el = vista.componentes.panel.crearAlerta({ tipo, mensaje, icono });
+      const el = vista.componentes.panel.crearAlerta({ tipo, mensaje, icono, rotulo });
       el.dataset.tipo = tipo;
       el.dataset.mensaje = mensaje;
+      el.dataset.clave = clave;
       dom.alertas.appendChild(el);
+      reservarAltoDelAviso();
     }
 
     function limpiarAlerta() {
       dom.alertas.innerHTML = '';
+      reservarAltoDelAviso({ desdeCero: true });
+    }
+
+    // **El aviso flota, pero la fila de arriba del lienzo le guarda su alto**
+    // (2026-10-07). Mientras fue una noticia de un renglón a 13 px cabía en
+    // los 20 px de esa fila; narrando cada paso mide un rótulo y hasta dos
+    // renglones a 16 px, y en una ventana de 700 px se montaba sobre la
+    // primera fila de la tabla. La reserva **solo crece** mientras haya
+    // aviso: si siguiera al aviso, la estructura subiría y bajaría cada vez
+    // que un mensaje pasa de uno a dos renglones. Se recalcula desde cero al
+    // limpiarse el aviso y al cambiar el ancho del lienzo, que cambia cuántos
+    // renglones ocupa.
+    let altoReservadoAviso = 0;
+    function reservarAltoDelAviso({ desdeCero = false } = {}) {
+      const lienzo = dom.alertas.parentElement;
+      if (!lienzo) return;
+      const relleno = parseFloat(getComputedStyle(lienzo).paddingTop) || 0;
+      const necesario = dom.alertas.firstElementChild
+        ? dom.alertas.offsetTop + dom.alertas.offsetHeight - relleno
+        : 0;
+      altoReservadoAviso = desdeCero ? necesario : Math.max(altoReservadoAviso, necesario);
+      lienzo.style.setProperty('--alto-aviso', `${Math.ceil(altoReservadoAviso)}px`);
     }
 
     // Qué pasos de una traza merecen un aviso, y con qué gravedad. La bitácora
@@ -131,7 +158,8 @@
       rechazada: 'error',
       saturada: 'error',
       'no-encontrada': 'advertencia',
-      encontrada: 'info',
+      // En verde, como la casilla que la marca en la estructura (2026-10-07).
+      encontrada: 'exito',
       insercion: 'info',
       eliminacion: 'info',
       // Otras búsquedas dinámicas (CLAUDE.md 5.x): que `n` acaba de cambiar es
@@ -143,18 +171,42 @@
       construido: 'info'
     });
 
-    // El aviso se deduce del punto de la traza y no se acumula: al retroceder
-    // vuelve a decir lo que correspondía ahí, igual que la estructura (ver
-    // `sincronizarEfectos`). Se busca hacia atrás porque el paso en pantalla
-    // suele ser de trámite y la noticia vigente es la última que hubo.
+    // **El aviso narra el paso en pantalla, todos y no solo las noticias**
+    // (opción B de las maquetas, elegida por el usuario el 2026-10-07). Hasta
+    // entonces el mensaje de un paso de trámite —«se compara 84 con la casilla
+    // 11…»— solo estaba en la bitácora, y con el zoom del navegador a 150 %,
+    // que es como se proyecta, la bitácora queda bajo el borde. El aviso ya
+    // tenía su sitio en el lienzo, pensado para no taparle nada a la
+    // estructura, y se lee de lejos junto a lo que explica.
+    //
+    // Lleva el número del paso y un ícono por tipo de paso, no solo el color
+    // de `AVISO_POR_PASO`: proyectado, los colores se lavan, y no todos los
+    // distinguen. Los pasos de trámite van con borde neutro (`tramite`).
+    //
+    // El paso final no trae mensaje propio: ahí el aviso vuelve a la noticia
+    // de la operación, buscándola hacia atrás como antes. Se deduce del punto
+    // de la traza y no se acumula: al retroceder dice lo que correspondía ahí,
+    // igual que la estructura (ver `sincronizarEfectos`).
     function sincronizarAviso(indicePaso) {
       if (!estado.pasos) return;
-      for (let i = Math.min(indicePaso, estado.pasos.length - 1); i >= 0; i--) {
+      const indice = Math.min(indicePaso, estado.pasos.length - 1);
+      const paso = estado.pasos[indice];
+      if (paso && !paso.final && paso.mensaje) {
+        const total = estado.pasos.filter((otro) => !otro.final).length;
+        mostrarAlerta(AVISO_POR_PASO[paso.tipo] || 'tramite', paso.mensaje, {
+          icono: paso.tipo,
+          rotulo: `Paso ${indice + 1} de ${total}`
+        });
+        return;
+      }
+      for (let i = indice; i >= 0; i--) {
         // El paso final no trae noticia propia, aunque se llame `encontrada`.
         if (estado.pasos[i].final) continue;
         const tipo = AVISO_POR_PASO[estado.pasos[i].tipo];
         if (tipo) {
-          mostrarAlerta(tipo, estado.pasos[i].mensaje);
+          // Del mismo tamaño que la narración: el resultado es lo que más
+          // importa leer, y en un aviso chico se leía peor que los pasos.
+          mostrarAlerta(tipo, estado.pasos[i].mensaje, { icono: estado.pasos[i].tipo, rotulo: 'Resultado' });
           return;
         }
       }
@@ -1965,6 +2017,14 @@
     // Flota —no ocupa alto en el lienzo—, así que al aparecer o irse no
     // mueve la estructura.
     lienzo.appendChild(dom.alertas);
+    if (window.ResizeObserver) {
+      let anchoAnterior = 0;
+      new ResizeObserver(() => {
+        if (lienzo.clientWidth === anchoAnterior) return;
+        anchoAnterior = lienzo.clientWidth;
+        reservarAltoDelAviso({ desdeCero: true });
+      }).observe(lienzo);
+    }
     const reproduccion = crearReproduccion();
     const operaciones = config.sinOperaciones ? null : crearPanelOperaciones();
     if (operaciones) operaciones.appendChild(reproduccion);
