@@ -1195,7 +1195,7 @@
       // La matriz es de n × n, así que caben 100 claves y no 10: medir contra
       // n daría más de 1 con la tabla a medio llenar.
       afirmar(
-        metricas[2] === '0.04',
+        metricas[2] === '0,04',
         `el factor de carga se mide contra n × n = 100 (reporta ${metricas[2]})`
       );
 
@@ -1308,7 +1308,7 @@
       agotarTraza();
       const metricas = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
       afirmar(metricas[0] === '3', `buscar en la cadena cuesta 3 comparaciones (reporta ${metricas[0]})`);
-      afirmar(metricas[2] === '0.50', `el factor de carga se mide contra n (reporta ${metricas[2]})`);
+      afirmar(metricas[2] === '0,50', `el factor de carga se mide contra n (reporta ${metricas[2]})`);
 
       // Al sacar la de la tabla, la primera de la cadena sube a ocuparla.
       operar(formularios, 'eliminar', 7412);
@@ -1329,7 +1329,7 @@
         'la cadena nunca se satura: ninguna clave se rechaza'
       );
       const carga = [...document.querySelectorAll('.metrica__valor')][2].textContent;
-      afirmar(carga === '2.50', `el factor de carga pasa de 1 en una tabla encadenada (reporta ${carga})`);
+      afirmar(carga === '2,50', `el factor de carga pasa de 1 en una tabla encadenada (reporta ${carga})`);
 
       // Una cadena larga elide como todo lo demás, pero **cada fila por su
       // cuenta**: no hay columnas que alinear, porque la posición en una
@@ -1615,7 +1615,7 @@
       afirmar(retrato.includes('encontrada'), 'la búsqueda localiza la clave por su dirección');
       const metricas = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
       afirmar(metricas[0] === '1', `una sola comparación, sea cual sea n (reporta ${metricas[0]})`);
-      afirmar(metricas[2] === '0.10', `el factor de carga reporta 1 de 10 (reporta ${metricas[2]})`);
+      afirmar(metricas[2] === '0,10', `el factor de carga reporta 1 de 10 (reporta ${metricas[2]})`);
 
       document.querySelector('.pantalla-tema__volver').click();
     }

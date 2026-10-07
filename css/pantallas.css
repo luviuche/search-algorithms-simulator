@@ -1667,3 +1667,22 @@ form.panel > .pantalla-tema__reproduccion {
    de lo que muestra. Lo justo para que el renglón cortado se lea como «hay
    más arriba» y no como un defecto. */
 .bitacora.desborda { --desvanecido: 32px; }
+
+/* **La bitácora ocupa el alto que sobra** (2026-10-06). Con su tope fijo de
+   260 px, en la pantalla de referencia quedaban unos 110 px vacíos debajo de
+   ella mientras la historia se cortaba arriba. Ahora la tarjeta crece hasta
+   el pie del panel lateral; cuando no sobra nada —una ventana chica, o el
+   zoom del navegador a 150 %— mide los 260 de siempre y el panel se desplaza
+   como antes. Que no encoja por debajo de lo que mide su historia, hasta
+   esos 260, lo fija `ajustarAltoMinimoBitacora` en la pantalla: vacía es una
+   tarjeta chica. */
+.pantalla-tema__panel-lateral > .panel--bitacora {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel--bitacora .bitacora {
+  flex: 1 0 0;
+  max-height: none;
+}

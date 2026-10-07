@@ -134,8 +134,8 @@
     ancha: true,
     valor: ({ estructura }) => (
       estructura
-        ? (dominio.estructura.cantidadClaves(estructura) / dominio.estructura.baseDeCarga(estructura)).toFixed(2)
-        : '0.00'
+        ? (dominio.estructura.cantidadClaves(estructura) / dominio.estructura.baseDeCarga(estructura)).toFixed(2).replace('.', ',')
+        : '0,00'
     )
   };
 

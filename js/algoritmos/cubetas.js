@@ -234,7 +234,7 @@
         contadores,
         mensajeAnuncio: huboColision
           ? `Cubeta llena: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
-          : `Densidad de ocupación del ${(densidad * 100).toFixed(1)} %: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
+          : `Densidad de ocupación del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
       }));
     }
 
@@ -372,7 +372,7 @@
           orden,
           r,
           contadores,
-          mensajeAnuncio: `Densidad de ocupación del ${(densidad * 100).toFixed(1)} %: la estructura se reduce de n = ${estructura.n} a n = ${nPropuesto}.`
+          mensajeAnuncio: `Densidad de ocupación del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se reduce de n = ${estructura.n} a n = ${nPropuesto}.`
         }));
       }
     }

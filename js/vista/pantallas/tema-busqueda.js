@@ -538,6 +538,19 @@
       if (window.ResizeObserver) new ResizeObserver(() => marcarDesbordeAlAsentarse(el)).observe(el);
     }
 
+    // La bitácora crece hasta el pie del panel lateral cuando sobra alto (ver
+    // `.panel--bitacora`), pero cuando no sobra no puede encogerse por debajo
+    // de lo que mide su historia, con el tope de siempre: así, vacía es una
+    // tarjeta chica, y llena mide 260 px y el panel se desplaza como antes.
+    // «Lo que mida, hasta 260» no se puede decir en CSS sin quitarle el
+    // crecimiento, así que se fija aquí cada vez que cambia su contenido.
+    const ALTO_MINIMO_BITACORA = 260;
+    function ajustarAltoMinimoBitacora() {
+      const bitacora = dom.bitacora;
+      bitacora.style.minHeight = '0px';
+      bitacora.style.minHeight = `${Math.min(ALTO_MINIMO_BITACORA, bitacora.scrollHeight)}px`;
+    }
+
     // **Lo que hay que hacer, en grande; dónde, debajo y señalando el panel**
     // (revisión de diseño, punto 5, 2026-10-06). Era una sola frase de 12 px
     // en gris en medio de un lienzo de 1500 × 800, lo primero que ve el
@@ -1935,7 +1948,10 @@
     // Cambia cuando entra una entrada o se vacía —vía `agregarEntrada`,
     // `vaciar` y quien sea—, así que se mira el contenido y no cada llamada.
     vigilarDesborde(dom.bitacora);
-    new MutationObserver(() => marcarDesborde(dom.bitacora)).observe(dom.bitacora, { childList: true });
+    new MutationObserver(() => {
+      ajustarAltoMinimoBitacora();
+      marcarDesborde(dom.bitacora);
+    }).observe(dom.bitacora, { childList: true });
 
     // Un árbol de bits no tiene nada que configurar —ni tamaño, ni longitud
     // de clave, ni tratamiento— así que su panel se quedaría en un título y un
@@ -1952,6 +1968,10 @@
     const reproduccion = crearReproduccion();
     const operaciones = config.sinOperaciones ? null : crearPanelOperaciones();
     if (operaciones) operaciones.appendChild(reproduccion);
+    // La bitácora se queda con el alto que sobre debajo de las métricas (ver
+    // `.panel--bitacora`).
+    const panelBitacora = vista.componentes.panel.crearPanel({ titulo: 'Bitácora', contenido: dom.bitacora });
+    panelBitacora.classList.add('panel--bitacora');
     panelLateral.append(
       ...(config.sinConfiguracion ? [] : [(dom.configuracion = crearFormularioConfiguracion())]),
       // Índices no inserta, ni busca, ni elimina: su panel sería un campo de
@@ -1961,7 +1981,7 @@
         ? [vista.componentes.panel.crearPanel({ contenido: reproduccion })]
         : [operaciones]),
       crearPanelMetricas(),
-      vista.componentes.panel.crearPanel({ titulo: 'Bitácora', contenido: dom.bitacora })
+      panelBitacora
     );
 
     pantalla.append(crearEncabezado(), lienzo, panelLateral);

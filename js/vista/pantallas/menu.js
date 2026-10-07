@@ -168,11 +168,19 @@
   // cabe justo y en una pantalla grande no deja media pantalla vacía. Con
   // `zoom` y no con `transform`: el zoom sí cambia el espacio que ocupa, y la
   // página no queda con un hueco o un desplazamiento de más.
+  //
+  // **Y también se achica, hasta 0,75** (2026-10-06). Con el piso en 1, por
+  // debajo de 1366 px el diseño no cabía y se apretaba: a 1024 las
+  // descripciones quedaban una palabra por renglón, y a 1280 —la pantalla de
+  // referencia con el zoom del navegador a 150 %, el que se usa en el aula—
+  // las de búsquedas externas ocupaban hasta cinco. 0,75 es lo que pide un
+  // proyector XGA (1024 / 1366); más abajo la letra ya no se leería.
   const REFERENCIA = { ancho: 1366, alto: 640 };
   const ESCALA_MAXIMA = 2;
+  const ESCALA_MINIMA = 0.75;
 
   function escalarAlaVentana(pantalla) {
-    const escala = Math.max(1, Math.min(
+    const escala = Math.max(ESCALA_MINIMA, Math.min(
       window.innerWidth / REFERENCIA.ancho,
       window.innerHeight / REFERENCIA.alto,
       ESCALA_MAXIMA
