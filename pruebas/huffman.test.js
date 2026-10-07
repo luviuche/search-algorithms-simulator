@@ -168,3 +168,36 @@ test('sin empate, el mensaje de ubicación no inventa a nadie detrás de quien i
   assert.ok(ubicaciones.includes('El nodo de 4/8 vuelve a la lista en su sitio por peso.'));
   assert.ok(ubicaciones.includes('El nodo de 4/8 vuelve a la lista en su sitio por peso, detrás de (4/8), que pesa lo mismo y estaba antes.'));
 });
+
+test('el espacio es un carácter más y se escribe _ (taller de JULIO CESAR)', () => {
+  const validacion = huffman.validarPalabra('JULIO CESAR');
+  assert.equal(validacion.valido, true);
+  assert.equal(validacion.valor, 'julio_cesar');
+  assert.equal(validacion.letras.length, 11);
+  // Escrito con guion bajo es la misma palabra.
+  assert.deepEqual(huffman.validarPalabra('julio_cesar').letras, validacion.letras);
+
+  const arbol = huffman.construir(validacion.letras);
+  const codigos = huffman.codigosDe(arbol.raiz);
+  assert.ok(codigos.has('_'), 'el espacio tiene su código');
+  assert.equal(codigos.size, 11);
+});
+
+test('los espacios de los extremos no cuentan; los de en medio, todos', () => {
+  assert.equal(huffman.validarPalabra('  ab ').valor, 'ab');
+  assert.equal(huffman.validarPalabra('a  b').valor, 'a__b');
+  assert.equal(huffman.validarPalabra('   ').valido, false);
+});
+
+test('fuera de letras y espacios, la palabra se rechaza', () => {
+  assert.equal(huffman.validarPalabra('julio-cesar').valido, false);
+  assert.equal(huffman.validarPalabra('abc1').valido, false);
+});
+
+test('la media de bits por letra se escribe con a lo sumo dos decimales, y dice si es exacta', () => {
+  assert.deepEqual(huffman.mediaComoTexto(20, 8), { signo: '=', valor: '2,5' });
+  assert.deepEqual(huffman.mediaComoTexto(34, 10), { signo: '=', valor: '3,4' });
+  // JULIO_CESAR: 39/11 = 3,5454…, periódica.
+  assert.deepEqual(huffman.mediaComoTexto(39, 11), { signo: '≈', valor: '3,55' });
+  assert.deepEqual(huffman.mediaComoTexto(8, 4), { signo: '=', valor: '2' });
+});

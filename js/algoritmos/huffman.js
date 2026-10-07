@@ -112,14 +112,14 @@
     // árbol. Solo entonces aparece la tabla: antes ninguna letra tendría
     // código que poner en ella.
     const tabla = dominioHuffman.tablaDeCodificacion(arbol);
+    const media = dominioHuffman.mediaComoTexto(tabla.suma, total);
     pasos.push(crearPaso(TIPOS_PASO.CONSTRUIDO, {
       total,
       bosque: [arbol.raiz],
       tabla,
       arbol,
       calculo: calculo.slice(),
-      mensaje: `Árbol construido: ${fraccion(tabla.suma, total)} = `
-        + `${(tabla.suma / total).toString().replace('.', ',')} bits por letra.`
+      mensaje: `Árbol construido: ${fraccion(tabla.suma, total)} ${media.signo} ${media.valor} bits por letra.`
     }));
 
     return pasos;

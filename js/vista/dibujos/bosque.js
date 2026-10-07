@@ -208,7 +208,7 @@
           <td>${fila.veces}/${tabla.total}</td>
           <td>${fila.producto}/${tabla.total}</td>
         </tr>`).join('');
-      const media = (tabla.suma / tabla.total).toString().replace('.', ',');
+      const media = window.CC2.dominio.huffman.mediaComoTexto(tabla.suma, tabla.total);
       el.innerHTML = `
         <thead>
           <tr>
@@ -219,7 +219,7 @@
         <tfoot>
           <tr>
             <td class="tabla-codigos__clave" colspan="4">Σ Pi × Li</td>
-            <td>${tabla.suma}/${tabla.total} = ${media}</td>
+            <td>${tabla.suma}/${tabla.total} ${media.signo} ${media.valor}</td>
           </tr>
         </tfoot>`;
       return el;

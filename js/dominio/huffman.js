@@ -154,11 +154,43 @@
     };
   }
 
+  // **El espacio es un carácter más** (pedido del docente, 2026-10-06, con el
+  // taller de JULIO CESAR): cuenta su frecuencia y lleva su código como
+  // cualquier letra. Se escribe `_`, como lo escribe el docente —JULIO_CESAR—,
+  // porque un espacio en blanco no se ve en una hoja ni en la tabla. Se
+  // aceptan las dos formas al teclear: «julio cesar» y «julio_cesar» son la
+  // misma palabra. Solo en este tema: en los otros árboles cada letra se
+  // convierte en sus bits del alfabeto (§3.4), y el espacio no tiene.
+  //
+  // Los espacios de los extremos se descartan, como en cualquier campo; los
+  // de en medio cuentan todos, y repetidos se ven repetidos (`julio__cesar`).
+  const ESPACIO = '_';
+
+  function letrasDePalabra(entrada) {
+    const texto = String(entrada).trim();
+    if (texto.length === 0) {
+      return { valido: false, mensaje: 'Palabra vacía: se esperan letras (A–Z), con espacios entre ellas si hace falta.' };
+    }
+    const letras = [];
+    for (const caracter of texto) {
+      if (caracter === ' ' || caracter === ESPACIO) {
+        letras.push(ESPACIO);
+        continue;
+      }
+      const validacion = clave.validarLetra(caracter);
+      if (!validacion.valido) {
+        return { valido: false, mensaje: 'Carácter no admitido: se esperan letras (A–Z) y espacios.' };
+      }
+      letras.push(validacion.valor);
+    }
+    return { valido: true, valor: letras.join(''), letras };
+  }
+
   // Hace falta más de una letra distinta: con una sola no hay nada que
   // reducir y su código sería la cadena vacía, que no es un código. No se
   // inventa una convención —"vale 0"— porque el docente no la ha dado.
   function validarPalabra(entrada) {
-    const validacion = clave.validarPalabra(entrada);
+    const validacion = letrasDePalabra(entrada);
     if (!validacion.valido) return validacion;
     const distintas = new Set(validacion.letras.map((l) => clave.normalizarLetra(l)));
     if (distintas.size < 2) {
@@ -170,9 +202,22 @@
     return validacion;
   }
 
+  // La media de bits por letra, `suma / total`, como se escribe: con coma y a
+  // lo sumo dos decimales. Con JULIO_CESAR da 39/11, periódica, y salía
+  // «3,5454545454545454» en la métrica, la tabla y la bitácora (2026-10-06).
+  // `signo` dice si la cifra es exacta (`=`, 20/8 = 2,5) o redondeada (`≈`,
+  // 39/11 ≈ 3,55), para no escribir una igualdad que no es cierta.
+  function mediaComoTexto(suma, total) {
+    const redondeada = Math.round((suma / total) * 100) / 100;
+    const exacta = Math.abs(redondeada * total - suma) < 1e-9;
+    return { signo: exacta ? '=' : '≈', valor: String(redondeada).replace('.', ',') };
+  }
+
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
   window.CC2.dominio.huffman = {
+    mediaComoTexto,
+    ESPACIO,
     compararNodos,
     frecuenciasDe,
     ordenInicial,

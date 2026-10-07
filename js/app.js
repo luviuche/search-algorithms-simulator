@@ -749,7 +749,7 @@
           etiqueta: 'Bits por letra',
           ancha: true,
           valor: ({ paso }) => (paso && paso.tabla
-            ? (paso.tabla.suma / paso.tabla.total).toString().replace('.', ',')
+            ? dominio.huffman.mediaComoTexto(paso.tabla.suma, paso.tabla.total).valor
             : '—')
         }
       ]
