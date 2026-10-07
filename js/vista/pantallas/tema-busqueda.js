@@ -1910,6 +1910,14 @@
     dom.alertas.setAttribute('role', 'status');
     dom.alertas.setAttribute('aria-live', 'polite');
     dom.bitacora = vista.componentes.bitacora.crearBitacora();
+    // **El renglón que se sale por arriba se desvanece** (revisión de diseño,
+    // punto 4, 2026-10-06): la bitácora baja sola hasta lo último, y el
+    // renglón de arriba quedaba cortado a media altura, como si estuviera mal
+    // dibujado. Es el mismo desvanecido del lienzo (`.desborda`), más corto.
+    // Cambia cuando entra una entrada o se vacía —vía `agregarEntrada`,
+    // `vaciar` y quien sea—, así que se mira el contenido y no cada llamada.
+    vigilarDesborde(dom.bitacora);
+    new MutationObserver(() => marcarDesborde(dom.bitacora)).observe(dom.bitacora, { childList: true });
 
     // Un árbol de bits no tiene nada que configurar —ni tamaño, ni longitud
     // de clave, ni tratamiento— así que su panel se quedaría en un título y un

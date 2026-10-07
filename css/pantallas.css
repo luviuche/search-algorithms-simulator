@@ -1634,3 +1634,8 @@ form.panel > .pantalla-tema__reproduccion {
 .desborda-der { --borde-der: transparent; }
 .desborda-arr { --borde-arr: transparent; }
 .desborda-aba { --borde-aba: transparent; }
+
+/* La bitácora mide unos 260 px: con los 80 del lienzo se desvanecía un tercio
+   de lo que muestra. Lo justo para que el renglón cortado se lea como «hay
+   más arriba» y no como un defecto. */
+.bitacora.desborda { --desvanecido: 32px; }
