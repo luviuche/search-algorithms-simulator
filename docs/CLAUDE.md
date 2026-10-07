@@ -1096,6 +1096,12 @@ Los controles no se van: paso anterior, paso siguiente y el botón que alterna e
 
 Lo que sí protege al aula desconocida es que **las fuentes viajen con la aplicación** (§8.3). Lo que queda por cuidar es que nada se rompa con el zoom del navegador entre el 80 % y el 150 % de la pantalla de referencia: ese es el rango en que se va a usar.
 
+**Revisado el 2026-10-07: nada se rompe entre el 80 % y el 150 %.** Para la página, el zoom es una ventana de otro tamaño —2400 × 1188, 1920 × 950, 1536 × 760 y 1280 × 633—, y así se revisó: las dieciséis vistas fotografiadas a los cuatro tamaños, y la prueba de humo a los cuatro (`humo.js --zoom`, que desde entonces existe para repetirlo). Las tres fallas que dio la prueba eran de la prueba: una fila de n = 24 que ya no desborda a 1920 desde que la fila se elide solo si no cabe (§6.2), dos comparaciones de posiciones del árbol que no dividían por su `zoom` y a 1920 pasaban sin mirar nada, y una de rótulos encimados que medía con el FLIP en vuelo y contaba dos ramas de nodos distintos que se cruzan un instante. Lo que a 150 % queda justo, y es diseño y no defecto:
+
+- **Los árboles de residuos se encogen mucho** (hacia 0,6×): el sitio del panel de cálculo se reserva siempre (§6.7), también sin operación, y a 1280 px se lleva un tercio del escenario.
+- **La derivación de índices no cabe a lo alto** y se desplaza por dentro: es el «estrechar y desplazar» de §5.10.
+- **La bitácora queda bajo el borde del panel lateral**: lo cubre la narración del paso en el aviso (§6.2), que está siempre a la vista.
+
 ## 7. Animación
 
 El profesor evalúa explícitamente que los bloques se muevan. Estas son las animaciones obligatorias:

@@ -1795,11 +1795,14 @@
       // que de ninguna casilla salga una arista hacia abajo. Es la diferencia
       // con el árbol digital, y la única forma de comprobarla sobre el dibujo.
       const aristas = [...document.querySelectorAll('.arbol__arista')];
+      const svgEl = document.querySelector('.arbol__aristas');
+      // En píxeles del SVG, no de pantalla: el árbol lleva `zoom`.
+      const escala = svgEl.getBoundingClientRect().width / Number(svgEl.getAttribute('width')) || 1;
       const conHijos = casillas().filter((casilla) => {
         const caja = casilla.getBoundingClientRect();
-        const svg = document.querySelector('.arbol__aristas').getBoundingClientRect();
-        const centroX = caja.left - svg.left + caja.width / 2;
-        const pie = caja.top - svg.top + caja.height;
+        const svg = svgEl.getBoundingClientRect();
+        const centroX = (caja.left - svg.left + caja.width / 2) / escala;
+        const pie = (caja.top - svg.top + caja.height) / escala;
         return aristas.some((arista) => (
           Math.abs(Number(arista.getAttribute('x1')) - centroX) < 2
           && Math.abs(Number(arista.getAttribute('y1')) - pie) < 2
@@ -1924,11 +1927,16 @@
       // Las claves siguen viviendo solo en las hojas: de ninguna casilla sale
       // una arista hacia abajo.
       const aristas = [...document.querySelectorAll('.arbol__arista')];
-      const svg = document.querySelector('.arbol__aristas').getBoundingClientRect();
+      const svgEl = document.querySelector('.arbol__aristas');
+      const svg = svgEl.getBoundingClientRect();
+      // El árbol crece o encoge con el lienzo (`zoom`): la pantalla mide en
+      // píxeles escalados y el SVG en los suyos. Sin dividir, a otro tamaño
+      // de ventana la comparación no casaba nada y pasaba sin mirar.
+      const escala = svg.width / Number(svgEl.getAttribute('width')) || 1;
       const conHijos = casillas().filter((casilla) => {
         const caja = casilla.getBoundingClientRect();
-        const centroX = caja.left - svg.left + caja.width / 2;
-        const pie = caja.top - svg.top + caja.height;
+        const centroX = (caja.left - svg.left + caja.width / 2) / escala;
+        const pie = (caja.top - svg.top + caja.height) / escala;
         return aristas.some((arista) => (
           Math.abs(Number(arista.getAttribute('x1')) - centroX) < 2
           && Math.abs(Number(arista.getAttribute('y1')) - pie) < 2
@@ -1938,8 +1946,18 @@
 
       // Los rótulos son lo que dice por qué la clave tomó ese camino: cuatro
       // saliendo del mismo nodo se amontonan si no se separan a propósito.
+      // Cada rótulo va justo después de su arista (`crearAristas`), y la arista
+      // empieza en su padre: así se sabe de qué nodo sale cada uno.
       const rotulos = [...document.querySelectorAll('.arbol__bit')]
-        .map((el) => ({ x: Number(el.getAttribute('x')), y: Number(el.getAttribute('y')), t: el.textContent }));
+        .map((el) => {
+          const arista = el.previousElementSibling;
+          return {
+            x: Number(el.getAttribute('x')),
+            y: Number(el.getAttribute('y')),
+            t: el.textContent,
+            padre: `${Math.round(Number(arista.getAttribute('x1')))},${Math.round(Number(arista.getAttribute('y1')))}`
+          };
+        });
       // La raíz abre sus cuatro ramas, pero **solo llevan bit las que conducen
       // a una clave** (opción 1a, usuario, 2026-09-28): con «prueba», 00 y 10.
       // Las otras dos van punteadas y sin rótulo. El primer nivel está a 68 px.
@@ -1951,8 +1969,13 @@
         ramasRaiz.length === 4 && vaciasRaiz.length === 2 && deLaRaiz === '00 10',
         `la raíz abre sus cuatro ramas, y solo las dos con claves llevan bit (${ramasRaiz.length} ramas, ${vaciasRaiz.length} vacías, rótulos «${deLaRaiz}»)`
       );
+      // Entre hermanos, que es donde la forma del árbol los amontona. Rótulos
+      // de nodos distintos se cruzan un instante mientras el árbol se
+      // recoloca, y esta prueba mide con el FLIP en vuelo: a 1280 px, donde el
+      // árbol va encogido, dos de ellos coincidían justo en ese momento y la
+      // prueba fallaba sobre un dibujo que quieto está bien (2026-10-07).
       const encimados = rotulos.filter((a, i) => rotulos.some((b, j) => (
-        j !== i && Math.abs(a.x - b.x) < 12 && Math.abs(a.y - b.y) < 8
+        j !== i && a.padre === b.padre && Math.abs(a.x - b.x) < 12 && Math.abs(a.y - b.y) < 8
       )));
       afirmar(encimados.length === 0, `ningún rótulo se monta sobre otro (${encimados.length} encimado(s))`);
 
@@ -2423,7 +2446,7 @@
 
       entrarATema('Búsqueda secuencial');
       const formularios = [...document.querySelectorAll('form.panel')];
-      enviar(formularios[0], { n: 24, l: 2 });
+      enviar(formularios[0], { n: 60, l: 2 });
       for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) operar(formularios, 'insertar', clave);
 
       const fila = () => document.querySelector('.estructura-horizontal');

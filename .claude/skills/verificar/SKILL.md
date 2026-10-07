@@ -27,6 +27,8 @@ node .claude/skills/verificar/scripts/humo.js
 
 Abre `pruebas/humo.html` en Edge headless **a 700, 800 y 950 px de alto** y reporta el informe. Sale con código 1 si algo falla. Un solo alto: `humo.js 700`. El informe entero, paso a paso: `humo.js --informe`.
 
+**Al tocar el layout, correrlo también con `--zoom`**: la pantalla de referencia (1920 × 950) al 80, 100, 125 y 150 % del zoom del navegador, que para la página son ventanas de 2400 × 1188, 1920 × 950, 1536 × 760 y 1280 × 633 (CLAUDE.md 6.9). Es el rango en que se usa en el aula; las tres corridas de siempre van a 1500 px de ancho y no lo cubren. Un tamaño suelto: `humo.js 1280x633`. **Una comprobación que mide posiciones del árbol o del bosque tiene que dividir por su `zoom`** (el SVG dibuja en sus propios píxeles): dos se escribieron sin hacerlo y a 1920 pasaban sin mirar nada (2026-10-07).
+
 Cubre catálogo, traza, métricas, bitácora, **layout** y **apilado**, entrando por el DOM como lo haría el estudiante. Los tres altos no son un capricho: la pantalla se ancla al viewport y lo que cabe a 950 px puede no caber a 700 — así se detectaron las regresiones de layout.
 
 **Al comprobar layout, medir el contenido y no la caja.** `.estructura-vertical` lleva `max-height: 100%`, así que su rectángulo siempre cae dentro del viewport aunque por dentro sobresalgan filas: hay que comparar `scrollHeight` con `clientHeight`, o mirar dónde queda la casilla marcada. Una comprobación que medía la caja escondió durante semanas que la tabla desbordaba.
