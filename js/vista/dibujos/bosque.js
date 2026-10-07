@@ -9,7 +9,7 @@
   // que comparte con él —el `estado` de la pantalla, sus nodos en `dom`, la
   // `config` del tema—, que son objetos y no copias: lo que la pantalla
   // cambie en ellos, el dibujo lo ve.
-  function crearDibujoBosque({ estado, dom, config, arbol, comunes }) {
+  function crearDibujoBosque({ estado, dom, config, arbol, comunes, renderizarLienzoVacio }) {
     const { DIAMETRO_NODO, DURACION_APARICION_MS, SEPARACION_HERMANOS, SEPARACION_NIVEL, seguirAristas } = arbol;
     const { llevarALaVista } = comunes;
 
@@ -351,10 +351,10 @@
         dom.estructuraEl.innerHTML = '';
 
         if (bosque.length === 0) {
-          const vacio = document.createElement('p');
-          vacio.className = 'texto-nivel-5';
-          vacio.textContent = 'Escriba una palabra para construir su árbol.';
-          dom.estructuraEl.appendChild(vacio);
+          renderizarLienzoVacio({
+            titulo: 'Escriba una palabra para construir su árbol',
+            indicacion: 'En el panel de la derecha'
+          });
           return;
         }
         for (const raiz of bosque) {

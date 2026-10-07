@@ -284,7 +284,7 @@
     const { ajustarArbol, renderizarArbol } = dibujoArbol;
     const { esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
-    const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes });
+    const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes, renderizarLienzoVacio });
 
     // El apilado es el dispositivo de la búsqueda: una fila por descarte. Los
     // pasos que sacan una clave no descartan nada y además cambian la
@@ -538,15 +538,33 @@
       if (window.ResizeObserver) new ResizeObserver(() => marcarDesbordeAlAsentarse(el)).observe(el);
     }
 
+    // **Lo que hay que hacer, en grande; dónde, debajo y señalando el panel**
+    // (revisión de diseño, punto 5, 2026-10-06). Era una sola frase de 12 px
+    // en gris en medio de un lienzo de 1500 × 800, lo primero que ve el
+    // estudiante al entrar, y desde el fondo del aula no se leía. `mensaje`
+    // es `{ titulo, indicacion }`; la indicación lleva la flecha hacia el
+    // panel lateral, que es donde está lo que se pide.
+    const LIENZO_VACIO = {
+      titulo: 'Cree una estructura para empezar',
+      indicacion: 'Elija su tamaño en el panel de la derecha'
+    };
     function renderizarLienzoVacio(mensaje) {
+      const { titulo, indicacion } = mensaje || config.mensajeLienzoVacio || LIENZO_VACIO;
       dom.estructuraEl.className = 'estructura-vacia';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
-      const aviso = document.createElement('p');
-      aviso.className = 'texto-nivel-5';
-      aviso.textContent = mensaje || config.mensajeLienzoVacio
-        || 'Cree una estructura para empezar: elija su tamaño en el panel de la derecha.';
-      dom.estructuraEl.appendChild(aviso);
+      const tituloEl = document.createElement('p');
+      tituloEl.className = 'estructura-vacia__titulo';
+      tituloEl.textContent = titulo;
+      const indicacionEl = document.createElement('p');
+      indicacionEl.className = 'estructura-vacia__indicacion';
+      indicacionEl.textContent = indicacion;
+      const flecha = document.createElement('span');
+      flecha.className = 'estructura-vacia__flecha';
+      flecha.setAttribute('aria-hidden', 'true');
+      flecha.textContent = '→';
+      indicacionEl.appendChild(flecha);
+      dom.estructuraEl.append(tituloEl, indicacionEl);
       if (dom.controlElision) dom.controlElision.hidden = true;
     }
 

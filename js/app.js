@@ -861,8 +861,10 @@
       tamano: () => ({ n: 1, l: 1 }),
       nombreEstructura: 'estructura',
       mensajeReinicio: 'Estructura vaciada: sin parámetros.',
-      mensajeLienzoVacio: 'Dé los parámetros del archivo para construir la estructura: '
-        + 'elija sus medidas en el panel de la derecha.',
+      mensajeLienzoVacio: {
+        titulo: 'Dé los parámetros del archivo para construir la estructura',
+        indicacion: 'Elija sus medidas en el panel de la derecha'
+      },
       mensajeDerivacion: 'Derivación iniciada: de los parámetros a la estructura.',
       mensajeCreacion: (estructura) => {
         const p = estructura.parametros;

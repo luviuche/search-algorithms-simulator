@@ -226,8 +226,8 @@
       // y mudo no le decía al estudiante que le tocaba insertar.
       if (dibujadas.size === 0) {
         renderizarLienzoVacio(config.palabra
-          ? 'Inserte una letra o una palabra para empezar.'
-          : 'Inserte una clave para empezar.');
+          ? { titulo: 'Inserte una letra o una palabra para empezar', indicacion: 'Escríbala en el panel de la derecha' }
+          : { titulo: 'Inserte una clave para empezar', indicacion: 'Escríbala en el panel de la derecha' });
         dom.lienzoArbol = null;
         return;
       }
