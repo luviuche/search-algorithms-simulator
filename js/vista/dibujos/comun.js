@@ -258,18 +258,58 @@
       return contenedor;
     }
 
-    function segmentosDe(relevantes) {
+    // `hasta` acota la escala cuando el dibujo no llega a la n: el apilado de
+    // binaria dibuja solo hasta la última clave, y columnas para las casillas
+    // de después quedarían vacías gastando el ancho que la elisión reparte.
+    function segmentosDe(relevantes, { apilado = false, hasta = estado.estructura.n } = {}) {
       return vista.elision.calcularSegmentos({
-        n: estado.estructura.n,
+        n: hasta,
         relevantes,
         orientacion: config.orientacion || 'horizontal',
         mostrarCompleta: estado.mostrarCompleta,
+        capacidad: casillasQueCaben({ apilado }),
         // En una tabla dispersa grande se dibujan la 1, la n y las claves, y
         // nada más: es como el docente la dibuja en el tablero. Las vecinas
         // vacías se quedan para las estructuras ordenadas, donde acompañan a
         // una comparación y no a cada clave colocada.
         vecinas: config.modo !== dominio.estructura.MODOS.DISPERSA
       });
+    }
+
+    // Las estructuras ordenadas en fila —secuencial y binaria, también en su
+    // apilado— se eliden solo cuando no caben (CLAUDE.md 6.2, revisión de
+    // diseño del 2026-10-04): el recorrido casilla por casilla es lo que esos
+    // temas enseñan, y el umbral fijo lo escondía en una pantalla ancha. Las
+    // dispersas y las demás formas siguen con el umbral (`null`).
+    function esOrdenadaEnFila() {
+      return !!estado.estructura
+        && estado.estructura.modo === dominio.estructura.MODOS.ORDENADA
+        && (config.orientacion || 'horizontal') === 'horizontal';
+    }
+
+    // El rótulo «Paso n» del apilado ocupa su propia columna a la izquierda.
+    const RESERVA_ROTULO_APILADO = 72;
+
+    // Cuántas casillas caben a lo ancho del escenario, con la escala al pie y
+    // el hueco entre ellas. Se mide lo que hay y no se supone una pantalla: en
+    // el aula se proyecta a una resolución que no se conoce. `null` cuando no
+    // aplica o el escenario aún no tiene ancho —recién creado, o en las
+    // pruebas de Node—: entonces manda el umbral de siempre.
+    function casillasQueCaben({ apilado = false } = {}) {
+      if (!esOrdenadaEnFila() || !dom.escenario) return null;
+      let ancho = dom.escenario.clientWidth;
+      if (ancho <= 0) return null;
+      const estilo = getComputedStyle(dom.escenario);
+      const casilla = parseFloat(estilo.getPropertyValue('--ancho-casilla')) || 48;
+      const hueco = parseFloat(estilo.getPropertyValue('--espacio-2')) || 8;
+      // El cálculo, si el tema lo pone al lado, se queda con su parte.
+      if (dom.calculo && !dom.calculo.el.hidden && dom.calculo.el.parentNode === dom.escenario) {
+        ancho -= dom.calculo.el.offsetWidth + parseFloat(estilo.columnGap || estilo.gap || 0);
+      }
+      // Un margen a cada lado para que la fila no toque el borde del lienzo.
+      ancho -= 2 * (parseFloat(estilo.getPropertyValue('--espacio-5')) || 24);
+      if (apilado) ancho -= RESERVA_ROTULO_APILADO + hueco + 2 * hueco;
+      return Math.max(0, Math.floor((ancho + hueco) / (casilla + hueco)));
     }
 
     // En una estructura dispersa, dónde quedó cada clave *es* el resultado del
@@ -336,7 +376,7 @@
       centrar(esVertical() ? 'vertical' : 'horizontal');
     }
 
-    return { ajustarAnchoDeCasilla, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
+    return { ajustarAnchoDeCasilla, casillasAnidadas, casillasQueCaben, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
   }
 
   window.CC2 = window.CC2 || {};
