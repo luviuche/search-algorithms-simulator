@@ -190,8 +190,10 @@
         const nodo = nodos.get(indice);
         if (!nodo) return centroFinal(indice);
         // Con el árbol encogido (`zoom`), la pantalla mide en píxeles
-        // encogidos y el SVG dibuja en los suyos.
-        const factor = parseFloat(lienzoArbol.style.zoom) || 1;
+        // encogidos y el SVG dibuja en los suyos. El zoom efectivo y no el del
+        // propio lienzo: el bosque de Huffman lo pone en la caja de cada
+        // árbol, que también escala su peso al pie.
+        const factor = vista.animacion.zoomEfectivo(lienzoArbol);
         const lienzo = lienzoArbol.getBoundingClientRect();
         const caja = nodo.getBoundingClientRect();
         return {

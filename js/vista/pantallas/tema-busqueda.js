@@ -284,7 +284,7 @@
     const { ajustarArbol, renderizarArbol } = dibujoArbol;
     const { esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
-    const { esBosque, renderizarBosque } = dibujos.bosque({ dom, config, arbol: dibujoArbol });
+    const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes });
 
     // El apilado es el dispositivo de la búsqueda: una fila por descarte. Los
     // pasos que sacan una clave no descartan nada y además cambian la
@@ -1871,6 +1871,8 @@
       escenario.classList.add('lienzo__escenario--arbol');
       if (window.ResizeObserver) new ResizeObserver(ajustarArbol).observe(escenario);
     }
+    // El bosque de Huffman, igual (ver `ajustarBosque`).
+    if (esBosque() && window.ResizeObserver) new ResizeObserver(ajustarBosque).observe(escenario);
     // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
     // no parte de él: el panel recorta lo que se le sale a los lados.
     if (config.calculoSenalaCasilla && dom.calculo) {

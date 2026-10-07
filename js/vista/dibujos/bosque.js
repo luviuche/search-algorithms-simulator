@@ -9,8 +9,9 @@
   // que comparte con él —el `estado` de la pantalla, sus nodos en `dom`, la
   // `config` del tema—, que son objetos y no copias: lo que la pantalla
   // cambie en ellos, el dibujo lo ve.
-  function crearDibujoBosque({ dom, config, arbol }) {
+  function crearDibujoBosque({ estado, dom, config, arbol, comunes }) {
     const { DIAMETRO_NODO, DURACION_APARICION_MS, SEPARACION_HERMANOS, SEPARACION_NIVEL, seguirAristas } = arbol;
+    const { llevarALaVista } = comunes;
 
     // Árbol de Huffman (CLAUDE.md 5.x): quinta orientación de la pantalla. No
     // es un árbol —todavía—, sino **un bosque que se va uniendo**: la lista de
@@ -224,6 +225,117 @@
       return el;
     }
 
+    // **El bosque crece como los otros árboles** (opción B de las maquetas,
+    // elegida por el usuario el 2026-10-06): hasta `CRECIMIENTO_MAXIMO` para
+    // llenar el lienzo, y si no cabe encoge hasta `ENCOGIMIENTO_MINIMO`; el
+    // panel de reducciones y la tabla se quedan a su tamaño, como el cálculo
+    // junto a los árboles (ver `ajustarArbol` en arbol.js).
+    //
+    // **Un solo tamaño para toda la palabra**, el que deja caber su momento
+    // más ancho —casi siempre el primero, con todas las letras sueltas en
+    // fila—. Medido paso a paso, el bosque crecía a cada unión (de 1,18× a
+    // 1,5× con «murcielago») y ese cambio de escala se sumaba al viaje de los
+    // nodos que se unen. Por eso se mide sobre los bosques de la traza entera,
+    // que se deducen sin dibujar nada (`disponerHuffman`).
+    //
+    // El sitio del lado se reserva con lo más ancho que vaya a ocupar: el
+    // panel de reducciones, o la tabla del final, que se mide por adelantado
+    // para que el último paso no encoja el árbol.
+    const ENCOGIMIENTO_MINIMO = 0.6;
+    const CRECIMIENTO_MAXIMO = 1.5;
+    // El peso al pie de una letra suelta: su renglón más el hueco que lo
+    // separa del nodo (`.bosque__arbol`).
+    const ALTO_PESO = 24;
+    let ultimoBosque = [];
+    let pasosDeLaTabla = null;
+    let anchoTablaFinal = 0;
+    let anchoReservadoLado = 0;
+
+    function tamanoNaturalDe(bosque, hueco) {
+      const anchoNodo = DIAMETRO_NODO + SEPARACION_HERMANOS;
+      let ancho = hueco * Math.max(0, bosque.length - 1);
+      let alto = 0;
+      for (const raiz of bosque) {
+        const forma = disponerHuffman(raiz, anchoNodo);
+        ancho += forma.ancho;
+        alto = Math.max(alto, forma.alto + (esHojaDeHuffman(raiz) ? ALTO_PESO : 0));
+      }
+      return { ancho, alto };
+    }
+
+    // La tabla aparece solo en el último paso, pero su ancho cuenta desde el
+    // primero: se arma fuera de la vista, se mide y se quita. Una vez por
+    // traza.
+    function medirTablaFinal() {
+      if (estado.pasos === pasosDeLaTabla) return;
+      pasosDeLaTabla = estado.pasos;
+      anchoTablaFinal = 0;
+      const conTabla = (estado.pasos || []).find((paso) => paso.tabla);
+      if (!conTabla) return;
+      const tabla = crearTablaDeCodigos(conTabla.tabla);
+      tabla.style.position = 'absolute';
+      tabla.style.visibility = 'hidden';
+      dom.escenario.appendChild(tabla);
+      anchoTablaFinal = tabla.offsetWidth;
+      tabla.remove();
+    }
+
+    function ajustarBosque() {
+      if (!esBosque() || !dom.estructuraEl.isConnected) return;
+      const cajas = [...dom.estructuraEl.querySelectorAll(':scope > .bosque__arbol')];
+      if (cajas.length === 0) return;
+
+      const caja = getComputedStyle(dom.estructuraEl);
+      const escenario = getComputedStyle(dom.escenario);
+      const hueco = parseFloat(caja.getPropertyValue('--espacio-6')) || 32;
+      const bosques = (estado.pasos || []).map((paso) => paso.bosque).filter((bosque) => bosque && bosque.length);
+      if (bosques.length === 0) bosques.push(ultimoBosque);
+      let ancho = 0;
+      let alto = 0;
+      for (const bosque of bosques) {
+        const tamano = tamanoNaturalDe(bosque, hueco);
+        ancho = Math.max(ancho, tamano.ancho);
+        alto = Math.max(alto, tamano.alto);
+      }
+
+      medirTablaFinal();
+      const panel = dom.calculo ? dom.calculo.el : null;
+      let lado = anchoTablaFinal;
+      if (panel) {
+        // Oculto mide cero, pero su `min-width` sí se lee.
+        lado = Math.max(lado, panel.hidden ? parseFloat(getComputedStyle(panel).minWidth) || 0 : panel.offsetWidth);
+      }
+      if (dom.tabla) lado = Math.max(lado, dom.tabla.offsetWidth);
+      anchoReservadoLado = Math.max(anchoReservadoLado, lado);
+
+      const disponibleAncho = dom.escenario.clientWidth
+        - parseFloat(escenario.paddingLeft) - parseFloat(escenario.paddingRight)
+        - parseFloat(caja.paddingLeft) - parseFloat(caja.paddingRight)
+        - (anchoReservadoLado > 0 ? anchoReservadoLado + parseFloat(escenario.columnGap || 0) : 0);
+      const disponibleAlto = dom.escenario.clientHeight
+        - parseFloat(escenario.paddingTop) - parseFloat(escenario.paddingBottom)
+        - parseFloat(caja.paddingTop) - parseFloat(caja.paddingBottom);
+      // Como en los árboles: a lo alto puede frenar el crecimiento, pero no
+      // obliga a encoger.
+      const tope = Math.max(1, Math.min(CRECIMIENTO_MAXIMO, disponibleAlto / alto));
+      const factor = Math.min(tope, Math.max(ENCOGIMIENTO_MINIMO, disponibleAncho / ancho));
+
+      // En la caja de cada árbol y no en el contenedor, que es el que se
+      // desplaza cuando no cabe; el hueco entre árboles escala con ellos.
+      for (const cajaArbol of cajas) cajaArbol.style.zoom = factor === 1 ? '' : String(factor);
+      dom.estructuraEl.style.gap = factor === 1 ? '' : `${hueco * factor}px`;
+    }
+
+    // Cuando ni encogido cabe —un proyector chico, una palabra larga—, el
+    // lienzo se desplaza hasta lo que se está uniendo, como las tablas hasta
+    // la casilla del paso. Sin unión en curso y con un solo árbol, se centra
+    // ese árbol.
+    function seguirLaUnion() {
+      const cajas = [...dom.estructuraEl.querySelectorAll(':scope > .bosque__arbol')];
+      const enCurso = cajas.find((cajaArbol) => cajaArbol.classList.contains('bosque__arbol--en-curso'));
+      llevarALaVista(enCurso || (cajas.length === 1 ? cajas[0] : null));
+    }
+
     function renderizarBosque(paso, opciones) {
       const bosque = (paso && paso.bosque) || [];
       const total = (paso && paso.total) || 0;
@@ -250,6 +362,11 @@
           dom.estructuraEl.appendChild(arbol.caja);
           arboles.push(arbol);
         }
+        // Dentro del cambio que anima el FLIP: las posiciones finales que
+        // mide tienen que ser ya las del tamaño ajustado.
+        ultimoBosque = bosque;
+        ajustarBosque();
+        seguirLaUnion();
       }, opciones);
 
       // La tabla sustituye al panel del desarrollo en el último paso, y no se
@@ -293,7 +410,7 @@
       }
     }
 
-    return { esBosque, renderizarBosque };
+    return { ajustarBosque, esBosque, renderizarBosque };
   }
 
   window.CC2 = window.CC2 || {};

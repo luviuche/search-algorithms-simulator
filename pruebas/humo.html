@@ -200,9 +200,17 @@
       for (const arbol of document.querySelectorAll('.estructura-bosque .arbol')) {
         const svg = arbol.querySelector('.arbol__aristas');
         const lienzo = svg.getBoundingClientRect();
+        // El bosque crece o encoge con el lienzo (`zoom` en la caja de cada
+        // árbol, 2026-10-06): la pantalla mide en píxeles escalados y el SVG
+        // dibuja en los suyos. La escala se lee del propio SVG.
+        const factor = lienzo.width / Number(svg.getAttribute('width')) || 1;
         const nodos = [...arbol.querySelectorAll('.casilla, .nodo-peso')].map((el) => {
           const caja = el.getBoundingClientRect();
-          return { x: caja.left + caja.width / 2 - lienzo.left, arriba: caja.top - lienzo.top, pie: caja.bottom - lienzo.top };
+          return {
+            x: (caja.left + caja.width / 2 - lienzo.left) / factor,
+            arriba: (caja.top - lienzo.top) / factor,
+            pie: (caja.bottom - lienzo.top) / factor
+          };
         });
         const cerca = (x, y, borde) => nodos.some((n) => Math.abs(n.x - x) < 2 && Math.abs(n[borde] - y) < 2);
         for (const linea of svg.querySelectorAll('.arbol__arista')) {

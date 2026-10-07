@@ -71,5 +71,5 @@
 
   window.CC2 = window.CC2 || {};
   window.CC2.vista = window.CC2.vista || {};
-  window.CC2.vista.animacion = { prefiereMovimientoReducido, reemplazarAnimacion, animarFlip, animarCambioEstado };
+  window.CC2.vista.animacion = { prefiereMovimientoReducido, reemplazarAnimacion, animarFlip, animarCambioEstado, zoomEfectivo };
 })();

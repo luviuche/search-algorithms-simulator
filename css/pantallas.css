@@ -822,7 +822,11 @@ form.panel > .pantalla-tema__reproduccion {
 .estructura-bosque {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  /* «Seguro»: si el bosque no cabe se sale solo por la derecha, adonde llega
+     el desplazamiento. Centrado a secas se salía también por la izquierda, y
+     en un proyector de 1024 × 650 las dos hojas que se unían al empezar
+     quedaban donde ni desplazando se las veía (2026-10-06). */
+  justify-content: safe center;
   gap: var(--espacio-6);
   place-self: center;
   max-width: 100%;
