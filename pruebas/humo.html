@@ -1773,6 +1773,13 @@
 
       operaciones.querySelector('[name="palabra"]').value = 'prueba';
       operaciones.querySelector('[data-accion="insertar-palabra"]').click();
+      // El primer paso es el cálculo del código de la p, con el árbol todavía
+      // vacío: el lienzo ya no puede pedir que se inserte (visto por el
+      // usuario, 2026-10-08).
+      afirmar(
+        !document.querySelector('.estructura-vacia'),
+        'con la palabra ya entrando, el lienzo deja de pedir que se inserte una'
+      );
       agotarTraza(120);
 
       const casillas = () => [...document.querySelectorAll('.arbol .casilla')];
@@ -2004,6 +2011,38 @@
         `el cálculo no queda recortado (${panelCalculo.scrollWidth} en ${panelCalculo.clientWidth})`
       );
       afirmarCasillasParejas('residuos múltiples');
+
+      // El sitio del cálculo se reserva solo durante la operación (opción B,
+      // 2026-10-08): al empezar, el árbol se achica para dejarle sitio, y al
+      // terminar vuelve a crecer. **El cambio se anima como un bloque**, así
+      // que en el primer cuadro cada nodo tiene que verse justo donde estaba;
+      // si no, salta y después viaja. Y una vez quieto, el panel no puede
+      // quedar encima del árbol.
+      const terminarAnimaciones = () => { for (const animacion of document.getAnimations()) animacion.finish(); };
+      const dondeSeVe = () => new Map([...document.querySelectorAll('.arbol [data-clave]')]
+        .map((el) => [el.dataset.clave, el.getBoundingClientRect()]));
+      const salto = (antes, ahora) => Math.max(0, ...[...antes]
+        .filter(([clave]) => ahora.has(clave))
+        .map(([clave, r]) => Math.hypot(r.left - ahora.get(clave).left, r.top - ahora.get(clave).top)));
+      // Por los nodos y no por el lienzo: con `zoom`, el rectángulo del lienzo
+      // no envuelve a sus nodos.
+      const separados = () => Math.max(...[...dondeSeVe().values()].map((r) => r.right))
+        <= panelCalculo.getBoundingClientRect().left + 1;
+      terminarAnimaciones();
+      const enReposo = dondeSeVe();
+      operar(formularios, 'buscar', 'a');
+      const alEntrar = salto(enReposo, dondeSeVe());
+      afirmar(alEntrar < 2, `al aparecer el cálculo, el árbol arranca de donde estaba (salta ${alEntrar.toFixed(1)} px)`);
+      terminarAnimaciones();
+      afirmar(separados(), 'con el cálculo a la vista, el árbol le deja su sitio');
+
+      hastaElUltimoPasoDelAlgoritmo();
+      terminarAnimaciones();
+      const enOperacion = dondeSeVe();
+      control('siguiente').click();
+      const alSalir = salto(enOperacion, dondeSeVe());
+      afirmar(alSalir < 2, `al irse el cálculo, el árbol arranca de donde estaba (salta ${alSalir.toFixed(1)} px)`);
+      terminarAnimaciones();
 
       // La lección: leer dos bits de un golpe llega a la clave en menos accesos
       // que leerlos de uno en uno, y se sigue comparando una sola vez.

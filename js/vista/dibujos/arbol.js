@@ -224,11 +224,24 @@
       // árbol vacío no dibuja nada —ni siquiera el esqueleto de residuos
       // múltiples, que suelto no se entendía (2026-08-30)—, y el lienzo gris
       // y mudo no le decía al estudiante que le tocaba insertar.
+      //
+      // **Pero solo sin operación en curso** (visto por el usuario,
+      // 2026-10-08): al insertar la primera clave, su primer paso es el
+      // cálculo del código, con el árbol todavía vacío, y el lienzo seguía
+      // pidiendo «Inserte una letra…» al lado del cálculo de esa misma letra.
+      // Mientras se opera queda en blanco; el paso final —al eliminar la
+      // última clave— vuelve a decir qué hacer.
       if (dibujadas.size === 0) {
+        dom.lienzoArbol = null;
+        if (paso && !paso.final) {
+          dom.estructuraEl.className = 'estructura-arbol';
+          dom.estructuraEl.removeAttribute('style');
+          dom.estructuraEl.innerHTML = '';
+          return;
+        }
         renderizarLienzoVacio(config.palabra
           ? { titulo: 'Inserte una letra o una palabra para empezar', indicacion: 'Escríbala en el panel de la derecha' }
           : { titulo: 'Inserte una clave para empezar', indicacion: 'Escríbala en el panel de la derecha' });
-        dom.lienzoArbol = null;
         return;
       }
       // El nodo del árbol es redondo, así que mide de ancho lo que de alto y
@@ -325,6 +338,10 @@
         dom.lienzoArbol = lienzoArbol;
         lienzo = lienzoArbol;
         ajustarArbol();
+        // Si el panel del cálculo acaba de aparecer o irse, el árbol cambia de
+        // tamaño, y la pantalla lo anima aquí, antes de que el FLIP mida
+        // (`recentrarArbol` en tema-busqueda.js).
+        if (dom.recentrarArbol) dom.recentrarArbol();
         llevarALaVista(seguido);
       }, opciones);
 
@@ -361,50 +378,75 @@
     // Crecer (revisión de diseño, 2026-10-04): con medidas fijas, en la
     // pantalla de referencia (1920 × 950, CLAUDE.md 6.9) el árbol ocupaba una
     // fracción del lienzo, y sus bits —la lección del tema— quedaban chicos.
-    // Crece hasta `CRECIMIENTO_MAXIMO`, y solo si cabe también a lo alto: a lo
-    // alto nunca obliga a encoger, como antes.
+    // Crece hasta `CRECIMIENTO_MAXIMO`, y solo si cabe también a lo alto.
     //
-    // **El sitio del cálculo se reserva siempre**, con el mayor ancho que haya
-    // tenido el panel: aparece al operar y se va al terminar, y si el árbol se
-    // midiera solo contra el panel visible cambiaría de tamaño en cada
-    // operación. Mientras el panel se desvanece también cuenta, por lo mismo.
+    // **A lo alto también encoge** (2026-10-08), hasta el mismo mínimo. Antes
+    // no hacía falta: con el sitio del cálculo siempre reservado, el ancho ya
+    // lo achicaba por debajo de lo que pedía el alto. Sin la reserva, a 150 %
+    // de zoom el árbol de residuos quedaba a 1× en reposo y se salía por abajo.
+    //
+    // **El sitio del cálculo se reserva solo durante una operación** (opción B
+    // de las maquetas, elegida por el usuario el 2026-10-08). Se reservaba
+    // siempre, para que el árbol no cambiara de tamaño al aparecer o irse el
+    // panel; pero con el zoom del navegador a 150 % eso dejaba los árboles de
+    // residuos a 0,64× en reposo, corridos a la izquierda junto a un tercio de
+    // lienzo vacío. Ahora en reposo el árbol usa todo el lienzo, y el cambio
+    // de tamaño al empezar y al terminar lo anima `aplicarVisibilidadCalculo`
+    // junto con el recentrado. Mientras el panel se desvanece ya no cuenta:
+    // el árbol se mide contra donde va a quedar.
+    //
+    // **Dentro de una operación el tamaño no cambia**: se reserva el ancho
+    // del panel más ancho de toda la traza, medido por adelantado. El panel
+    // crece a medida que se revelan líneas, y una palabra son seis letras
+    // seguidas con su cálculo cada una; medido paso a paso, el árbol se
+    // encogería un poco con cada línea más larga.
     const ENCOGIMIENTO_MINIMO = 0.6;
     const CRECIMIENTO_MAXIMO = 1.5;
-    let anchoReservadoCalculo = 0;
+    let pasosMedidos = null;
+    let anchoCalculoDeLaTraza = 0;
+    function anchoDelCalculo(panel) {
+      if (estado.pasos !== pasosMedidos) {
+        pasosMedidos = estado.pasos;
+        anchoCalculoDeLaTraza = 0;
+        const pasos = (estado.pasos || []).filter((paso) => paso.calculo && paso.calculo.length);
+        for (const paso of pasos) {
+          dom.calculo.actualizar(paso.calculo, paso.saltos, paso.tituloCalculo);
+          anchoCalculoDeLaTraza = Math.max(anchoCalculoDeLaTraza, panel.offsetWidth);
+        }
+        // Se deja como lo tenía el paso en curso.
+        const actual = estado.pasoActual;
+        if (pasos.length) dom.calculo.actualizar(actual ? actual.calculo : null, actual ? actual.saltos : null, actual ? actual.tituloCalculo : null);
+      }
+      return Math.max(anchoCalculoDeLaTraza, panel.offsetWidth);
+    }
     function ajustarArbol() {
       const lienzoArbol = dom.lienzoArbol;
       if (!esArbol() || !lienzoArbol || !lienzoArbol.isConnected) return;
       lienzoArbol.style.zoom = '';
       const escenario = getComputedStyle(dom.escenario);
       const caja = getComputedStyle(dom.estructuraEl);
-      const panel = dom.calculo ? dom.calculo.el : null;
-      if (panel) {
-        // Oculto mide cero, pero su `min-width` sí se lee: es el piso de la
-        // reserva antes de la primera operación.
-        const medido = panel.hidden ? parseFloat(getComputedStyle(panel).minWidth) || 0 : panel.offsetWidth;
-        anchoReservadoCalculo = Math.max(anchoReservadoCalculo, medido);
-      }
+      // `calculoVisible` es a dónde va el panel, no dónde está: al irse sigue
+      // a la vista mientras se desvanece.
+      const panel = dom.calculo && dom.calculoVisible && !dom.calculo.el.hidden ? dom.calculo.el : null;
       const disponibleAncho = dom.escenario.clientWidth
         - parseFloat(escenario.paddingLeft) - parseFloat(escenario.paddingRight)
         - parseFloat(caja.paddingLeft) - parseFloat(caja.paddingRight)
-        - (panel ? anchoReservadoCalculo + parseFloat(escenario.columnGap || 0) : 0);
+        - (panel ? anchoDelCalculo(panel) + parseFloat(escenario.columnGap || 0) : 0);
       const disponibleAlto = dom.escenario.clientHeight
         - parseFloat(escenario.paddingTop) - parseFloat(escenario.paddingBottom)
         - parseFloat(caja.paddingTop) - parseFloat(caja.paddingBottom);
       const porAncho = disponibleAncho / lienzoArbol.offsetWidth;
       const porAlto = disponibleAlto / lienzoArbol.offsetHeight;
-      const tope = Math.max(1, Math.min(CRECIMIENTO_MAXIMO, porAlto));
-      let factor = Math.min(tope, Math.max(ENCOGIMIENTO_MINIMO, porAncho));
+      let factor = Math.max(ENCOGIMIENTO_MINIMO, Math.min(CRECIMIENTO_MAXIMO, porAncho, porAlto));
       if (factor !== 1) lienzoArbol.style.zoom = String(factor);
       // El alto que de verdad le queda es el de su caja (`max-height: 100%`), y
       // no siempre coincide con el del escenario: en vez de deducirlo, se mira
-      // el resultado. Si al crecer se sale, se recorta el crecimiento lo justo
-      // —nunca por debajo de 1: a lo alto no obliga a encoger—.
+      // el resultado. Si se sale, se achica lo justo, sin bajar del mínimo.
       const contenedor = dom.estructuraEl;
-      if (factor > 1 && contenedor.scrollHeight > contenedor.clientHeight + 1) {
+      if (factor > ENCOGIMIENTO_MINIMO && contenedor.scrollHeight > contenedor.clientHeight + 1) {
         const relleno = parseFloat(caja.paddingTop) + parseFloat(caja.paddingBottom);
         const cabe = (contenedor.clientHeight - relleno) / (contenedor.scrollHeight - relleno);
-        factor = Math.max(1, factor * cabe);
+        factor = Math.max(ENCOGIMIENTO_MINIMO, factor * cabe);
         lienzoArbol.style.zoom = factor === 1 ? '' : String(factor);
       }
     }

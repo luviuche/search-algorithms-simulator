@@ -318,6 +318,8 @@
       habilitarReproduccion(false);
       sincronizarCalculo(null);
       aplicarVisibilidadCalculo();
+      // Aquí no se dibuja ningún paso que lo haga.
+      if (dom.recentrarArbol) dom.recentrarArbol();
       alinearCalculo();
     }
     // ── Dibujos de la estructura ──────────────────────────────────────────────
@@ -369,12 +371,19 @@
     // bits), sin operación el panel no se dibuja: «Sin operación en curso»
     // ocupaba el ancho que la matriz de anidados y el árbol necesitan, y no
     // enseñaba nada (maquetas elegidas por el usuario, 2026-09-28).
+    //
+    // **Al irse, el panel conserva lo último que mostró** (2026-10-08): se
+    // desvanecía diciendo «Sin operación en curso», y al cambiar de contenido
+    // cambiaba de ancho y corría la estructura justo antes de que el
+    // recentrado la midiera —el árbol saltaba 38 px al terminar—.
     function sincronizarCalculo(paso) {
       if (!dom.calculo) return;
-      dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
+      const conCalculo = Boolean(paso && paso.calculo && paso.calculo.length);
       if (config.calculoSoloEnOperacion) {
-        dom.calculoVisible = Boolean(paso && paso.calculo && paso.calculo.length);
+        dom.calculoVisible = conCalculo;
+        if (!conCalculo) return;
       }
+      dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
       marcarDesborde(dom.calculo.el);
     }
 
@@ -408,6 +417,9 @@
 
       const animar = !vista.animacion.prefiereMovimientoReducido();
       const antes = dom.estructuraEl.getBoundingClientRect().left;
+      // En los árboles se mide un nodo y no la caja: además de correrse, el
+      // dibujo cambia de tamaño (ver `ajustarArbol`).
+      const arbolAntes = esArbol() ? medirArbol() : null;
 
       if (dom.calculoVisible) {
         if (saliendo) terminarSalidaCalculo();
@@ -445,6 +457,20 @@
 
       // Al irse el panel, la estructura espera a que se haya fundido; hasta
       // entonces se queda donde estaba (`fill: 'backwards'`).
+      // El árbol se recentra dos veces. Ya, para que se siga viendo donde
+      // estaba aunque el panel haya entrado al flujo o salido de él: si se
+      // corriera antes de dibujar, el FLIP de los nodos tomaría ese corrimiento
+      // como un movimiento suyo. Y al dibujar el paso, sobre el árbol nuevo,
+      // que puede tener otra forma —el paso final ya no dibuja la rama del
+      // camino— y medir el viejo daría un salto al cambiar de dibujo.
+      if (arbolAntes) {
+        recentrarArbol(arbolAntes, animar);
+        dom.recentrarArbol = () => {
+          dom.recentrarArbol = null;
+          recentrarArbol(arbolAntes, animar);
+        };
+        return;
+      }
       const corrimiento = antes - dom.estructuraEl.getBoundingClientRect().left;
       if (animar && Math.abs(corrimiento) > 0.5) {
         vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
@@ -457,6 +483,65 @@
           fill: 'backwards'
         });
       }
+    }
+
+    // El árbol, en cambio, solo reserva el sitio del cálculo mientras dura la
+    // operación (opción B de las maquetas, 2026-10-08): al aparecer el panel
+    // se achica y al irse vuelve a crecer. **Se anima como un bloque**, igual
+    // que el corrimiento: el dibujo entero viaja y se escala desde donde se
+    // veía hasta su sitio nuevo, aristas y bits incluidos. Por eso se ajusta
+    // al dibujar, dentro del cambio que mide el FLIP (`dom.recentrarArbol`,
+    // que llama `renderizarArbol`): cuando el FLIP mide, la estructura ya
+    // lleva puesto el primer cuadro, los nodos se ven donde estaban, y el FLIP
+    // solo anima lo que les pasa a ellos.
+    function recentrarArbol(antes, animar) {
+      // Lo que quedara de un recentrado anterior ya está en `antes`.
+      for (const animacion of dom.estructuraEl.getAnimations()) animacion.cancel();
+      ajustarArbol();
+      const despues = medirArbol(antes.clave);
+      if (!animar || !despues) return;
+      const escala = antes.zoom / despues.zoom;
+      // La caja se escala desde su centro, y se corre lo que haga falta para
+      // que el nodo medido se vea donde estaba: lo demás lo sigue. El origen
+      // no va en los fotogramas: el navegador no lo respetaba ahí.
+      const caja = dom.estructuraEl.getBoundingClientRect();
+      const centroX = caja.left + caja.width / 2;
+      const centroY = caja.top + caja.height / 2;
+      const dx = antes.left - centroX - escala * (despues.left - centroX);
+      const dy = antes.top - centroY - escala * (despues.top - centroY);
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(escala - 1) < 0.005) return;
+      const recentrado = vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
+        { transform: `translate(${dx}px, ${dy}px) scale(${escala})` },
+        { transform: 'none' }
+      ], {
+        duration: DURACION_RECENTRADO_MS,
+        delay: dom.calculoVisible ? 0 : DURACION_FUNDIDO_MS,
+        easing: 'ease-in-out',
+        fill: 'backwards'
+      });
+      // Sin recortar mientras dura (ver `.lienzo__escenario--recentrando`).
+      dom.recentrado = recentrado;
+      dom.escenario.classList.add('lienzo__escenario--recentrando');
+      const soltar = () => {
+        if (dom.recentrado !== recentrado) return;
+        dom.recentrado = null;
+        dom.escenario.classList.remove('lienzo__escenario--recentrando');
+      };
+      recentrado.addEventListener('finish', soltar);
+      recentrado.addEventListener('cancel', soltar);
+    }
+
+    // Dónde se ve un nodo del árbol —el primero, o el que se pida— y a qué
+    // zoom. El rectángulo del lienzo no sirve: con `zoom` no envuelve a los
+    // nodos y queda decenas de píxeles corrido.
+    function medirArbol(clave) {
+      if (!dom.lienzoArbol) return null;
+      const nodo = clave
+        ? dom.lienzoArbol.querySelector(`[data-clave="${clave}"]`)
+        : dom.lienzoArbol.querySelector('[data-clave]');
+      if (!nodo) return null;
+      const { left, top } = nodo.getBoundingClientRect();
+      return { clave: nodo.dataset.clave, left, top, zoom: vista.animacion.zoomEfectivo(dom.lienzoArbol) };
     }
 
     function terminarSalidaCalculo() {
@@ -474,7 +559,6 @@
       panel.style.top = '';
       panel.hidden = !dom.calculoVisible;
       if (panel.hidden) panel.style.transform = '';
-      ajustarArbol();
     }
 
     // La línea activa del cálculo, a la altura de la casilla que el paso sigue

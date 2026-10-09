@@ -998,6 +998,17 @@ form.panel > .pantalla-tema__reproduccion {
   flex: none;
 }
 
+/* Mientras el árbol cambia de tamaño al aparecer o irse el cálculo
+   (`recentrarArbol`), su caja no recorta: se escala con él, y al terminar la
+   operación el árbol arranca a la izquierda de donde queda la caja nueva.
+   Recortado, se le perdía la primera rama durante el viaje (2026-10-08). La
+   máscara del desborde también recorta lo que cae fuera de la caja. */
+.lienzo__escenario--recentrando .estructura-arbol {
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 .arbol {
   position: relative;
 }

@@ -76,6 +76,7 @@
     // Insertar, buscar y eliminar comparten un panel: se escribe la clave una
     // vez y el botón dice qué hacer con ella.
     function operar(formularios, accion, valor) {
+      asentarSiSeCongela();
       const panel = formularios.find((formulario) => formulario.querySelector('[name="clave"]'));
       panel.querySelector('[name="clave"]').value = valor;
       panel.querySelector(`[data-accion="${accion}"]`).click();
@@ -100,9 +101,33 @@
     // El reproductor vive en su propio panel: la operación puede ser buscar o
     // insertar, y ninguna de las dos es dueña del control.
     const avanzar = (veces) => {
+      // Sin avanzar, la operación seguiría reproduciéndose sola: se pausa.
+      if (veces === 0) document.querySelector('[data-accion="reproducir"]').click();
       const boton = document.querySelector('[data-accion="siguiente"]');
-      for (let i = 0; i < veces; i++) boton.click();
+      for (let i = 0; i < veces; i++) {
+        if (i === veces - 1) asentarSiSeCongela();
+        boton.click();
+      }
     };
+
+    // ?instante=<ms> fotografía una animación a medio camino: la del último
+    // clic de la preparación —la operación que empieza, o el último paso al
+    // que se avanza—, congelada a esos milisegundos. Lo de los clics
+    // anteriores se da por terminado, o saldría todo encimado. Va sin
+    // `--quieto`, que apaga las animaciones (2026-10-08, para ver el árbol
+    // cambiar de tamaño al aparecer el cálculo).
+    const instante = parametros.has('instante') ? Number(parametros.get('instante')) : null;
+    function asentarSiSeCongela() {
+      if (instante === null) return;
+      for (const animacion of document.getAnimations()) animacion.finish();
+    }
+    function congelarSiSePide() {
+      if (instante === null) return;
+      for (const animacion of document.getAnimations()) {
+        animacion.pause();
+        animacion.currentTime = instante;
+      }
+    }
     // ?paso= acepta `fin` (recorre la traza entera), un número de pasos —para
     // detenerse en uno concreto, como el que marca la casilla que se elimina—
     // o nada, que se queda en el primero.
@@ -117,6 +142,9 @@
         setTimeout(() => document.querySelector('[data-accion="anterior"]').click(), 0);
         return alFinal;
       }
+      // `0` se queda en el paso con que arranca la operación, sin avanzar: es
+      // el que dispara la entrada del panel del cálculo (con ?instante=).
+      if (paso === '0') return 0;
       const contados = Number(paso);
       return Number.isFinite(contados) && contados > 0 ? contados : 1;
     };
@@ -212,6 +240,11 @@
 
     // Árbol de búsqueda digital: el ejercicio de clase es la palabra «prueba»,
     // que se inserta entera y deja el árbol con ramas a lado y lado.
+    // ?construir=<n> deja la palabra a medio insertar, a n pasos de empezar:
+    // con 0 o 1, la primera letra todavía no está en el árbol y solo se ve su
+    // cálculo (2026-10-08, el lienzo vacío seguía diciendo «Inserte…»).
+    const pasosDeLaPalabra = (completa) => (parametros.has('construir') ? Number(parametros.get('construir')) : completa);
+
     function prepararArbolDigital() {
       const formularios = entrarATema('Árbol de búsqueda digital');
       // Sin panel de configuración: el árbol se crea al entrar al tema.
@@ -220,7 +253,7 @@
       panel.querySelector('[data-accion="insertar-palabra"]').click();
       // La palabra viaja en una sola traza: seis letras, cada una con su
       // cálculo y su recorrido.
-      avanzar(40);
+      avanzar(pasosDeLaPalabra(40));
 
       // Con ?operacion= se fotografía además una búsqueda o una eliminación
       // sobre el árbol ya armado; ?paso= se aplica entonces a esa operación.
@@ -239,7 +272,7 @@
       panel.querySelector('[data-accion="insertar-palabra"]').click();
       // Más pasos que el árbol digital: cada choque suma la bajada de la clave
       // que ya estaba, además de la del que entra.
-      avanzar(80);
+      avanzar(pasosDeLaPalabra(80));
 
       const operacion = parametros.get('operacion');
       if (!operacion) return;
@@ -254,7 +287,7 @@
       const panel = formularios[0];
       panel.querySelector('[name="palabra"]').value = parametros.get('palabra') || 'prueba';
       panel.querySelector('[data-accion="insertar-palabra"]').click();
-      avanzar(80);
+      avanzar(pasosDeLaPalabra(80));
 
       const operacion = parametros.get('operacion');
       if (!operacion) return;
@@ -407,6 +440,10 @@
 
     // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).
     window.CC2.listo.then(() => {
+      preparar();
+      congelarSiSePide();
+    });
+    function preparar() {
       const vista = parametros.get('vista') || 'menu';
       if (vista === 'menu') return;
       // La pantalla recién entrada, sin operar: ?vista=entrar&titulo=<tema del
@@ -430,7 +467,7 @@
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');
       prepararBusqueda(vista === 'binaria' ? 'Búsqueda binaria' : 'Búsqueda secuencial');
-    });
+    }
     // `&editar=1` abre la configuración plegada, como el enlace «Editar» del
     // resumen: es donde aparece «Cancelar».
     // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).

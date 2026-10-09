@@ -20,11 +20,24 @@
   // Cuánto amplía la pantalla al elemento: el producto del `zoom` de él y de
   // sus ancestros. `currentCSSZoom` lo da hecho donde existe (Chrome 128,
   // Firefox 126); si no, se recorre la cadena.
+  //
+  // **Y la escala que les pongan sus ancestros con `transform`** (2026-10-08):
+  // el árbol que cambia de tamaño al aparecer el cálculo se anima escalando su
+  // caja (`recentrarArbol`, tema-busqueda.js), y mientras dura, un píxel del
+  // nodo mide en la pantalla el zoom por esa escala. Sin contarla, el FLIP de
+  // los nodos y las aristas que los siguen se corrían en la misma proporción.
   function zoomEfectivo(el) {
-    if (typeof el.currentCSSZoom === 'number') return el.currentCSSZoom || 1;
     let zoom = 1;
-    for (let nodo = el; nodo && nodo.nodeType === 1; nodo = nodo.parentElement) {
-      zoom *= parseFloat(getComputedStyle(nodo).zoom) || 1;
+    if (typeof el.currentCSSZoom === 'number') {
+      zoom = el.currentCSSZoom || 1;
+    } else {
+      for (let nodo = el; nodo && nodo.nodeType === 1; nodo = nodo.parentElement) {
+        zoom *= parseFloat(getComputedStyle(nodo).zoom) || 1;
+      }
+    }
+    for (let nodo = el.parentElement; nodo && nodo.nodeType === 1; nodo = nodo.parentElement) {
+      const transform = getComputedStyle(nodo).transform;
+      if (transform && transform !== 'none') zoom *= new DOMMatrixReadOnly(transform).a || 1;
     }
     return zoom;
   }
