@@ -331,7 +331,7 @@
     // que la pantalla usa.
     const dibujos = vista.dibujos;
     const comunes = dibujos.comun({ estado, dom, config });
-    const { ajustarAnchoDeCasilla, casillasQueCaben, esArbol, esVertical, segmentosDe } = comunes;
+    const { ajustarAnchoDeCasilla, esArbol, esVertical, segmentosDe } = comunes;
     const { renderizarFilaUnica } = dibujos.fila({ estado, dom, config, comunes });
     const { renderizarApilado } = dibujos.apilado({ estado, dom, config, comunes });
     const dibujoArbol = dibujos.arbol({ estado, dom, config, formaArbol, renderizarLienzoVacio, comunes });
@@ -778,13 +778,7 @@
       for (const paso of estado.pasos) {
         relevantes.push(...config.casillasRelevantes(paso));
       }
-      // Solo hasta donde llega el apilado (ver `renderizarApilado`): la
-      // extensión del primer paso, de la casilla 1 a la última clave.
-      const extension = config.apilada.rangoDePaso(estado.pasos[0]);
-      // Una estructura sin claves no tiene extensión (o la tiene vacía): ahí
-      // se elide sobre la n, que es lo que el cierre «Rango vacío» abarca.
-      const hasta = extension && extension.hasta >= 1 ? extension.hasta : estado.estructura.n;
-      estado.segmentosApilado = segmentosDe(relevantes, { apilado: true, hasta });
+      estado.segmentosApilado = segmentosDe(relevantes);
     }
 
     function actualizarMetricas(paso) {
@@ -2039,21 +2033,6 @@
     // La derivación de índices se angosta si con la estructura no cabe (ver
     // `apretarDerivacion`): cambiar la ventana lo vuelve a medir.
     if (esIndices() && window.ResizeObserver) new ResizeObserver(apretarDerivacion).observe(escenario);
-    // Secuencial y binaria se eliden solo cuando no caben (ver
-    // `casillasQueCaben`): si cambiar la ventana cambia cuántas caben, se
-    // vuelve a dibujar el paso. Solo entonces —no a cada píxel—, para no
-    // relanzar el FLIP mientras se arrastra el borde de la ventana.
-    if (window.ResizeObserver) {
-      let cabianAntes = null;
-      new ResizeObserver(() => {
-        const caben = casillasQueCaben();
-        if (caben === null || caben === cabianAntes) return;
-        cabianAntes = caben;
-        if (!estado.estructura) return;
-        calcularSegmentosApilado();
-        renderizarEstructura(estado.pasoActual, estado.indicePaso);
-      }).observe(escenario);
-    }
     // El árbol se ajusta al sitio que le deja el cálculo (ver `ajustarArbol`), así
     // que cambiar la ventana lo vuelve a medir.
     if (esArbol()) {

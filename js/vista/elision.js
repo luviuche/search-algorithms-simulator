@@ -22,24 +22,14 @@
 
   // Devuelve una lista de segmentos { tipo: 'casilla', indice } o
   // { tipo: 'tramo', desde, hasta, cantidad } que la vista dibuja en orden.
-  //
-  // `capacidad` es cuántas casillas caben de verdad en el lienzo, medido por
-  // quien dibuja. Si la da, reemplaza al umbral fijo: las estructuras
-  // ordenadas se eliden **solo cuando no caben** (revisión de diseño,
-  // 2026-10-04), porque con el umbral una pantalla ancha escondía el
-  // recorrido casilla por casilla que el tema enseña. Las dispersas no la dan
-  // y siguen con el umbral y la regla del docente.
   function calcularSegmentos({
     n,
     relevantes,
     orientacion = 'horizontal',
     mostrarCompleta = false,
-    vecinas = true,
-    capacidad = null
+    vecinas = true
   }) {
-    const umbral = capacidad !== null
-      ? capacidad
-      : (orientacion === 'horizontal' ? UMBRAL_HORIZONTAL : UMBRAL_VERTICAL);
+    const umbral = orientacion === 'horizontal' ? UMBRAL_HORIZONTAL : UMBRAL_VERTICAL;
     if (mostrarCompleta || n <= umbral) {
       const todas = [];
       for (let i = 1; i <= n; i++) todas.push({ tipo: 'casilla', indice: i });
@@ -47,33 +37,6 @@
     }
 
     const visibles = indicesSiempreVisibles(n, relevantes, vecinas);
-    if (capacidad !== null) llenarHastaLaCapacidad(n, relevantes, visibles, capacidad);
-    return segmentosDe(n, visibles);
-  }
-
-  // Con la capacidad medida, elidir no tiene por qué quedarse en el mínimo:
-  // se destapan casillas alrededor de las relevantes, anillo por anillo,
-  // mientras el dibujo quepa. Así una pantalla en la que caben nueve muestra
-  // «1 … 7 ⋯ 24» y no «1 … 5 ⋯ 24», y lo que se esconde es solo lo que de
-  // verdad no cabe. El tramo cuenta como una casilla: su «⋯ 18 ⋯» mide más o
-  // menos lo mismo, y el margen que deja quien mide cubre la diferencia.
-  function llenarHastaLaCapacidad(n, relevantes, visibles, capacidad) {
-    const centros = relevantes.length ? relevantes : [1];
-    for (let distancia = 1; distancia < n; distancia++) {
-      for (const centro of centros) {
-        for (const indice of [centro - distancia, centro + distancia]) {
-          if (indice < 1 || indice > n || visibles.has(indice)) continue;
-          visibles.add(indice);
-          if (segmentosDe(n, visibles).length > capacidad) {
-            visibles.delete(indice);
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  function segmentosDe(n, visibles) {
     const segmentos = [];
     let inicioOculto = null;
 

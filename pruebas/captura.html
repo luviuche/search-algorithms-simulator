@@ -151,11 +151,16 @@
 
     function prepararBusqueda(nombreTema) {
       const formularios = entrarATema(nombreTema);
-      enviar(formularios[0], { n: 24, l: 2 });
-      for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) {
+      // `&n=`, `&claves=10,20,…` y `&clave=` cambian el ejercicio, como en las
+      // eliminaciones.
+      enviar(formularios[0], { n: Number(parametros.get('n')) || 24, l: 2 });
+      const claves = parametros.get('claves')
+        ? parametros.get('claves').split(',').map(Number)
+        : [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97];
+      for (const clave of claves) {
         operar(formularios, 'insertar', clave);
       }
-      operar(formularios, 'buscar', 84);
+      operar(formularios, 'buscar', Number(parametros.get('clave')) || 84);
       avanzar(pasosAAvanzar());
     }
 

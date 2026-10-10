@@ -67,26 +67,3 @@ test('las tres casillas relevantes de binaria sobreviven a la elisión', () => {
     assert.ok(visibles.includes(relevante), `falta la casilla relevante ${relevante}`);
   }
 });
-
-test('con capacidad medida, dibuja entera la estructura que cabe aunque pase del umbral', () => {
-  // Secuencial con n = 24 en una pantalla donde caben 26: el umbral fijo la
-  // comprimía y escondía el recorrido casilla por casilla.
-  const segmentos = calcularSegmentos({ n: 24, relevantes: [4], capacidad: 26 });
-  assert.equal(tramosDe(segmentos).length, 0);
-  assert.equal(segmentos.length, 24);
-});
-
-test('con capacidad medida, elide solo lo que no cabe', () => {
-  // Caben nueve: se destapan casillas alrededor de la relevante hasta
-  // llenarlas, en vez de quedarse en la 1, la n y las vecinas.
-  const segmentos = calcularSegmentos({ n: 24, relevantes: [4], capacidad: 9 });
-  assert.ok(segmentos.length <= 9);
-  assert.deepEqual(indicesDe(segmentos), [1, 2, 3, 4, 5, 6, 7, 24]);
-  const ocultas = tramosDe(segmentos).reduce((suma, t) => suma + t.cantidad, 0);
-  assert.equal(ocultas + indicesDe(segmentos).length, 24);
-});
-
-test('con capacidad menor que el mínimo, conserva la 1, la n y las relevantes con sus vecinas', () => {
-  const segmentos = calcularSegmentos({ n: 60, relevantes: [10, 30, 50], capacidad: 3 });
-  assert.deepEqual(indicesDe(segmentos), [1, 9, 10, 11, 29, 30, 31, 49, 50, 51, 60]);
-});
