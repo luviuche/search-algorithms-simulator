@@ -86,7 +86,9 @@
             const hasta = Math.min(segmento.hasta, extension.hasta);
             if (desde > hasta) return;
 
-            const tramoEl = crearTramo(desde, hasta);
+            // El apilado dibuja de la primera clave a la última: lo que
+            // resume un tramo son claves, y va como un bloque de ocupadas.
+            const tramoEl = crearTramo(desde, hasta, { claves: true });
             // Un tramo que cae entero fuera del rango se apaga como las
             // casillas que resume: si no, «⋯ 2 ⋯» brillaría en medio de lo
             // descartado.
@@ -136,6 +138,9 @@
         }
       }
 
+      // Crece con la fila única de la que sale (ver `ajustarEscala`): dentro
+      // de la búsqueda solo se achica, si la fila nueva ya no cabe.
+      comunes.ajustarEscala(estado.pasos[indicePaso]);
       dom.estructuraEl.scrollTop = dom.estructuraEl.scrollHeight;
     }
 

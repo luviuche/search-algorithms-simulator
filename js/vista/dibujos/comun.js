@@ -119,8 +119,73 @@
     // en la matriz de arreglos anidados, descoloca todas las columnas a su
     // derecha. El ancho se fija en la raíz de la pantalla para que lo hereden
     // por igual la tabla, sus arreglos y el apilado.
+    //
+    // **Nunca más angosta que la de cuatro cifras** (opción C de las maquetas,
+    // elegida por el usuario el 2026-10-09). Con `l = 2` la casilla medía unos
+    // 45 px: la tabla vertical quedaba amontonada, con el conteo de los tramos
+    // apretado en «⋯22⋯», y la fila de secuencial y binaria, igual de
+    // estrecha. Vale para todo lo que se dibuja con casillas.
+    const CIFRAS_MINIMAS = 4;
     function ajustarAnchoDeCasilla(l) {
-      dom.pantalla.style.setProperty('--ancho-casilla', `${vista.componentes.casilla.anchoParaCifras(l)}px`);
+      const cifras = Math.max(l, CIFRAS_MINIMAS);
+      dom.pantalla.style.setProperty('--ancho-casilla', `${vista.componentes.casilla.anchoParaCifras(cifras)}px`);
+    }
+
+    // **Y si sobra lienzo, la estructura crece** (opción C, 2026-10-09), como
+    // ya hacen los árboles y el bosque de Huffman: hasta `CRECIMIENTO_MAXIMO`,
+    // y solo si cabe a lo ancho —con el panel del cálculo, si está en el
+    // flujo— y a lo alto. Nunca encoge: lo que no cabe se desplaza, como
+    // siempre. Casillas, números y tramos crecen juntos, con `zoom` en la caja.
+    //
+    // **Dentro de una operación no crece, solo se achica** si algo dejó de
+    // caber —el apilado de binaria suma una fila por paso, la tabla hash le
+    // hace sitio al cálculo—: medida paso a paso, la escala cambiaba con cada
+    // tramo que la elisión abría o cerraba. Se vuelve a medir en reposo, en el
+    // paso final y al cambiar la ventana.
+    //
+    // La llaman la fila y el apilado; los árboles, el bosque, los bloques y los
+    // índices tienen su propio ajuste o se desplazan.
+    const CRECIMIENTO_MAXIMO = 1.5;
+    function ajustarEscala(paso) {
+      const caja = dom.estructuraEl;
+      if (!caja || !dom.escenario || !caja.isConnected) return;
+      caja.style.zoom = '';
+      const escenario = getComputedStyle(dom.escenario);
+      const panel = dom.calculo && !dom.calculo.el.hidden && dom.calculo.el.parentNode === dom.escenario
+        && dom.calculo.el.style.position !== 'absolute' ? dom.calculo.el : null;
+      const ancho = dom.escenario.clientWidth
+        - parseFloat(escenario.paddingLeft) - parseFloat(escenario.paddingRight)
+        - (panel ? panel.offsetWidth + (parseFloat(escenario.columnGap) || 0) : 0);
+      const alto = dom.escenario.clientHeight
+        - parseFloat(escenario.paddingTop) - parseFloat(escenario.paddingBottom);
+      if (caja.scrollWidth <= 0 || caja.scrollHeight <= 0) return;
+      let factor = Math.max(1, Math.min(CRECIMIENTO_MAXIMO, ancho / caja.scrollWidth, alto / caja.scrollHeight));
+      const anterior = estado.escalaEstructura || 1;
+      const enOperacion = paso && !paso.final;
+      if (enOperacion) factor = Math.min(factor, anterior);
+      estado.escalaEstructura = factor;
+      if (factor > 1.001) caja.style.zoom = String(factor);
+      // **El cambio de escala se anima como un bloque**, como el del árbol al
+      // aparecer el cálculo: la caja arranca con el tamaño que tenía y llega al
+      // nuevo. Sin esto, el FLIP deslizaba las casillas a su sitio mientras la
+      // numeración —que no son casillas— saltaba de golpe, y por 400 ms quedaban
+      // descuadradas (lo vio la prueba de humo en cubetas, tras la expansión).
+      // Se suma (`composite: 'add'`) al corrimiento que ya pudiera llevar la
+      // caja, el de cuando aparece o se va el cálculo, en vez de cancelarlo.
+      if (Math.abs(factor - anterior) > 0.001 && caja.childElementCount > 0
+        && !vista.animacion.prefiereMovimientoReducido()) {
+        caja.animate(
+          [{ transform: `scale(${anterior / factor})` }, { transform: 'none' }],
+          { duration: DURACION_CAMBIO_DE_ESCALA_MS, easing: 'ease-in-out', composite: 'add' }
+        );
+      }
+    }
+    const DURACION_CAMBIO_DE_ESCALA_MS = 400;
+
+    // Los píxeles de la caja de la estructura, que puede llevar `zoom` (ver
+    // `ajustarEscala`): lo que se mide en la pantalla hay que dividirlo.
+    function escalaDeLaCaja() {
+      return parseFloat(dom.estructuraEl && dom.estructuraEl.style.zoom) || 1;
     }
 
     // Cuántas columnas de arreglo anidado dibuja cada dirección (CLAUDE.md 5.4).
@@ -171,9 +236,10 @@
       const anidado = dominio.estructura.anidadoDe(estado.estructura, indice);
       return segmentos.map((segmento) => {
         // Un tramo solo esconde posiciones vacías: las ocupadas son relevantes
-        // en todas las filas, así que ninguna cae dentro de un tramo.
+        // en todas las filas, así que ninguna cae dentro de un tramo. Por eso
+        // va punteado, como ellas.
         if (segmento.tipo === 'tramo') {
-          const tramoEl = crearTramo(segmento.desde, segmento.hasta);
+          const tramoEl = crearTramo(segmento.desde, segmento.hasta, { vacias: true });
           tramoEl.classList.add('tramo-elidido--anidado');
           return tramoEl;
         }
@@ -245,7 +311,8 @@
       for (const segmento of segmentos) {
         contenedor.appendChild(crearEnlace());
         if (segmento.tipo === 'tramo') {
-          const tramoEl = crearTramo(segmento.desde, segmento.hasta);
+          // Como en el arreglo anidado: solo esconde posiciones vacías.
+          const tramoEl = crearTramo(segmento.desde, segmento.hasta, { vacias: true });
           tramoEl.classList.add('tramo-elidido--anidado');
           contenedor.appendChild(tramoEl);
           continue;
@@ -264,7 +331,7 @@
     }
 
     function segmentosDe(relevantes) {
-      return vista.elision.calcularSegmentos({
+      const segmentos = vista.elision.calcularSegmentos({
         n: estado.estructura.n,
         relevantes,
         orientacion: config.orientacion || 'horizontal',
@@ -279,6 +346,13 @@
           ? dominio.estructura.cantidadClaves(estado.estructura)
           : null
       });
+      // En una dispersa toda casilla ocupada es relevante (ver
+      // `relevantesDelPaso`): sus tramos solo esconden vacías, y se dibujan
+      // punteados como ellas (2026-10-09, la regla de la fila llevada a hash).
+      if (config.modo === dominio.estructura.MODOS.DISPERSA) {
+        for (const segmento of segmentos) if (segmento.tipo === 'tramo') segmento.vacias = true;
+      }
+      return segmentos;
     }
 
     // En una estructura dispersa, dónde quedó cada clave *es* el resultado del
@@ -323,6 +397,9 @@
       // así que offsetTop se mediría contra un ancestro cualquiera.
       const cajaRect = caja.getBoundingClientRect();
       const grupoRect = grupo.getBoundingClientRect();
+      // Los rectángulos van en píxeles de pantalla y el desplazamiento en los
+      // de la caja, que puede estar escalada (ver `ajustarEscala`).
+      const z = escalaDeLaCaja();
 
       const centrar = (eje) => {
         const vertical = eje === 'vertical';
@@ -331,8 +408,8 @@
           : caja.scrollWidth - caja.clientWidth;
         if (sobrante <= 0) return;
         const centrado = vertical
-          ? grupoRect.top - cajaRect.top + caja.scrollTop - (caja.clientHeight - grupoRect.height) / 2
-          : grupoRect.left - cajaRect.left + caja.scrollLeft - (caja.clientWidth - grupoRect.width) / 2;
+          ? (grupoRect.top - cajaRect.top) / z + caja.scrollTop - (caja.clientHeight - grupoRect.height / z) / 2
+          : (grupoRect.left - cajaRect.left) / z + caja.scrollLeft - (caja.clientWidth - grupoRect.width / z) / 2;
         const destino = Math.max(0, Math.min(centrado, sobrante));
         if (vertical) caja.scrollTop = destino;
         else caja.scrollLeft = destino;
@@ -350,7 +427,7 @@
       centrar(esVertical() ? 'vertical' : 'horizontal');
     }
 
-    return { ajustarAnchoDeCasilla, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
+    return { ajustarAnchoDeCasilla, ajustarEscala, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, escalaDeLaCaja, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
   }
 
   window.CC2 = window.CC2 || {};

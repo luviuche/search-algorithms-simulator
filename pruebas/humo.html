@@ -85,7 +85,9 @@
     // `node --test` no puede verlo.
     function afirmarCasillasParejas(contexto) {
       const casillas = [...document.querySelectorAll('.casilla')];
-      const anchos = [...new Set(casillas.map((c) => Math.round(c.getBoundingClientRect().width)))];
+      // El ancho del diseño y no el de la pantalla: la estructura puede crecer
+      // con `zoom` (2026-10-09), y 61 × 1,5 = 91,5 px se redondeaba a 91 o 92.
+      const anchos = [...new Set(casillas.map((c) => c.offsetWidth))];
       afirmar(
         anchos.length === 1,
         `${contexto}: las ${casillas.length} casillas miden lo mismo (anchos: ${anchos.join(', ')})`
@@ -634,6 +636,7 @@
       arbolDeHuffman();
       indices();
       controlDeElision();
+      tramosEnSuColumna();
       lienzoSinBarras();
       panelLateralPlegado();
       archivos();
@@ -2510,6 +2513,38 @@
     }
     const ladosDesvanecidos = (el) =>
       ['izq', 'der', 'arr', 'aba'].filter((lado) => el.classList.contains(`desborda-${lado}`)).join(',') || 'ninguno';
+
+    // **En la tabla vertical, el tramo mide lo que una casilla** (2026-10-09):
+    // con l = 2 la casilla mide unos 45 px y «⋯ 22 ⋯» unos 61, así que el
+    // tramo ensanchaba la columna y la 1 y la n quedaban corridas respecto de
+    // él —lo vio el usuario en función módulo con n = 24—. Con encadenamiento,
+    // además, el tramo va solo bajo la casilla de la dirección.
+    function tramosEnSuColumna() {
+      registro.push('', '── Tramos en su columna ──');
+      for (const tratamiento of ['reasignacion', 'encadenamiento', 'anidados']) {
+        const formularios = entrarAModulo({ n: 24, l: 2, tratamiento });
+        for (const clave of [12, 36, 60, 47, 19, 84]) {
+          operar(formularios, 'insertar', clave);
+          agotarTraza(30);
+        }
+        // Con la estructura quieta: las casillas viajan con el FLIP y los
+        // tramos no, y a media animación parecían corridos.
+        for (const animacion of document.getAnimations()) animacion.finish();
+        const casilla = document.querySelector('.fila-casilla .casilla').getBoundingClientRect();
+        const tramos = [...document.querySelectorAll('.fila-casilla .tramo-elidido:not(.tramo-elidido--matriz)')];
+        const fuera = tramos.filter((tramo) => {
+          const caja = tramo.getBoundingClientRect();
+          return Math.abs(caja.width - casilla.width) > 1 || tramo.scrollWidth > tramo.clientWidth + 1;
+        });
+        const primeraColumna = tramos.filter((tramo) => !tramo.closest('.cadena') && !tramo.classList.contains('tramo-elidido--anidado'));
+        const corridos = primeraColumna.filter((tramo) => Math.abs(tramo.getBoundingClientRect().left - casilla.left) > 1);
+        afirmar(
+          tramos.length > 0 && fuera.length === 0 && corridos.length === 0,
+          `${tratamiento}: cada tramo mide lo que una casilla y cae en su columna (${tramos.length} tramo(s), ${fuera.length} de otro ancho o recortado(s), ${corridos.length} corrido(s))`
+        );
+        document.querySelector('.pantalla-tema__volver').click();
+      }
+    }
 
     // Sin barras en el lienzo (pedido del usuario, 2026-09-27): se desplaza
     // igual, pero lo que dice «hay más» es el borde desvanecido del lado por

@@ -12,7 +12,7 @@
   // `config` del tema—, que son objetos y no copias: lo que la pantalla
   // cambie en ellos, el dibujo lo ve.
   function crearDibujoFila({ estado, dom, config, comunes }) {
-    const { casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esEncadenada, esVertical, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado } = comunes;
+    const { ajustarEscala, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esEncadenada, esVertical, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado } = comunes;
 
     // Vista de una sola estructura: la que usan los temas que no acumulan
     // (secuencial, transformación de claves), y también binaria mientras no hay
@@ -65,6 +65,7 @@
           grupo.className = vertical ? 'fila-casilla' : 'columna-casilla';
 
           if (segmento.tipo === 'tramo') {
+            const cruzaLaMatriz = vertical && columnasAnidadas() > 0 && !esEncadenada();
             const tramoEl = crearTramo(segmento.desde, segmento.hasta, segmento);
             // Si todo lo que resume está descartado, se apaga con ello: el
             // «⋯ 2 ⋯» del rastro de secuencial no puede brillar en medio de
@@ -73,8 +74,12 @@
             // Sin rótulo, el grupo tiene un solo hijo: en vertical el grid lo
             // metería en la columna de la escala, así que se lo manda a la de
             // las casillas a mano. Con arreglos anidados cruza la matriz
-            // entera, que es lo que dice que se saltaron filas completas.
-            if (vertical) tramoEl.style.gridColumn = columnasAnidadas() > 0 ? '2 / -1' : '2';
+            // entera, que es lo que dice que se saltaron filas completas. Con
+            // encadenamiento, no (pedido del usuario, 2026-10-09): lo que se
+            // salta son direcciones de la tabla, y la cadena no es una matriz
+            // —cada una mide lo suyo—, así que va solo en la primera columna.
+            if (vertical) tramoEl.style.gridColumn = cruzaLaMatriz ? '2 / -1' : '2';
+            if (cruzaLaMatriz) tramoEl.classList.add('tramo-elidido--matriz');
             grupo.appendChild(tramoEl);
             dom.estructuraEl.appendChild(grupo);
             continue;
@@ -167,7 +172,9 @@
         }
 
         // Dentro del cambio y no después: así el FLIP mide las posiciones
-        // finales, ya desplazadas, y no anima contra coordenadas viejas.
+        // finales, ya desplazadas —y ya escaladas—, y no anima contra
+        // coordenadas viejas.
+        ajustarEscala(paso);
         llevarALaVista(grupoSeguido);
         // La fila y no la casilla: el FLIP mueve las casillas con `transform`
         // y medirlas en pleno viaje daría dónde van pasando, no dónde quedan.

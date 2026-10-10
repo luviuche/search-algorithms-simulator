@@ -494,7 +494,9 @@
         };
         return;
       }
-      const corrimiento = antes - dom.estructuraEl.getBoundingClientRect().left;
+      // En píxeles de la caja, que puede estar escalada (`ajustarEscala`): el
+      // `transform` se aplica dentro del `zoom`.
+      const corrimiento = (antes - dom.estructuraEl.getBoundingClientRect().left) / comunes.escalaDeLaCaja();
       if (animar && Math.abs(corrimiento) > 0.5) {
         vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
           { transform: `translateX(${corrimiento}px)` },
@@ -2067,6 +2069,15 @@
     // La derivación de índices se angosta si con la estructura no cabe (ver
     // `apretarDerivacion`): cambiar la ventana lo vuelve a medir.
     if (esIndices() && window.ResizeObserver) new ResizeObserver(apretarDerivacion).observe(escenario);
+    // La fila, la tabla y el apilado crecen si sobra lienzo (ver
+    // `comunes.ajustarEscala`): cambiar la ventana los vuelve a medir, sin
+    // redibujar.
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => {
+        const clase = dom.estructuraEl && dom.estructuraEl.className;
+        if (/estructura-(horizontal|vertical|apilada)/.test(clase || '')) comunes.ajustarEscala(estado.pasoActual);
+      }).observe(escenario);
+    }
     // El árbol se ajusta al sitio que le deja el cálculo (ver `ajustarArbol`), así
     // que cambiar la ventana lo vuelve a medir.
     if (esArbol()) {

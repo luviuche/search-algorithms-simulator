@@ -175,6 +175,20 @@
     // es donde se ve el cálculo revelándose junto a la casilla que resulta.
     // El tema se elige con ?tema=, para poder fotografiar el desarrollo de
     // cualquiera de las cinco funciones sin escribir una vista por cada una.
+    // `&claves=12,36,…` cambia las claves de los temas hash —con `l = 2` las
+    // de siempre, de cuatro cifras, se rechazan—: se insertan todas y la última
+    // se deja reproduciéndose, como la clave final de siempre (2026-10-09).
+    function insertarEjercicioHash(formularios, porDefecto, final) {
+      const lista = parametros.get('claves')
+        ? parametros.get('claves').split(',').map(Number)
+        : porDefecto.concat(Number(parametros.get('clave')) || final);
+      lista.forEach((clave, i) => {
+        operar(formularios, 'insertar', clave);
+        if (i < lista.length - 1) avanzar(12);
+      });
+      avanzar(pasosAAvanzar());
+    }
+
     function prepararHash({ colisiona }) {
       const formularios = entrarATema(parametros.get('tema') || 'Función módulo');
       // n, l y la clave final se pueden fijar por URL para fotografiar un
@@ -190,12 +204,7 @@
       });
       // 1004, 1016 y 1028 caen todas en la dirección 9: preparan el terreno
       // para que la última inserción tenga algo con qué chocar.
-      for (const clave of [1004, 1010, 1023, 1035, 1016]) {
-        operar(formularios, 'insertar', clave);
-        avanzar(12);
-      }
-      operar(formularios, 'insertar', Number(parametros.get('clave')) || (colisiona ? 1028 : 1001));
-      avanzar(pasosAAvanzar());
+      insertarEjercicioHash(formularios, [1004, 1010, 1023, 1035, 1016], colisiona ? 1028 : 1001);
     }
 
     // Eliminación (CLAUDE.md 5.6). En las ordenadas la clave se localiza con
@@ -228,12 +237,7 @@
       });
       // 1004, 1016 y 1028 comparten dirección con n = 12: las tres van a dar
       // al mismo arreglo anidado.
-      for (const clave of [1004, 1010, 1023, 1035, 1016]) {
-        operar(formularios, 'insertar', clave);
-        avanzar(12);
-      }
-      operar(formularios, 'insertar', Number(parametros.get('clave')) || 1028);
-      avanzar(pasosAAvanzar());
+      insertarEjercicioHash(formularios, [1004, 1010, 1023, 1035, 1016], 1028);
     }
 
     // Encadenamiento secuencial: varias claves con la misma dirección, para
@@ -247,12 +251,7 @@
       });
       // 7412, 5312 y 9912 comparten dirección con n = 10: las tres van a dar
       // a la misma cadena, que es lo que hay que fotografiar.
-      for (const clave of [7412, 5312, 1023, 9912, 1035]) {
-        operar(formularios, 'insertar', clave);
-        avanzar(12);
-      }
-      operar(formularios, 'insertar', Number(parametros.get('clave')) || 1112);
-      avanzar(pasosAAvanzar());
+      insertarEjercicioHash(formularios, [7412, 5312, 1023, 9912, 1035], 1112);
     }
 
     // Árbol de búsqueda digital: el ejercicio de clase es la palabra «prueba»,

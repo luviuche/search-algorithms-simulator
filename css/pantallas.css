@@ -1182,6 +1182,46 @@ form.panel > .pantalla-tema__reproduccion {
   border-right: 1px dashed var(--borde-fuerte);
 }
 
+/* **Y en la tabla vertical, cada tramo se dibuja como lo que resume**, como en
+   la fila de secuencial y binaria (2026-10-09). En una dispersa, en sus
+   arreglos anidados y en sus cadenas solo se esconden vacías —las claves
+   colocadas siempre se ven—, así que el tramo es un bloque punteado con el
+   relleno de la casilla vacía en vez de dos rayitas. Va después de las reglas
+   de arriba para ganarles los bordes que quitan. */
+.fila-casilla .tramo-elidido--vacias,
+.fila-casilla .tramo-elidido--anidado.tramo-elidido--vacias {
+  border: 1px dashed var(--estado-vacia-borde);
+  background: var(--estado-vacia-relleno);
+  border-radius: var(--radio-casilla);
+}
+
+/* **En la tabla vertical, el tramo mide lo que una casilla**, para que la
+   columna no se descuadre (visto por el usuario, 2026-10-09: con l = 2 la
+   casilla mide unos 45 px y «⋯ 22 ⋯» unos 61, así que el tramo ensanchaba la
+   columna y la 1 y la n quedaban corridas). Cabe porque la casilla nunca es
+   más angosta que la de cuatro cifras (`ajustarAnchoDeCasilla`). Vale para la tabla, los arreglos anidados y las cadenas; con
+   encadenamiento eso deja el tramo solo bajo la casilla de la dirección, que
+   es lo que se salta (pedido del usuario). Solo el que cruza la matriz de
+   anidados conserva su ancho: ahí se salta la fila entera. */
+.fila-casilla .tramo-elidido {
+  justify-self: start;
+  width: var(--ancho-casilla);
+  min-width: 40px;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.fila-casilla .tramo-elidido--matriz {
+  justify-self: stretch;
+  width: auto;
+}
+
+/* Entre fila y fila, separado de las casillas: pegado, el borde punteado se
+   confundía con el de la casilla vecina. */
+.fila-casilla .tramo-elidido--vacias:not(.tramo-elidido--anidado) {
+  margin: 2px 0;
+}
+
 /* Panel del cálculo de la dirección (CLAUDE.md 5.3): el desarrollo se revela
    línea por línea con el reproductor, así que la lista crece hacia abajo y la
    última línea revelada queda destacada. */
