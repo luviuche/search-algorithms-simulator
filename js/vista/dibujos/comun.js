@@ -366,11 +366,6 @@
     function relevantesDelPaso(paso) {
       let relevantes = [];
       if (paso) relevantes = paso.vistas || config.casillasRelevantes(paso);
-      // La clave que el llenado automático acaba de colocar se ve, aunque la
-      // fila esté elidida (2026-10-09): desde que las claves no caben en el
-      // umbral, la que entraba quedaba escondida y la fila no cambiaba. Las
-      // insertadas a mano son un paso con su casilla (`pasoDeInsercion`).
-      if (!paso && estado.ultimaInsertada) relevantes = relevantes.concat(estado.ultimaInsertada);
       if (config.modo !== dominio.estructura.MODOS.DISPERSA) return relevantes;
 
       const ocupadas = [];

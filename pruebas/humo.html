@@ -636,6 +636,7 @@
       arbolDeHuffman();
       indices();
       controlDeElision();
+      llenadoAutomatico();
       tramosEnSuColumna();
       lienzoSinBarras();
       panelLateralPlegado();
@@ -2513,6 +2514,44 @@
     }
     const ladosDesvanecidos = (el) =>
       ['izq', 'der', 'arr', 'aba'].filter((lado) => el.classList.contains(`desborda-${lado}`)).join(',') || 'ninguno';
+
+    // **El llenado automático es una operación del reproductor** (2026-10-09):
+    // una clave por paso, con su casilla marcada y su mensaje, que se puede
+    // pausar y retroceder, y que cierra con el paso final. Iba con su propio
+    // ritmo, sin respetar la velocidad, y el estudiante se perdía.
+    function llenadoAutomatico() {
+      registro.push('', '── Llenado automático ──');
+      const casos = [
+        { tema: 'Búsqueda secuencial', datos: { n: 8, l: 2 } },
+        { tema: 'Función módulo', datos: { n: 8, l: 2, tratamiento: 'reasignacion' } },
+        { tema: 'Otras búsquedas dinámicas', datos: { n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 82, umbralReducir: 125 } }
+      ];
+      for (const { tema, datos } of casos) {
+        entrarATema(tema);
+        const formularios = [...document.querySelectorAll('form.panel')];
+        enviar(formularios[0], datos);
+        control('llenado-automatico').click();
+        control('siguiente').click();
+        const claves = () => [...document.querySelectorAll('.casilla')]
+          .map((el) => el.textContent.replace(/[^0-9]/g, '')).filter(Boolean);
+        const enElSegundo = claves().length;
+        const narra = /Paso 2 de \d+/.test((aviso() || {}).textContent || '');
+        const marcada = document.querySelectorAll('.casilla--insertada').length;
+        control('anterior').click();
+        const alRetroceder = claves().length;
+        agotarTraza(200);
+        const alFinal = claves();
+        afirmar(
+          enElSegundo === 2 && alRetroceder === 1 && narra && marcada === 1,
+          `${tema}: una clave por paso, narrada y marcada, y se puede retroceder (paso 2: ${enElSegundo} clave(s), ${marcada} marcada(s); al retroceder: ${alRetroceder})`
+        );
+        afirmar(
+          alFinal.length >= 2 && new Set(alFinal).size === alFinal.length && !document.querySelector('.casilla--insertada'),
+          `${tema}: termina lleno, sin claves repetidas y sin resaltados (${alFinal.length} clave(s))`
+        );
+        document.querySelector('.pantalla-tema__volver').click();
+      }
+    }
 
     // **En la tabla vertical, el tramo mide lo que una casilla** (2026-10-09):
     // con l = 2 la casilla mide unos 45 px y «⋯ 22 ⋯» unos 61, así que el

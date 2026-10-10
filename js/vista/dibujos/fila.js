@@ -90,12 +90,14 @@
           const descripcion = config.describirCasilla({ paso, indice, ocupada: clave !== undefined });
           // La clave insertada de una vez lleva la marca de insertada, como la
           // de los temas con inserción paso a paso (pedido del usuario,
-          // 2026-10-09): sin pasos, sigue siendo una inserción. A mano es su
-          // paso (`pasoDeInsercion`); en el llenado automático, la que acaba de
-          // entrar (`estado.ultimaInsertada`). El paso final la apaga.
-          const recienInsertada = clave !== undefined && (paso
-            ? !paso.final && paso.tipo === 'insercion' && paso.casilla === indice
-            : indice === estado.ultimaInsertada);
+          // 2026-10-09): sin pasos, sigue siendo una inserción. Es su paso
+          // (`pasoDeInsercion`), a mano o en el llenado automático, y el paso
+          // final la apaga.
+          // Solo en la casilla principal: con arreglo anidado o cubetas la
+          // clave puede haber entrado en un renglón (`posicion`), y ese lo
+          // marca el tema.
+          const recienInsertada = clave !== undefined && !!paso && !paso.final
+            && paso.tipo === 'insercion' && paso.casilla === indice && paso.posicion === undefined;
           const casillaEl = vista.componentes.casilla.crearCasilla({
             clave,
             indice,

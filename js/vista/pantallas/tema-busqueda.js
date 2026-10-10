@@ -4,18 +4,6 @@
   const persistencia = window.CC2.persistencia;
   const { TIPOS_PASO } = window.CC2.algoritmos.traza;
 
-  // Ritmo del llenado automático (CLAUDE.md 7). No reproduce la traza de cada
-  // clave —llenar es preparar el escenario, no la lección— pero sí tiene que
-  // dejar ver dónde se acomoda cada una.
-  //
-  // La regla que no se puede romper: **entre clave y clave tiene que caber la
-  // animación entera**. Las animaciones se reemplazan en vez de encolarse
-  // (CLAUDE.md 7), así que con un intervalo más corto que la animación cada
-  // clave cancelaba el movimiento de la anterior a media carrera y las claves
-  // parecían amontonarse en lugar de acomodarse. Era el caso: 150 ms de
-  // intervalo contra 400 de animación (pedido del usuario, 2026-08-30).
-  const MS_ANIMACION_LLENADO = 500;
-  const MS_ENTRE_CLAVES = 700;
 
   // Ancho de casilla para los temas sin `l` (`config.sinLongitud`, CLAUDE.md
   // 5.7): sin una longitud fija que medir, se reserva sitio para varias
@@ -70,10 +58,6 @@
   function crearPantallaTema(config, alVolver) {
     const estado = {
       estructura: null,
-      // La casilla de la clave que el llenado automático acaba de colocar:
-      // se ve, con su marca, mientras el llenado sigue (ver
-      // `relevantesDelPaso`).
-      ultimaInsertada: null,
       reproductor: null,
       pasoActual: null,
       indicePaso: -1,
@@ -234,6 +218,11 @@
     const formaArbol = config.arbol || dominio.arbol;
 
     const APLICADORES = {
+      // El llenado automático (ver `llenarAutomaticamente`): en una ordenada,
+      // la clave entra en el sitio que conserva el orden; en los demás temas,
+      // un paso aplica todo lo que hizo la inserción trazada de esa clave.
+      insertar: (efecto) => dominio.estructura.insertar(estado.estructura, efecto.clave),
+      lote: (efecto) => efecto.efectos.forEach((uno) => APLICADORES[uno.tipo](uno)),
       colocar: (efecto) => dominio.estructura.colocarEn(estado.estructura, efecto.casilla, efecto.clave),
       retirar: (efecto) => dominio.estructura.retirarDe(estado.estructura, efecto.casilla),
       // En una estructura ordenada sacar la clave cierra el hueco: el dominio
@@ -286,21 +275,36 @@
     // varias claves —la redispersión de un grupo retira y recoloca todo un
     // tramo— y las inversas encadenadas son justo donde se cuelan los errores.
     // Rehacer desde el estado base no puede desincronizarse.
-    function sincronizarEfectos(indicePaso) {
-      if (!estado.clavesBase || !estado.pasos) return;
-      estado.estructura.claves = estado.clavesBase.claves.slice();
+    // Lo que una operación puede cambiar de la estructura, copiado: es su
+    // estado base, desde el que cada paso se rehace aplicando los efectos.
+    function instantaneaDeLaEstructura() {
+      return {
+        claves: estado.estructura.claves.slice(),
+        anidados: (estado.estructura.anidados || []).map((anidado) => (anidado ? anidado.slice() : anidado)),
+        n: estado.estructura.n,
+        ordenLlegada: (estado.estructura.ordenLlegada || []).slice()
+      };
+    }
+
+    function restaurarEstructura(base) {
+      estado.estructura.claves = base.claves.slice();
       // Cada anidado se copia aparte: sin eso, compactar uno mutaría el propio
       // estado base y el paso siguiente rehacería sobre algo ya movido.
-      estado.estructura.anidados = estado.clavesBase.anidados.map(
+      estado.estructura.anidados = base.anidados.map(
         (anidado) => (anidado ? anidado.slice() : anidado)
       );
       // Solo lo usan las otras búsquedas dinámicas (CLAUDE.md 5.x), donde `n`
       // puede cambiar dentro de la misma operación: sin restaurarlo, retroceder
       // antes de una expansión a medio reproducir dejaría el `n` ya crecido.
-      if (estado.clavesBase.n !== undefined) estado.estructura.n = estado.clavesBase.n;
-      if (estado.clavesBase.ordenLlegada) {
-        estado.estructura.ordenLlegada = estado.clavesBase.ordenLlegada.slice();
+      if (base.n !== undefined) estado.estructura.n = base.n;
+      if (base.ordenLlegada) {
+        estado.estructura.ordenLlegada = base.ordenLlegada.slice();
       }
+    }
+
+    function sincronizarEfectos(indicePaso) {
+      if (!estado.clavesBase || !estado.pasos) return;
+      restaurarEstructura(estado.clavesBase);
       const hasta = Math.min(indicePaso, estado.pasos.length - 1);
       for (let i = 0; i <= hasta; i++) {
         const efecto = estado.pasos[i].efecto;
@@ -311,9 +315,6 @@
     // Abandonar una operación a medio reproducir no puede dejar la estructura
     // en el limbo: al invalidar, la operación se consuma antes de olvidarla.
     function invalidarReproduccion() {
-      // Cualquier operación nueva —o la que se abandona— suelta la clave
-      // recién insertada (ver `relevantesDelPaso`).
-      estado.ultimaInsertada = null;
       if (estado.reproductor) estado.reproductor.detener();
       sincronizarEfectos(Infinity);
       estado.clavesBase = null;
@@ -352,8 +353,6 @@
     // estructura bajo las filas ya dibujadas —que se leen del mismo arreglo—,
     // así que el tema puede declarar que no le aplican y esos pasos se dibujan
     // sobre la estructura completa, que es donde se ve el desplazamiento.
-    // `opciones.duracionMs` alarga el reordenamiento: lo usa el llenado
-    // automático, que va más despacio que una inserción suelta.
     function renderizarEstructura(paso, indicePaso, opciones) {
       // Todo lo que cambia la estructura pasa por aquí —crear, vaciar,
       // insertar, abrir un archivo, cada paso—: es el sitio donde los botones
@@ -854,12 +853,7 @@
       const ultimo = pasosDelAlgoritmo[pasosDelAlgoritmo.length - 1];
       const pasos = ultimo ? pasosDelAlgoritmo.concat(pasoFinal(ultimo)) : pasosDelAlgoritmo;
       estado.pasos = pasos;
-      estado.clavesBase = {
-        claves: estado.estructura.claves.slice(),
-        anidados: (estado.estructura.anidados || []).map((anidado) => (anidado ? anidado.slice() : anidado)),
-        n: estado.estructura.n,
-        ordenLlegada: (estado.estructura.ordenLlegada || []).slice()
-      };
+      estado.clavesBase = instantaneaDeLaEstructura();
       calcularSegmentosApilado();
       habilitarReproduccion(true);
       // Sin mensaje inicial cuando la operación es un solo paso que ya dice
@@ -984,10 +978,21 @@
       );
     }
 
-    // Llenado numérico (CLAUDE.md 12: el alfabético queda diferido). Inserta de
-    // a una para que la animación de inserción se vea, no un salto al estado
-    // final. No reproduce la traza de cada clave: llenar es preparar el
-    // escenario, no la lección; la lección es la clave que se inserta a mano.
+    // Llenado numérico (CLAUDE.md 12: el alfabético queda diferido).
+    //
+    // **Es una operación del reproductor, una clave por paso** (pedido del
+    // usuario, 2026-10-09). Iba con su propio ritmo —medio segundo de
+    // animación y 700 ms entre claves—, no respetaba el control de velocidad,
+    // no se podía pausar ni retroceder, y nada decía qué clave entraba ni
+    // dónde: el estudiante se perdía. Ahora cada clave es un paso de inserción
+    // con su casilla marcada y su mensaje —«Paso 7 de 24 · Clave insertada:
+    // 58 en la casilla 9»—, y la operación cierra con el paso final de
+    // siempre. No reproduce la traza de cada clave: llenar es preparar el
+    // escenario, no la lección.
+    //
+    // La traza se arma de una vez, simulando cada clave sobre la estructura y
+    // guardando su efecto; luego la estructura vuelve a como estaba y el
+    // reproductor la rehace paso a paso, como en cualquier operación.
     function llenarAutomaticamente() {
       // Sin l no hay un rango que derivar (CLAUDE.md 5.7): se llena con un
       // rango fijo, generoso frente a lo que suele caber en el salón.
@@ -1001,40 +1006,52 @@
       }
       limpiarAlerta();
       invalidarReproduccion();
-      let insertadas = 0;
+
+      const base = instantaneaDeLaEstructura();
+      const pasos = [];
       let intentos = 0;
-
-      function insertarSiguiente() {
-        if (insertadas >= objetivo || intentos >= objetivo * 50) {
-          // La última clave se cierra como una inserción a mano: su paso
-          // marcado y el paso final, que apaga el verde (ver
-          // `pasoDeInsercion`). En los temas con inserción trazada no hay
-          // casilla que cerrar.
-          const ultima = estado.ultimaInsertada;
-          estado.ultimaInsertada = null;
-          const mensaje = `Llenado automático: ${insertadas} claves insertadas.`;
-          if (ultima) reproducirOperacion([pasoDeInsercion(ultima, null)], mensaje);
-          else registrarBitacora(mensaje);
-          return;
-        }
+      while (pasos.length < objetivo && intentos < objetivo * 50) {
         intentos++;
-        const candidato = Math.floor(Math.random() * (max - min + 1)) + min;
-        const resultado = colocarSinTraza(candidato);
-        if (resultado.exito) {
-          insertadas++;
-          // La marca de insertada va siguiendo a cada clave que entra (ver
-          // `estado.ultimaInsertada`). Solo las ordenadas devuelven dónde
-          // quedó: en las demás, la inserción trazada pone su propia marca.
-          if (resultado.indice) estado.ultimaInsertada = resultado.indice;
-          renderizarEstructura(null, -1, { duracionMs: MS_ANIMACION_LLENADO });
-          actualizarMetricas(null);
-          setTimeout(insertarSiguiente, MS_ENTRE_CLAVES);
-          return;
-        }
-        setTimeout(insertarSiguiente, 0);
+        const paso = pasoDeLlenado(Math.floor(Math.random() * (max - min + 1)) + min);
+        if (paso) pasos.push(paso);
       }
+      restaurarEstructura(base);
+      reproducirOperacion(pasos, `Llenado automático: ${pasos.length} claves.`);
+    }
 
-      insertarSiguiente();
+    // Coloca una clave del llenado y devuelve su paso, o `null` si no entró
+    // —repetida, o sin sitio—. Sin contadores: no es una búsqueda.
+    function pasoDeLlenado(clave) {
+      if (dominio.estructura.casillaDe(estado.estructura, clave) !== 0) return null;
+      if (!config.insertar) {
+        const resultado = dominio.estructura.insertar(estado.estructura, clave);
+        if (!resultado.exito) return null;
+        return Object.assign(
+          pasoDeInsercion(resultado.indice, `Clave insertada: ${clave} en la casilla ${resultado.indice}.`),
+          { efecto: { tipo: 'insertar', clave } }
+        );
+      }
+      const pasosDeLaClave = config.insertar({ estructura: estado.estructura, clave });
+      const efectos = pasosDeLaClave.filter((paso) => paso.efecto).map((paso) => paso.efecto);
+      if (efectos.length === 0) return null;
+      efectos.forEach((efecto) => APLICADORES[efecto.tipo](efecto));
+      // El paso que la colocó —en cubetas, una expansión vuelve a colocar las
+      // demás claves después—, con su casilla y su posición para marcarla.
+      const colocacion = pasosDeLaClave.filter((paso) => paso.tipo === TIPOS_PASO.INSERCION
+        && paso.efecto && paso.efecto.clave === clave).pop()
+        || pasosDeLaClave.filter((paso) => paso.tipo === TIPOS_PASO.INSERCION).pop();
+      const cambio = pasosDeLaClave.find((paso) => paso.tipo === TIPOS_PASO.EXPANSION || paso.tipo === TIPOS_PASO.REDUCCION);
+      const paso = {
+        tipo: TIPOS_PASO.INSERCION,
+        comparaciones: 0,
+        accesos: 0,
+        mensaje: [colocacion && colocacion.mensaje, cambio && cambio.mensaje].filter(Boolean).join(' '),
+        efecto: { tipo: 'lote', efectos }
+      };
+      for (const campo of ['casilla', 'posicion', 'direccion']) {
+        if (colocacion && colocacion[campo] !== undefined) paso[campo] = colocacion[campo];
+      }
+      return paso;
     }
 
     function iniciarBusqueda(texto) {
