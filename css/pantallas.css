@@ -762,18 +762,6 @@ form.panel > .pantalla-tema__reproduccion {
   padding-bottom: var(--espacio-3);
 }
 
-/* Sin relleno abajo: lo llevaba de cuando el rótulo abarcaba la fila de las
-   casillas y la de la escala, y ahora solo ocupa la primera. Con él, la caja
-   quedaba centrada pero el texto vivía en su mitad de arriba y se leía 6 px
-   por encima de las claves que nombra — el defecto que el usuario veía
-   después de alinear las cajas (2026-09-11). La separación entre pasos la
-   sigue poniendo la escala, que es de quien era. */
-.apilada__rotulo {
-  padding-right: var(--espacio-3);
-  white-space: nowrap;
-  text-align: right;
-}
-
 .apilada__cierre {
   font-style: italic;
 }

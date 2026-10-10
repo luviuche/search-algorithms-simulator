@@ -161,8 +161,15 @@
       if (caja.scrollWidth <= 0 || caja.scrollHeight <= 0) return;
       let factor = Math.max(1, Math.min(CRECIMIENTO_MAXIMO, ancho / caja.scrollWidth, alto / caja.scrollHeight));
       const anterior = estado.escalaEstructura || 1;
+      // El tope de la operación: lo que medía en el paso anterior, o en reposo
+      // antes de empezarla. Lo suelta
+      // «Ver estructura completa», que cambia lo que se ve, con
+      // `soltarTopeDeEscala`: con la estructura completa la
+      // escala bajaba a 1×, y al volver a elidir se quedaba lejos hasta que
+      // terminaba la búsqueda (visto por el usuario, 2026-10-09).
       const enOperacion = paso && !paso.final;
-      if (enOperacion) factor = Math.min(factor, anterior);
+      if (enOperacion && estado.topeDeEscala != null) factor = Math.min(factor, estado.topeDeEscala);
+      estado.topeDeEscala = factor;
       estado.escalaEstructura = factor;
       if (factor > 1.001) caja.style.zoom = String(factor);
       // **El cambio de escala se anima como un bloque**, como el del árbol al
@@ -181,6 +188,10 @@
       }
     }
     const DURACION_CAMBIO_DE_ESCALA_MS = 400;
+
+    function soltarTopeDeEscala() {
+      estado.topeDeEscala = null;
+    }
 
     // Los píxeles de la caja de la estructura, que puede llevar `zoom` (ver
     // `ajustarEscala`): lo que se mide en la pantalla hay que dividirlo.
@@ -330,9 +341,13 @@
       return contenedor;
     }
 
-    function segmentosDe(relevantes) {
+    // `hasta` acota la elisión cuando el dibujo no llega a la n: el apilado de
+    // binaria dibuja de la casilla 1 a la última clave, y las columnas de las
+    // vacías de después quedaban reservadas y en blanco a la derecha, con las
+    // filas corridas a la izquierda del lienzo (2026-10-09).
+    function segmentosDe(relevantes, { hasta = estado.estructura.n } = {}) {
       const segmentos = vista.elision.calcularSegmentos({
-        n: estado.estructura.n,
+        n: hasta,
         relevantes,
         orientacion: config.orientacion || 'horizontal',
         mostrarCompleta: estado.mostrarCompleta,
@@ -422,7 +437,7 @@
       centrar(esVertical() ? 'vertical' : 'horizontal');
     }
 
-    return { ajustarAnchoDeCasilla, ajustarEscala, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, escalaDeLaCaja, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
+    return { ajustarAnchoDeCasilla, ajustarEscala, soltarTopeDeEscala, casillasAnidadas, casillasEncadenadas, columnasAnidadas, crearEtiquetasRenglones, crearMarca, crearTramo, esArbol, esEncadenada, esVertical, escalaDeLaCaja, llevarALaVista, relevantesDelPaso, segmentosAnidados, segmentosDe, tramoDescartado };
   }
 
   window.CC2 = window.CC2 || {};

@@ -436,7 +436,10 @@
       const siguiente = control('siguiente');
       const anteriorBoton = control('anterior');
 
-      const filas = () => document.querySelectorAll('.apilada__rotulo').length;
+      // Las filas del apilado, por las casillas que dibuja cada paso: desde el
+      // 2026-10-09 ya no llevan rótulo «Paso n».
+      const filas = () => new Set([...document.querySelectorAll('.estructura-apilada .casilla, .estructura-apilada .apilada__cierre')]
+        .map((el) => el.style.gridRow)).size;
 
       let paso = 1;
       let anterior = null;
@@ -501,34 +504,6 @@
         afirmar(
           encendidas.every((cuantas, i) => i === 0 || cuantas < encendidas[i - 1]),
           `lo que sigue encendido se achica de fila en fila (${encendidas.join(' → ')})`
-        );
-
-        // El rótulo de cada paso nombra su fila, así que va a su altura. Vivía
-        // a caballo entre la fila de las casillas y la de la escala, y se
-        // centraba entre las dos: quedaba 16 px por debajo de lo que nombra
-        // (defecto visto por el usuario, 2026-09-11).
-        //
-        // **Se mide el texto y no la caja.** Centrada la caja, el texto todavía
-        // quedaba 6 px alto porque un relleno sobrante lo empujaba a su mitad
-        // superior: medir la caja daba por bueno lo que a ojo seguía torcido.
-        // Un `Range` sobre el contenido devuelve dónde están las letras.
-        const filaDe = (el) => parseInt(el.style.gridRow, 10);
-        const centroDeCaja = (el) => {
-          const rango = document.createRange();
-          rango.selectNodeContents(el);
-          const r = rango.getBoundingClientRect();
-          return Math.round(r.top + r.height / 2);
-        };
-        const casillasApiladas = [...document.querySelectorAll('.estructura-apilada .casilla')];
-        const desviados = [...document.querySelectorAll('.apilada__rotulo')]
-          .map((rotulo) => {
-            const casilla = casillasApiladas.find((c) => filaDe(c) === filaDe(rotulo));
-            return casilla ? Math.abs(centroDeCaja(rotulo) - centroDeCaja(casilla)) : 0;
-          })
-          .filter((desvio) => desvio > 1);
-        afirmar(
-          desviados.length === 0,
-          `cada rótulo «Paso n» va a la altura de su fila (${desviados.length} desviado(s))`
         );
 
         const antesDeRetroceder = filas();
@@ -637,6 +612,7 @@
       indices();
       controlDeElision();
       llenadoAutomatico();
+      escalaConEstructuraCompleta();
       tramosEnSuColumna();
       lienzoSinBarras();
       panelLateralPlegado();
@@ -2514,6 +2490,38 @@
     }
     const ladosDesvanecidos = (el) =>
       ['izq', 'der', 'arr', 'aba'].filter((lado) => el.classList.contains(`desborda-${lado}`)).join(',') || 'ninguno';
+
+    // Dentro de una búsqueda la estructura no crece, solo se achica (ver
+    // `ajustarEscala`). Pero «Ver estructura completa» cambia lo que se ve:
+    // encenderla bajaba la escala a 1×, y al apagarla se quedaba ahí hasta que
+    // terminaba la búsqueda (visto por el usuario, 2026-10-09).
+    function escalaConEstructuraCompleta() {
+      registro.push('', '── Escala con la estructura completa ──');
+      entrarATema('Búsqueda binaria');
+      const formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { n: 40, l: 2 });
+      // Veinte claves: más que el umbral, para que el apilado elida y la
+      // estructura completa sea más ancha.
+      for (let i = 0; i < 20; i++) operar(formularios, 'insertar', 10 + i * 4);
+      agotarTraza(5);
+      operar(formularios, 'buscar', 70);
+      control('siguiente').click();
+      const escala = () => parseFloat(document.querySelector('.estructura-apilada').style.zoom) || 1;
+      const antes = escala();
+      const completa = document.querySelector('[data-control="mostrar-completa"]');
+      completa.click();
+      const conCompleta = escala();
+      completa.click();
+      const despues = escala();
+      registro.push(`  escala: ${antes} → completa ${conCompleta} → otra vez elidida ${despues}`);
+      // Si en esta ventana el apilado no crece, no hay escala que recuperar:
+      // lo ejercitan las ventanas anchas (`--zoom`).
+      afirmar(
+        antes <= 1 || (conCompleta < antes && Math.abs(despues - antes) < 0.0001),
+        `al apagar «Ver estructura completa» a mitad de la búsqueda, la escala vuelve a la de antes (${antes} → ${conCompleta} → ${despues})`
+      );
+      document.querySelector('.pantalla-tema__volver').click();
+    }
 
     // **El llenado automático es una operación del reproductor** (2026-10-09):
     // una clave por paso, con su casilla marcada y su mensaje, que se puede

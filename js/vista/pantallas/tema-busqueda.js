@@ -786,7 +786,10 @@
       for (const paso of estado.pasos) {
         relevantes.push(...config.casillasRelevantes(paso));
       }
-      estado.segmentosApilado = segmentosDe(relevantes);
+      // Sobre lo que el apilado dibuja —de la 1 a la última clave, el rango
+      // del primer paso—, no sobre la n (ver `segmentosDe`).
+      const extension = config.apilada.rangoDePaso(estado.pasos[0]);
+      estado.segmentosApilado = segmentosDe(relevantes, extension ? { hasta: extension.hasta } : {});
     }
 
     function actualizarMetricas(paso) {
@@ -1956,6 +1959,9 @@
       etiqueta.innerHTML = `<input type="checkbox" data-control="mostrar-completa"> Ver estructura completa`;
       etiqueta.querySelector('input').addEventListener('change', (evento) => {
         estado.mostrarCompleta = evento.target.checked;
+        // Lo que se ve cambia de ancho: la escala se vuelve a medir sin el
+        // tope de la operación en curso (ver `ajustarEscala`).
+        comunes.soltarTopeDeEscala();
         if (!estado.estructura) return;
         calcularSegmentosApilado();
         renderizarEstructura(estado.pasoActual, estado.indicePaso);
@@ -2092,6 +2098,10 @@
     if (window.ResizeObserver) {
       new ResizeObserver(() => {
         const clase = dom.estructuraEl && dom.estructuraEl.className;
+        // Sin soltar el tope de la operación: el lienzo también cambia de alto
+        // a mitad de una —el aviso pasa de uno a dos renglones—, y soltándolo
+        // la escala oscilaba paso a paso. Lo que la ventana permita crecer, lo
+        // crece al terminar.
         if (/estructura-(horizontal|vertical|apilada)/.test(clase || '')) comunes.ajustarEscala(estado.pasoActual);
       }).observe(escenario);
     }

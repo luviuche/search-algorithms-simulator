@@ -40,7 +40,11 @@
       const pistas = segmentos.map(
         (segmento) => (segmento.tipo === 'tramo' ? 'max-content' : 'var(--ancho-casilla)')
       );
-      dom.estructuraEl.style.gridTemplateColumns = ['auto', ...pistas].join(' ');
+      // Sin columna de rótulos (pedido del usuario, 2026-10-09): el aviso de
+      // arriba ya dice en qué paso se va —«Paso 3 de 5»— y el orden de las
+      // filas cuenta la secuencia, de la primera arriba a la actual abajo. El
+      // «Paso n» repetía lo mismo y se llevaba unos 90 px a la izquierda.
+      dom.estructuraEl.style.gridTemplateColumns = pistas.join(' ');
       dom.estructuraEl.innerHTML = '';
 
       const elementosUltimaFila = [];
@@ -54,17 +58,6 @@
         const rango = config.apilada.rangoDePaso(paso);
         const filaCasillas = orden * 2 + 1;
 
-        // **En la fila de las casillas y no a caballo entre ella y la escala**
-        // (defecto visto por el usuario, 2026-09-11). Abarcando las dos, el
-        // rótulo se centraba entre ambas y quedaba 16 px por debajo del centro
-        // de la fila que nombra — más cerca de la escala que de las casillas.
-        const rotulo = document.createElement('span');
-        rotulo.className = 'apilada__rotulo texto-nivel-5';
-        rotulo.textContent = `Paso ${orden + 1}`;
-        rotulo.style.gridColumn = '1';
-        rotulo.style.gridRow = String(filaCasillas);
-        agregar(orden, rotulo);
-
         // Sin extensión la estructura no tenía claves: no hay fila que dibujar,
         // y decirlo es más claro que una fila vacía. Una búsqueda que se agotó
         // sí dibuja la suya, entera y toda apagada.
@@ -72,14 +65,14 @@
           const cierre = document.createElement('span');
           cierre.className = 'apilada__cierre texto-nivel-5';
           cierre.textContent = 'Rango vacío: no quedan casillas por examinar.';
-          cierre.style.gridColumn = `2 / span ${segmentos.length}`;
+          cierre.style.gridColumn = `1 / span ${segmentos.length}`;
           cierre.style.gridRow = String(filaCasillas);
           agregar(orden, cierre);
           continue;
         }
 
         segmentos.forEach((segmento, posicion) => {
-          const columna = String(posicion + 2);
+          const columna = String(posicion + 1);
 
           if (segmento.tipo === 'tramo') {
             const desde = Math.max(segmento.desde, extension.desde);
