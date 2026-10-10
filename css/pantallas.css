@@ -1422,6 +1422,34 @@ form.panel > .pantalla-tema__reproduccion {
   justify-self: end;
 }
 
+/* **Junto a un árbol, apretado es lo mismo con otra forma** (opción D de las
+   maquetas, 2026-10-09; lo decide `apretarCalculo` en dibujos/arbol.js). Las
+   fórmulas del árbol son cortas —«bloque 2 = 10»— y caben en un renglón con su
+   resultado, así que solo el rótulo sube a su propio renglón: en 250 px de
+   alto, tres renglones por línea no cabían. El panel mide lo que pida, hasta
+   el mismo tope, y si no cabe a lo alto se desplaza por dentro. La caja del
+   árbol, que nunca cedía, aquí se estrecha y se desplaza. */
+.lienzo__escenario--arbol.lienzo__escenario--apretado .calculo {
+  width: max-content;
+  max-width: 300px;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.lienzo__escenario--arbol.lienzo__escenario--apretado .calculo__linea {
+  grid-template-columns: 1fr auto;
+  row-gap: 2px;
+}
+
+.lienzo__escenario--arbol.lienzo__escenario--apretado .calculo__etiqueta {
+  grid-column: 1 / -1;
+}
+
+.lienzo__escenario--arbol.lienzo__escenario--apretado .estructura-arbol {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
 /* La pista es lo que se desplaza, y lo que las flechas miden. El SVG va dentro
    de ella y no del contenedor que scrollea: puesto fuera, las flechas se
    quedarían quietas mientras las columnas se mueven por debajo. */

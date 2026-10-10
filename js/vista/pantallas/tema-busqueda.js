@@ -335,7 +335,7 @@
     const { renderizarFilaUnica } = dibujos.fila({ estado, dom, config, comunes });
     const { renderizarApilado } = dibujos.apilado({ estado, dom, config, comunes });
     const dibujoArbol = dibujos.arbol({ estado, dom, config, formaArbol, renderizarLienzoVacio, comunes });
-    const { ajustarArbol, renderizarArbol } = dibujoArbol;
+    const { ajustarArbol, renderizarArbol, soltarApretado } = dibujoArbol;
     const { esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
     const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes, renderizarLienzoVacio });
@@ -384,7 +384,23 @@
         if (!conCalculo) return;
       }
       dom.calculo.actualizar(paso ? paso.calculo : null, paso ? paso.saltos : null, paso ? paso.tituloCalculo : null);
+      llevarLineaALaVista();
       marcarDesborde(dom.calculo.el);
+    }
+
+    // Cuando el panel no cabe a lo alto —apretado junto a un árbol en un
+    // proyector de 1024 × 650, o la derivación de índices— se desplaza por
+    // dentro hasta la línea que el paso acaba de revelar (2026-10-09). Sin
+    // eso, la línea activa quedaba debajo del borde desvanecido.
+    function llevarLineaALaVista() {
+      const panel = dom.calculo.el;
+      const sobrante = panel.scrollHeight - panel.clientHeight;
+      if (sobrante <= 0) return;
+      const activa = panel.querySelector('.calculo__linea--activa');
+      if (!activa) return;
+      const dentro = activa.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop;
+      const centrado = dentro - (panel.clientHeight - activa.offsetHeight) / 2;
+      panel.scrollTop = Math.max(0, Math.min(centrado, sobrante));
     }
 
     // El panel que aparece o se va recentra la estructura en el lienzo. **La
@@ -520,8 +536,12 @@
         fill: 'backwards'
       });
       // Sin recortar mientras dura (ver `.lienzo__escenario--recentrando`).
+      // Salvo con el panel apretado: ahí la caja se desplaza hasta el nodo del
+      // paso, y sin recortar no se puede desplazar.
       dom.recentrado = recentrado;
-      dom.escenario.classList.add('lienzo__escenario--recentrando');
+      if (!dom.escenario.classList.contains('lienzo__escenario--apretado')) {
+        dom.escenario.classList.add('lienzo__escenario--recentrando');
+      }
       const soltar = () => {
         if (dom.recentrado !== recentrado) return;
         dom.recentrado = null;
@@ -559,6 +579,8 @@
       panel.style.top = '';
       panel.hidden = !dom.calculoVisible;
       if (panel.hidden) panel.style.transform = '';
+      // Ya no se ve: el árbol suelta el panel apretado (ver `apretarCalculo`).
+      if (panel.hidden) soltarApretado();
     }
 
     // La línea activa del cálculo, a la altura de la casilla que el paso sigue

@@ -337,6 +337,7 @@
         dom.estructuraEl.appendChild(lienzoArbol);
         dom.lienzoArbol = lienzoArbol;
         lienzo = lienzoArbol;
+        nodoSeguido = seguido;
         ajustarArbol();
         // Si el panel del cálculo acaba de aparecer o irse, el árbol cambia de
         // tamaño, y la pantalla lo anima aquí, antes de que el FLIP mida
@@ -402,22 +403,64 @@
     // encogería un poco con cada línea más larga.
     const ENCOGIMIENTO_MINIMO = 0.6;
     const CRECIMIENTO_MAXIMO = 1.5;
+    //
+    // **Y si ni a `ENCOGIMIENTO_MINIMO` caben juntos, se estrecha y se
+    // desplaza** (opción D de las maquetas, elegida por el usuario el
+    // 2026-10-09), la regla que ya siguen índices, Huffman y las tablas
+    // dispersas cuando algo no cabe. Pasaba en un proyector de 1024 × 650: el
+    // panel del cálculo se salía por la derecha y se perdían sus resultados.
+    // El panel se angosta como la derivación de índices
+    // (`.lienzo__escenario--apretado`), el árbol se queda en el mínimo, y su
+    // caja se estrecha y se desplaza hasta el nodo del paso (`llevarALaVista`)
+    // con el borde desvanecido del lado por donde sigue.
+    const APRETADO = 'lienzo__escenario--apretado';
+    // El nodo del paso, que `llevarALaVista` mantiene a la vista.
+    let nodoSeguido = null;
     let pasosMedidos = null;
-    let anchoCalculoDeLaTraza = 0;
-    function anchoDelCalculo(panel) {
+    const anchosDeLaTraza = new Map();
+    function anchoDelCalculo(panel, apretado) {
       if (estado.pasos !== pasosMedidos) {
         pasosMedidos = estado.pasos;
-        anchoCalculoDeLaTraza = 0;
+        anchosDeLaTraza.clear();
+      }
+      if (!anchosDeLaTraza.has(apretado)) {
+        const clases = dom.escenario.classList;
+        const antes = clases.contains(APRETADO);
+        clases.toggle(APRETADO, apretado);
+        let ancho = 0;
         const pasos = (estado.pasos || []).filter((paso) => paso.calculo && paso.calculo.length);
         for (const paso of pasos) {
           dom.calculo.actualizar(paso.calculo, paso.saltos, paso.tituloCalculo);
-          anchoCalculoDeLaTraza = Math.max(anchoCalculoDeLaTraza, panel.offsetWidth);
+          ancho = Math.max(ancho, panel.offsetWidth);
         }
         // Se deja como lo tenía el paso en curso.
         const actual = estado.pasoActual;
         if (pasos.length) dom.calculo.actualizar(actual ? actual.calculo : null, actual ? actual.saltos : null, actual ? actual.tituloCalculo : null);
+        anchosDeLaTraza.set(apretado, ancho || panel.offsetWidth);
+        clases.toggle(APRETADO, antes);
       }
-      return Math.max(anchoCalculoDeLaTraza, panel.offsetWidth);
+      return anchosDeLaTraza.get(apretado);
+    }
+    // Si el árbol en su mínimo y el panel a su ancho natural no caben, el
+    // panel se aprieta. Se decide con el ancho de toda la traza, así que no
+    // cambia a mitad de la operación. Mientras el panel se desvanece al irse
+    // conserva su forma; la suelta `soltarApretado`, al terminar de irse.
+    //
+    // **La clase solo se toca si cambia**: quitarla y ponerla en cada ajuste
+    // devolvía la caja un instante a su ancho entero, y perdía el
+    // desplazamiento hasta el nodo del paso.
+    function apretarCalculo(panel, disponible, separacion) {
+      if (!panel) {
+        if (!dom.salidaCalculo) soltarApretado();
+        return 0;
+      }
+      const apretar = dom.lienzoArbol.offsetWidth * ENCOGIMIENTO_MINIMO + separacion
+        + anchoDelCalculo(panel, false) > disponible;
+      if (dom.escenario.classList.contains(APRETADO) !== apretar) dom.escenario.classList.toggle(APRETADO, apretar);
+      return anchoDelCalculo(panel, apretar);
+    }
+    function soltarApretado() {
+      if (esArbol() && dom.escenario) dom.escenario.classList.remove(APRETADO);
     }
     function ajustarArbol() {
       const lienzoArbol = dom.lienzoArbol;
@@ -428,10 +471,11 @@
       // `calculoVisible` es a dónde va el panel, no dónde está: al irse sigue
       // a la vista mientras se desvanece.
       const panel = dom.calculo && dom.calculoVisible && !dom.calculo.el.hidden ? dom.calculo.el : null;
-      const disponibleAncho = dom.escenario.clientWidth
+      const separacion = panel ? parseFloat(escenario.columnGap || 0) : 0;
+      const sinPanel = dom.escenario.clientWidth
         - parseFloat(escenario.paddingLeft) - parseFloat(escenario.paddingRight)
-        - parseFloat(caja.paddingLeft) - parseFloat(caja.paddingRight)
-        - (panel ? anchoDelCalculo(panel) + parseFloat(escenario.columnGap || 0) : 0);
+        - parseFloat(caja.paddingLeft) - parseFloat(caja.paddingRight);
+      const disponibleAncho = sinPanel - separacion - apretarCalculo(panel, sinPanel, separacion);
       const disponibleAlto = dom.escenario.clientHeight
         - parseFloat(escenario.paddingTop) - parseFloat(escenario.paddingBottom)
         - parseFloat(caja.paddingTop) - parseFloat(caja.paddingBottom);
@@ -449,9 +493,13 @@
         factor = Math.max(ENCOGIMIENTO_MINIMO, factor * cabe);
         lienzoArbol.style.zoom = factor === 1 ? '' : String(factor);
       }
+      // Reiniciar el zoom de arriba acorta un instante lo que se puede
+      // desplazar, y el navegador recorta el desplazamiento: se vuelve a
+      // llevar el nodo del paso a la vista.
+      if (nodoSeguido && nodoSeguido.isConnected) llevarALaVista(nodoSeguido);
     }
 
-    return { DIAMETRO_NODO, DURACION_APARICION_MS, SEPARACION_HERMANOS, SEPARACION_NIVEL, ajustarArbol, renderizarArbol, seguirAristas };
+    return { DIAMETRO_NODO, DURACION_APARICION_MS, SEPARACION_HERMANOS, SEPARACION_NIVEL, ajustarArbol, renderizarArbol, seguirAristas, soltarApretado };
   }
 
   window.CC2 = window.CC2 || {};

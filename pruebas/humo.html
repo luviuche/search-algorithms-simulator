@@ -2024,17 +2024,34 @@
       const salto = (antes, ahora) => Math.max(0, ...[...antes]
         .filter(([clave]) => ahora.has(clave))
         .map(([clave, r]) => Math.hypot(r.left - ahora.get(clave).left, r.top - ahora.get(clave).top)));
-      // Por los nodos y no por el lienzo: con `zoom`, el rectángulo del lienzo
-      // no envuelve a sus nodos.
-      const separados = () => Math.max(...[...dondeSeVe().values()].map((r) => r.right))
-        <= panelCalculo.getBoundingClientRect().left + 1;
+      // Por la caja del árbol, que es lo que se ve: con el panel apretado
+      // (opción D, 2026-10-09) el árbol sigue más allá y se desplaza dentro de
+      // ella. Y el panel entero dentro del lienzo, que es lo que se perdía en
+      // un proyector de 1024 × 650.
+      const separados = () => {
+        const caja = document.querySelector('.estructura-arbol').getBoundingClientRect();
+        const panel = panelCalculo.getBoundingClientRect();
+        const lienzo = document.querySelector('.lienzo__escenario').getBoundingClientRect();
+        return caja.right <= panel.left + 1 && panel.right <= lienzo.right + 1;
+      };
+      // El nodo del paso, dentro de lo que se ve de la caja.
+      const pasoALaVista = () => {
+        const nodo = document.querySelector('.arbol__bifurcacion--activa, .arbol .casilla--evaluacion');
+        if (!nodo) return true;
+        const caja = document.querySelector('.estructura-arbol').getBoundingClientRect();
+        const r = nodo.getBoundingClientRect();
+        return r.left >= caja.left - 1 && r.right <= caja.right + 1;
+      };
       terminarAnimaciones();
       const enReposo = dondeSeVe();
       operar(formularios, 'buscar', 'a');
       const alEntrar = salto(enReposo, dondeSeVe());
       afirmar(alEntrar < 2, `al aparecer el cálculo, el árbol arranca de donde estaba (salta ${alEntrar.toFixed(1)} px)`);
       terminarAnimaciones();
-      afirmar(separados(), 'con el cálculo a la vista, el árbol le deja su sitio');
+      afirmar(separados(), 'con el cálculo a la vista, el árbol le deja su sitio y el panel cabe en el lienzo');
+      control('siguiente').click();
+      terminarAnimaciones();
+      afirmar(pasoALaVista(), 'el nodo del paso queda a la vista aunque el árbol no quepa entero');
 
       hastaElUltimoPasoDelAlgoritmo();
       terminarAnimaciones();
