@@ -925,6 +925,23 @@
       .map((el) => el.textContent.replace(/[^0-9]/g, ''))
       .filter(Boolean);
 
+    // Todas las claves, aunque la fila no quepa y las ordenadas se eliden
+    // (CLAUDE.md 6.2): con «Ver estructura completa» encendido un momento. A
+    // 1024 px, n = 12 ya no cabe y `clavesDibujadas` contaba solo las que
+    // quedaban fuera de los tramos (2026-10-09).
+    function clavesDeLaEstructuraCompleta() {
+      const casilla = document.querySelector('[data-control="mostrar-completa"]');
+      const encender = casilla && !casilla.checked;
+      const alternar = () => {
+        casilla.checked = !casilla.checked;
+        casilla.dispatchEvent(new Event('change'));
+      };
+      if (encender) alternar();
+      const claves = clavesDibujadas();
+      if (encender) alternar();
+      return claves;
+    }
+
     // Eliminar es buscar y además sacar: la clave se localiza con el algoritmo
     // del tema. Aquí se comprueba lo que solo se ve por el DOM: que la casilla
     // marcada conserva su clave antes de que las demás se muevan, que el
@@ -1013,9 +1030,9 @@
       );
 
       control('siguiente').click();
-      registro.push('  tras desplazar: ' + clavesDibujadas().join(' '));
+      registro.push('  tras desplazar: ' + clavesDeLaEstructuraCompleta().join(' '));
       afirmar(
-        clavesDibujadas().join(' ') === '10 20 30 40 50 60 80',
+        clavesDeLaEstructuraCompleta().join(' ') === '10 20 30 40 50 60 80',
         'la clave sale y la estructura queda ordenada y densa'
       );
 

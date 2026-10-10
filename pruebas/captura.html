@@ -191,8 +191,13 @@
     // se llega al desplazamiento, y sin él al paso que marca la casilla.
     function prepararEliminacion(nombreTema) {
       const formularios = entrarATema(nombreTema);
-      enviar(formularios[0], { n: 24, l: 2 });
-      for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) {
+      // `&n=` y `&claves=10,20,…` repiten otro ejercicio, como el de la prueba
+      // de humo (n = 12, de 10 a 80 de diez en diez).
+      enviar(formularios[0], { n: Number(parametros.get('n')) || 24, l: 2 });
+      const claves = parametros.get('claves')
+        ? parametros.get('claves').split(',').map(Number)
+        : [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97];
+      for (const clave of claves) {
         operar(formularios, 'insertar', clave);
       }
       operar(formularios, 'eliminar', Number(parametros.get('clave')) || 84);
