@@ -2535,6 +2535,10 @@
         fila().offsetHeight - fila().clientHeight === 0,
         `y no aparece barra: no le quita alto al lienzo (${fila().offsetHeight - fila().clientHeight} px)`
       );
+      // Al principio a mano: la última inserción es un paso con su casilla
+      // (2026-10-09), y la vista la centra como a cualquier casilla del paso.
+      fila().scrollLeft = 0;
+      asentar(fila());
       afirmar(ladosDesvanecidos(fila()) === 'der', `al principio se desvanece solo el borde derecho (${ladosDesvanecidos(fila())})`);
 
       fila().scrollLeft = fila().scrollWidth / 2 - fila().clientWidth / 2;

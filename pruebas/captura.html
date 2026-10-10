@@ -160,6 +160,13 @@
       for (const clave of claves) {
         operar(formularios, 'insertar', clave);
       }
+      if (parametros.get('buscar') === 'no') { avanzar(pasosAAvanzar(20)); return; }
+      // `&llenar=1` pulsa «Llenado automático», que inserta de a una con
+      // pausas: hace falta tiempo virtual para que termine (`--presupuesto`).
+      if (parametros.get('llenar')) {
+        document.querySelector('[data-accion="llenado-automatico"]').click();
+        return;
+      }
       operar(formularios, 'buscar', Number(parametros.get('clave')) || 84);
       avanzar(pasosAAvanzar());
     }

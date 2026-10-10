@@ -564,6 +564,24 @@ form.panel > .pantalla-tema__reproduccion {
   border-right: 1px dashed var(--borde-fuerte);
 }
 
+/* El tramo de las vacías del final de una estructura ordenada se dibuja como
+   ellas, punteado y con su relleno (opción 2 + 4, 2026-10-09): así no se
+   confunde con un tramo que esconde claves. */
+.tramo-elidido--vacias {
+  border: 1px dashed var(--estado-vacia-borde);
+  background: var(--estado-vacia-relleno);
+  border-radius: var(--radio-casilla);
+}
+
+/* Y el de las claves escondidas, como un bloque de casillas ocupadas: con el
+   estilo viejo, al aparecer este segundo tramo parecía que el bloque volvía a
+   ser como antes (visto por el usuario, 2026-10-09). */
+.tramo-elidido--claves {
+  border: 1px solid var(--estado-ocupada-borde);
+  background: var(--estado-ocupada-relleno);
+  border-radius: var(--radio-casilla);
+}
+
 .escala__marca {
   font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;

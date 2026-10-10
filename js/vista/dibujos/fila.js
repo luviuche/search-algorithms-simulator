@@ -65,7 +65,7 @@
           grupo.className = vertical ? 'fila-casilla' : 'columna-casilla';
 
           if (segmento.tipo === 'tramo') {
-            const tramoEl = crearTramo(segmento.desde, segmento.hasta);
+            const tramoEl = crearTramo(segmento.desde, segmento.hasta, segmento);
             // Si todo lo que resume está descartado, se apaga con ello: el
             // «⋯ 2 ⋯» del rastro de secuencial no puede brillar en medio de
             // lo ya recorrido (igual que en el apilado de binaria).
@@ -83,10 +83,18 @@
           const indice = segmento.indice;
           const clave = claves[indice - 1];
           const descripcion = config.describirCasilla({ paso, indice, ocupada: clave !== undefined });
+          // La clave insertada de una vez lleva la marca de insertada, como la
+          // de los temas con inserción paso a paso (pedido del usuario,
+          // 2026-10-09): sin pasos, sigue siendo una inserción. A mano es su
+          // paso (`pasoDeInsercion`); en el llenado automático, la que acaba de
+          // entrar (`estado.ultimaInsertada`). El paso final la apaga.
+          const recienInsertada = clave !== undefined && (paso
+            ? !paso.final && paso.tipo === 'insercion' && paso.casilla === indice
+            : indice === estado.ultimaInsertada);
           const casillaEl = vista.componentes.casilla.crearCasilla({
             clave,
             indice,
-            estado: descripcion.estado,
+            estado: recienInsertada ? 'insertada' : descripcion.estado,
             modificadores: descripcion.modificadores
           });
           const marcaEl = crearMarca(indice, n);

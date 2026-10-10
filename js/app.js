@@ -316,6 +316,9 @@
         if (paso.casilla === indice) {
           if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada' };
           if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada' };
+          // Insertar es de una vez, pero cierra con el paso final como todo
+          // (2026-10-09): este es el paso que marca dónde entró la clave.
+          if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada' };
           return { estado: 'en-evaluacion' };
         }
         // El bloque descartado se apaga entero: es la unidad con la que este
@@ -433,7 +436,9 @@
         // desplazamiento se ve moverse.
         // Tampoco el paso final: el apilado se va y queda la estructura como
         // queda, con la clave hallada (CLAUDE.md 6.3).
-        aplicaA: (paso) => paso.tipo !== TIPOS_PASO.ELIMINACION && paso.tipo !== TIPOS_PASO.DESPLAZAMIENTO && !paso.final
+        // Ni la inserción, que entra de una vez y no busca nada.
+        aplicaA: (paso) => paso.tipo !== TIPOS_PASO.ELIMINACION && paso.tipo !== TIPOS_PASO.DESPLAZAMIENTO
+          && paso.tipo !== TIPOS_PASO.INSERCION && !paso.final
       },
       casillasRelevantes: (paso) => [paso.inicio, paso.medio, paso.fin, paso.casilla].filter(Boolean),
       describirCasilla: ({ paso, indice, ocupada }) => {

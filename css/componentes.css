@@ -412,7 +412,8 @@ form input[type="checkbox"] {
   clip-path: inset(50%);
 }
 
-/* Clave recién colocada por la transformación de claves. Comparte el color de
+/* Clave recién colocada: por la transformación de claves, o de una vez en
+   secuencial y binaria. Comparte el color de
    la casilla hallada —ambas son un final feliz— pero su refuerzo no cromático
    es distinto: la flecha señala que la clave acaba de entrar, no que se halló. */
 .casilla--insertada {

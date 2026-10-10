@@ -21,13 +21,34 @@
   }
 
   // Devuelve una lista de segmentos { tipo: 'casilla', indice } o
-  // { tipo: 'tramo', desde, hasta, cantidad } que la vista dibuja en orden.
+  // { tipo: 'tramo', desde, hasta, cantidad, vacias } que la vista dibuja en
+  // orden.
+  //
+  // `ocupadas` es cuántas claves tiene una estructura ordenada, que siempre
+  // ocupan el prefijo `1..ocupadas` (opción 2 + 4 de las maquetas, elegida por
+  // el usuario el 2026-10-09). Con el umbral solo, al ir llenando una
+  // estructura grande la fila se quedaba en «10 ⋯ 38 ⋯ [40]» tuviera cinco
+  // claves o veinte: no se notaba que se llenaba. Ahora:
+  //
+  // - Mientras las claves quepan en el umbral, se dibujan todas, más la
+  //   siguiente casilla libre y la n: lo que se comprime son las vacías.
+  // - Cuando ya no caben, se esconden las del medio, pero la última ocupada
+  //   queda a la vista con sus vecinas —la última llena y la primera libre—:
+  //   se lee hasta dónde está llena, con el inicio y el final que pide el
+  //   docente.
+  // - Un tramo que resume solo casillas vacías lo dice (`vacias`), y la vista
+  //   lo dibuja punteado como una casilla vacía; uno que resume solo claves
+  //   (`claves`), con el borde sólido de una ocupada (2026-10-09: con el
+  //   segundo tramo en el estilo viejo, el bloque parecía volver a ser como
+  //   antes). Como la última ocupada y la primera libre siempre se ven, no
+  //   hay tramo que mezcle las dos cosas.
   function calcularSegmentos({
     n,
     relevantes,
     orientacion = 'horizontal',
     mostrarCompleta = false,
-    vecinas = true
+    vecinas = true,
+    ocupadas = null
   }) {
     const umbral = orientacion === 'horizontal' ? UMBRAL_HORIZONTAL : UMBRAL_VERTICAL;
     if (mostrarCompleta || n <= umbral) {
@@ -36,7 +57,15 @@
       return todas;
     }
 
-    const visibles = indicesSiempreVisibles(n, relevantes, vecinas);
+    const delLleno = [];
+    if (ocupadas !== null && ocupadas > 0) {
+      if (ocupadas < umbral) {
+        for (let i = 1; i <= ocupadas; i++) delLleno.push(i);
+      } else {
+        delLleno.push(ocupadas);
+      }
+    }
+    const visibles = indicesSiempreVisibles(n, [...relevantes, ...delLleno], vecinas);
     const segmentos = [];
     let inicioOculto = null;
 
@@ -47,7 +76,11 @@
         segmentos.push({ tipo: 'casilla', indice: desde });
         return;
       }
-      segmentos.push({ tipo: 'tramo', desde, hasta, cantidad: hasta - desde + 1 });
+      segmentos.push({
+        tipo: 'tramo', desde, hasta, cantidad: hasta - desde + 1,
+        vacias: ocupadas !== null && desde > ocupadas,
+        claves: ocupadas !== null && hasta <= ocupadas
+      });
     }
 
     for (let i = 1; i <= n; i++) {

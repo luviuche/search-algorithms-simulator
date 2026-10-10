@@ -67,3 +67,32 @@ test('las tres casillas relevantes de binaria sobreviven a la elisión', () => {
     assert.ok(visibles.includes(relevante), `falta la casilla relevante ${relevante}`);
   }
 });
+
+// Al ir llenando una estructura ordenada grande (opción 2 + 4, 2026-10-09):
+// con el umbral solo, la fila se quedaba en «1 ⋯ 40» tuviera cinco claves o
+// veinte.
+test('mientras las claves caben en el umbral, se dibujan todas y se comprimen las vacías', () => {
+  const segmentos = calcularSegmentos({ n: 40, relevantes: [], ocupadas: 5 });
+  assert.deepEqual(indicesDe(segmentos), [1, 2, 3, 4, 5, 6, 40]);
+  const [tramo] = tramosDe(segmentos);
+  assert.equal(tramo.desde, 7);
+  assert.equal(tramo.vacias, true);
+});
+
+test('cuando las claves ya no caben, quedan la primera, la última llena, la primera libre y la n', () => {
+  const segmentos = calcularSegmentos({ n: 40, relevantes: [], ocupadas: 20 });
+  assert.deepEqual(indicesDe(segmentos), [1, 19, 20, 21, 40]);
+  const tramos = tramosDe(segmentos);
+  assert.deepEqual(tramos.map((t) => t.vacias), [false, true]);
+});
+
+test('al buscar, el paso con sus vecinas se suma al final de lo lleno', () => {
+  const segmentos = calcularSegmentos({ n: 40, relevantes: [9], ocupadas: 28 });
+  assert.deepEqual(indicesDe(segmentos), [1, 8, 9, 10, 27, 28, 29, 40]);
+});
+
+test('sin `ocupadas` —una tabla dispersa— nada cambia y ningún tramo se marca de vacías', () => {
+  const segmentos = calcularSegmentos({ n: 40, relevantes: [9] });
+  assert.deepEqual(indicesDe(segmentos), [1, 8, 9, 10, 40]);
+  assert.ok(tramosDe(segmentos).every((t) => !t.vacias));
+});

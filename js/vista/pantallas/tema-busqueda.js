@@ -70,6 +70,10 @@
   function crearPantallaTema(config, alVolver) {
     const estado = {
       estructura: null,
+      // La casilla de la clave que el llenado automático acaba de colocar:
+      // se ve, con su marca, mientras el llenado sigue (ver
+      // `relevantesDelPaso`).
+      ultimaInsertada: null,
       reproductor: null,
       pasoActual: null,
       indicePaso: -1,
@@ -307,6 +311,9 @@
     // Abandonar una operación a medio reproducir no puede dejar la estructura
     // en el limbo: al invalidar, la operación se consuma antes de olvidarla.
     function invalidarReproduccion() {
+      // Cualquier operación nueva —o la que se abandona— suelta la clave
+      // recién insertada (ver `relevantesDelPaso`).
+      estado.ultimaInsertada = null;
       if (estado.reproductor) estado.reproductor.detener();
       sincronizarEfectos(Infinity);
       estado.clavesBase = null;
@@ -813,6 +820,18 @@
     // recorrido; `final: true` lo distingue del paso del algoritmo.
     const CONSERVAR_SIEMPRE = ['comparaciones', 'accesos'];
     const UBICACION_DE_LA_CLAVE = ['casilla', 'posicion', 'medio'];
+    // **La inserción de una vez también termina en el paso final** (pedido del
+    // usuario, 2026-10-09). En secuencial y binaria insertar no tiene pasos:
+    // la clave entra y ya. Pero sin pasar por el reproductor no había paso
+    // final, y la casilla se quedaba en verde con su ◂ hasta la siguiente
+    // operación, cuando en todo otro tema insertar termina sin resaltados.
+    // Ahora es una operación de un paso —la casilla insertada, marcada— que
+    // `reproducirOperacion` cierra como cualquiera: con la misma elisión y
+    // sin el verde. La clave ya está en la estructura; el paso no la coloca.
+    function pasoDeInsercion(indice, mensaje) {
+      return { tipo: TIPOS_PASO.INSERCION, casilla: indice, comparaciones: 0, accesos: 0, mensaje };
+    }
+
     function pasoFinal(ultimo) {
       const hallada = ultimo.tipo === TIPOS_PASO.ENCONTRADA;
       const final = {
@@ -841,7 +860,9 @@
       };
       calcularSegmentosApilado();
       habilitarReproduccion(true);
-      registrarBitacora(mensajeInicial);
+      // Sin mensaje inicial cuando la operación es un solo paso que ya dice
+      // lo que pasó (ver `pasoDeInsercion`).
+      if (mensajeInicial) registrarBitacora(mensajeInicial);
       // **Cada paso se apunta una sola vez, la primera que se llega a él**
       // (2026-09-30). La bitácora es lo que pasó, no por dónde anda la
       // reproducción: al retroceder repetía el mensaje del paso al que se
@@ -923,9 +944,10 @@
           mostrarAlerta('error', resultado.mensaje);
           return;
         }
-        registrarBitacora(`Clave insertada: ${validacion.valor} en la casilla ${resultado.indice}.`);
-        renderizarEstructura(null);
-        actualizarMetricas(null);
+        reproducirOperacion(
+          [pasoDeInsercion(resultado.indice, `Clave insertada: ${validacion.valor} en la casilla ${resultado.indice}.`)],
+          null
+        );
         return;
       }
 
@@ -982,7 +1004,15 @@
 
       function insertarSiguiente() {
         if (insertadas >= objetivo || intentos >= objetivo * 50) {
-          registrarBitacora(`Llenado automático: ${insertadas} claves insertadas.`);
+          // La última clave se cierra como una inserción a mano: su paso
+          // marcado y el paso final, que apaga el verde (ver
+          // `pasoDeInsercion`). En los temas con inserción trazada no hay
+          // casilla que cerrar.
+          const ultima = estado.ultimaInsertada;
+          estado.ultimaInsertada = null;
+          const mensaje = `Llenado automático: ${insertadas} claves insertadas.`;
+          if (ultima) reproducirOperacion([pasoDeInsercion(ultima, null)], mensaje);
+          else registrarBitacora(mensaje);
           return;
         }
         intentos++;
@@ -990,6 +1020,10 @@
         const resultado = colocarSinTraza(candidato);
         if (resultado.exito) {
           insertadas++;
+          // La marca de insertada va siguiendo a cada clave que entra (ver
+          // `estado.ultimaInsertada`). Solo las ordenadas devuelven dónde
+          // quedó: en las demás, la inserción trazada pone su propia marca.
+          if (resultado.indice) estado.ultimaInsertada = resultado.indice;
           renderizarEstructura(null, -1, { duracionMs: MS_ANIMACION_LLENADO });
           actualizarMetricas(null);
           setTimeout(insertarSiguiente, MS_ENTRE_CLAVES);

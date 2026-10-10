@@ -92,9 +92,14 @@
       return true;
     }
 
-    function crearTramo(desde, hasta) {
+    // En una estructura ordenada el tramo se dibuja como lo que resume: las
+    // vacías del final, punteado; las claves escondidas, con el borde de una
+    // casilla ocupada (ver `calcularSegmentos`).
+    function crearTramo(desde, hasta, { vacias = false, claves = false } = {}) {
       const el = document.createElement('div');
-      el.className = 'tramo-elidido';
+      el.className = 'tramo-elidido'
+        + (vacias ? ' tramo-elidido--vacias' : '')
+        + (claves ? ' tramo-elidido--claves' : '');
       el.textContent = `⋯ ${hasta - desde + 1} ⋯`;
       return el;
     }
@@ -268,7 +273,11 @@
         // nada más: es como el docente la dibuja en el tablero. Las vecinas
         // vacías se quedan para las estructuras ordenadas, donde acompañan a
         // una comparación y no a cada clave colocada.
-        vecinas: config.modo !== dominio.estructura.MODOS.DISPERSA
+        vecinas: config.modo !== dominio.estructura.MODOS.DISPERSA,
+        // En las ordenadas las claves llenan el prefijo: se ve hasta dónde.
+        ocupadas: estado.estructura.modo === dominio.estructura.MODOS.ORDENADA
+          ? dominio.estructura.cantidadClaves(estado.estructura)
+          : null
       });
     }
 
@@ -283,6 +292,11 @@
     function relevantesDelPaso(paso) {
       let relevantes = [];
       if (paso) relevantes = paso.vistas || config.casillasRelevantes(paso);
+      // La clave que el llenado automático acaba de colocar se ve, aunque la
+      // fila esté elidida (2026-10-09): desde que las claves no caben en el
+      // umbral, la que entraba quedaba escondida y la fila no cambiaba. Las
+      // insertadas a mano son un paso con su casilla (`pasoDeInsercion`).
+      if (!paso && estado.ultimaInsertada) relevantes = relevantes.concat(estado.ultimaInsertada);
       if (config.modo !== dominio.estructura.MODOS.DISPERSA) return relevantes;
 
       const ocupadas = [];
