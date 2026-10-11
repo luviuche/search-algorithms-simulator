@@ -1,6 +1,6 @@
 # CC2 Search Algorithms Simulator
 
-**An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas, Bogotá).**
+**An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
 > 🚧 **Work in progress.** Every search topic in the menu is built and usable; the graphs unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
