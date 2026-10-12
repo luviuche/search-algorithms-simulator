@@ -3131,6 +3131,23 @@
         `cada bloque queda a la altura de sus números (se desvía ${desfase} px)`
       );
 
+      // Cada flecha sale a la altura del número de su entrada. La de la última
+      // entrada usada salía del borde del bloque, 7 px por debajo de su número
+      // en negrita, y parecía salir de la línea o de las libres (visto por el
+      // usuario, 2026-10-11).
+      for (const animacion of document.getAnimations()) animacion.finish();
+      const centroVertical = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      };
+      const numeros = [...document.querySelectorAll('.columna-indice__rango span')].map(centroVertical);
+      const salidas = [...document.querySelectorAll('.estructura-indices svg circle')].map(centroVertical);
+      const sueltas = salidas.filter((y) => !numeros.some((n) => Math.abs(n - y) <= 2));
+      afirmar(
+        salidas.length > 0 && sueltas.length === 0,
+        `cada flecha sale a la altura del número de su entrada (${salidas.length} salida(s), ${sueltas.length} desalineada(s))`
+      );
+
       // El tramo elidido, dentro del ancho de la columna que parte: «⋯ 14.432 ⋯»
       // se salía por los dos lados y se montaba sobre la escala y los rótulos.
       const tramos = [...document.querySelectorAll('.tramo-indices')];

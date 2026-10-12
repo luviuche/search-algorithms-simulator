@@ -95,8 +95,14 @@
             return div;
           };
           escala.appendChild(hueco());
+          // El tramo se dibuja como lo que resume (CLAUDE.md 6.2): bloques
+          // llenos —el único con libres es el último, que nunca se elide—,
+          // así que va sólido, del color de su columna y pegado a la pila,
+          // que se sigue leyendo de una pieza (2026-10-11). Hasta entonces
+          // era un hueco entre dos rayas punteadas que partía la pila en islas.
           const tramo = document.createElement('div');
-          tramo.className = 'tramo-indices';
+          tramo.className = `tramo-indices tramo-indices--${columna.clase}`
+            + (activa ? ' tramo-indices--en-curso' : '');
           tramo.textContent = `⋯ ${mil(segmento.cantidad)} ⋯`;
           bloques.appendChild(tramo);
           continue;
@@ -202,9 +208,16 @@
           centro: r.top - base.top + r.height / 2,
           primera: r.top - base.top + MARGEN_DE_ENTRADA,
           ultima: r.bottom - base.top - MARGEN_DE_ENTRADA,
-          // La línea donde terminan las entradas que se usan: el borde de
-          // abajo del bloque, porque debajo empieza la franja de las libres.
-          usadas: r.bottom - base.top
+          // La última entrada que se usa: justo encima de la línea donde
+          // terminan, porque debajo empieza la franja de las libres. A la
+          // altura de su número en negrita y por dentro del bloque, como las
+          // demás entradas (pedido del usuario, 2026-10-11): en el borde mismo
+          // quedaba 7 px por debajo de su número y parecía salir de la línea.
+          usadas: r.bottom - base.top - MARGEN_DE_ENTRADA,
+          // La línea misma, para **llegar** al registro: la punta entra entre
+          // el número en negrita y la capacidad, sin tachar ninguno de los
+          // dos, como las demás llegan entre los dos números de su bloque.
+          linea: r.bottom - base.top
         };
       };
 
@@ -296,7 +309,7 @@
           const llegada = caja(union.hasta);
           const x1 = salida.der;
           const y1 = salida[union.entrada];
-          const y2 = union.alRegistro && destino.columna.libres > 0 ? llegada.usadas : llegada.centro;
+          const y2 = union.alRegistro && destino.columna.libres > 0 ? llegada.linea : llegada.centro;
           entrada(x1, y1);
           codo(x1, y1, x1 + CARRIL_INICIAL + k * ENTRE_CARRILES, llegada.izq, y2);
         });

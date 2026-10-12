@@ -1714,12 +1714,26 @@ form.panel > .pantalla-tema__reproduccion {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top: 1px dashed var(--borde-fuerte);
-  border-bottom: 1px dashed var(--borde-fuerte);
+  /* Un pedazo más de la pila: los bordes de arriba y de abajo los ponen los
+     bloques vecinos —siempre hay uno a cada lado—, así que el tramo solo
+     lleva los laterales y no dobla la línea. */
+  border-left: 1px solid var(--tinta);
+  border-right: 1px solid var(--tinta);
+  background: var(--superficie);
   color: var(--tinta-suave);
   font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
   font-size: 9px;
+}
+
+.tramo-indices--indice {
+  background: var(--estado-rango-relleno);
+  border-color: var(--estado-rango-borde);
+}
+
+.tramo-indices--en-curso {
+  background: var(--estado-evaluacion-relleno);
+  border-color: var(--estado-evaluacion-borde);
 }
 
 .columna-indice__titulo {
