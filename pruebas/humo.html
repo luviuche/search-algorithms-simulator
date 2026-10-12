@@ -2287,11 +2287,52 @@
           tramos.length > 0 && mezclados.length === 0,
           `${contexto}: cada tramo de registros es de claves o de libres (${tramos.length} tramo(s), ${mezclados.length} sin partir)`
         );
+        // Y ninguno hace falta partirlo (opción C, 2026-10-11): la escala
+        // muestra dónde terminan las claves del archivo, así que ningún tramo
+        // compartido cae a caballo entre claves y libres.
+        const partidos = [...document.querySelectorAll('.tramo-registros__grupo')].filter((grupo) => grupo.children.length > 1);
+        afirmar(partidos.length === 0, `${contexto}: ningún tramo mezcla claves y libres (${partidos.length} partido(s))`);
+        renglonesEnTodosLosBloques(contexto);
+      };
+      // Cada renglón que la escala numera tiene su casilla, a su altura, en
+      // todos los bloques que llegan a él (opción C de las maquetas,
+      // 2026-10-11): antes los bloques que no se miraban se comprimían a su
+      // primero y su último, y el renglón que el paso destapaba no estaba en
+      // ellos. Y la matriz cabe de alto: con los tramos a casilla y media la
+      // columna de N = 400 deja de medir sus 20 renglones.
+      const renglonesEnTodosLosBloques = (contexto) => {
+        for (const animacion of document.getAnimations()) animacion.finish();
+        const marcas = [...document.querySelectorAll('.escala-registros .renglon__marca')]
+          .filter((marca) => marca.textContent !== '⋯');
+        const faltan = [];
+        for (const bloque of document.querySelectorAll('.bloque')) {
+          const centros = [...bloque.querySelectorAll('.casilla')].map(centroDe);
+          const ultimo = centros[centros.length - 1];
+          for (const marca of marcas) {
+            const y = centroDe(marca);
+            if (y > ultimo + 1) continue;
+            if (!centros.some((c) => Math.abs(c - y) <= 1)) faltan.push(`${bloque.querySelector('.bloque__etiqueta').textContent}:${marca.textContent}`);
+          }
+        }
+        afirmar(faltan.length === 0, `${contexto}: cada renglón numerado tiene su casilla en todos los bloques${faltan.length ? ` (faltan ${faltan.join(' ')})` : ''}`);
+        // En la pantalla de referencia (950 px de alto o más, CLAUDE.md 6.9).
+        // Más bajo —700, un proyector XGA, el zoom a 150 %— al lienzo le
+        // quedan menos de 430 px y la matriz todavía se desplaza un poco; con
+        // los tramos midiendo lo que escondían eran unos 900.
+        const matriz = document.querySelector('.estructura-bloques');
+        if (window.innerHeight >= 900) {
+          afirmar(
+            matriz.scrollHeight <= matriz.clientHeight + 1,
+            `${contexto}: la matriz cabe de alto sin desplazarse (${matriz.scrollHeight} de ${matriz.clientHeight} px)`
+          );
+        } else {
+          registro.push(`  ${contexto}: la matriz mide ${matriz.scrollHeight} de ${matriz.clientHeight} px de alto`);
+        }
       };
       const rotulosVisibles = () => [...document.querySelectorAll('.bloque .bloque__etiqueta')].map((el) => el.textContent);
 
-      // Buscando en B1, el bloque a medio llenar queda comprimido y aun así
-      // a la vista, con su tramo partido.
+      // Buscando en B1, el bloque a medio llenar sigue a la vista y la
+      // escala dice dónde terminan sus claves.
       operar(formularios, 'buscar', 1050);
       hastaElUltimoPasoDelAlgoritmo();
       tramosComoLoQueResumen('bloque a medio llenar comprimido');
@@ -2327,6 +2368,22 @@
       afirmar(tras.includes('1105'), 'y en el paso final sigue a la vista');
       tramosComoLoQueResumen('tras insertar');
       afirmarRenglonesDeBloquesAlineados('tras insertar');
+
+      // Llenando un archivo de N = 120 —bloques de 11, apenas sobre el umbral
+      // de 10— la matriz no llega a verse entera (visto por el usuario,
+      // 2026-10-11): con todas las claves del bloque a medio llenar a la vista,
+      // con la octava y la novena no quedaba ningún tramo.
+      vaciar();
+      enviar(formularios[0], { n: 120, l: 4 });
+      const sinTramo = [];
+      for (let i = 0; i < 14; i++) {
+        operar(formularios, 'insertar', 1000 + 10 * i);
+        if (!document.querySelector('.tramo-registros')) sinTramo.push(i + 1);
+      }
+      afirmar(
+        sinTramo.length === 0,
+        `llenando N = 120 la matriz sigue elidida clave a clave${sinTramo.length ? ` (entera con la clave ${sinTramo.join(', ')})` : ''}`
+      );
 
       document.querySelector('.pantalla-tema__volver').click();
     }

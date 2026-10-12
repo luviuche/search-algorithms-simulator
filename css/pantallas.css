@@ -690,12 +690,10 @@ form.panel > .pantalla-tema__reproduccion {
   gap: var(--espacio-1);
 }
 
-/* Renglones elididos dentro de un bloque. **Mide exactamente lo que oculta**
-   —tantos renglones como esconde— y no se reparte el sobrante: es lo que hace
-   que cada casilla caiga en el renglón que de verdad ocupa, que el último
-   registro de un bloque comprimido quede a la altura del último de los
-   completos, y que la escala de la izquierda siga rotulando lo que rotula.
-   El alto lo pone quien dibuja, con `altoDeRenglones`. */
+/* Renglones elididos dentro de un bloque. Todos los bloques y la escala se
+   dibujan sobre los mismos renglones, así que cada tramo mide lo mismo en
+   todas las columnas y cada casilla cae a la altura de su número. El alto lo
+   pone quien dibuja, con `altoDeSegmentos` (CLAUDE.md 5.8). */
 .tramo-registros {
   display: flex;
   align-items: center;
@@ -711,6 +709,27 @@ form.panel > .pantalla-tema__reproduccion {
      número de dos cifras en dos renglones —«11» pasaba a leerse como dos unos—.
      Cabe porque el ancho de la casilla ya reserva sitio para `l` cifras. */
   font-variant-numeric: tabular-nums;
+}
+
+/* El tramo de registros mide un alto fijo —casilla y media— y, si se parte en
+   claves y libres, sus pedazos se lo reparten según cuántos registros esconde
+   cada uno (CLAUDE.md 5.8). Un pedazo de un solo registro es una casilla a su
+   alto de siempre. */
+.tramo-registros__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  flex-shrink: 0;
+}
+
+.tramo-registros__grupo > .casilla {
+  flex-shrink: 0;
+}
+
+.tramo-registros__grupo > .tramo-registros {
+  flex-basis: 0;
+  min-height: 14px;
+  overflow: hidden;
 }
 
 /* El tramo de registros se dibuja como lo que resume, igual que en la fila
