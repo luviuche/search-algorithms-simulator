@@ -713,6 +713,28 @@ form.panel > .pantalla-tema__reproduccion {
   font-variant-numeric: tabular-nums;
 }
 
+/* El tramo de registros se dibuja como lo que resume, igual que en la fila
+   (CLAUDE.md 6.2): las claves escondidas como un bloque de casillas ocupadas,
+   las libres punteadas como una vacía. Quien dibuja lo parte donde terminan
+   las claves, así que ninguno mezcla las dos cosas. */
+.tramo-registros--claves {
+  border: 1px solid var(--estado-ocupada-borde);
+  background: var(--estado-ocupada-relleno);
+  border-radius: var(--radio-casilla);
+}
+
+.tramo-registros--vacias {
+  border: 1px dashed var(--estado-vacia-borde);
+  background: var(--estado-vacia-relleno);
+  border-radius: var(--radio-casilla);
+}
+
+.tramo-registros--descartado {
+  border-color: var(--estado-descartada-borde);
+  background: var(--estado-descartada-relleno);
+  opacity: .5;
+}
+
 /* Bloques elididos enteros: el equivalente vertical del tramo de casillas. */
 .tramo-bloques {
   display: flex;

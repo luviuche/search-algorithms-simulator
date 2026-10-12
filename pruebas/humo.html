@@ -2272,6 +2272,62 @@
       );
       afirmarRenglonesDeBloquesAlineados('archivo elidido');
 
+      // Cada tramo de registros se dibuja como lo que resume (CLAUDE.md 6.2,
+      // opción B de las maquetas, 2026-10-11): ninguno mezcla claves y libres,
+      // y el último bloque con claves no se esconde en «⋯ k bloques ⋯». Con
+      // N = 400 son 20 bloques de 20, y 28 claves dejan B2 con 8 y 12 libres.
+      vaciar();
+      enviar(formularios[0], { n: 400, l: 4 });
+      for (let i = 0; i < 28; i++) operar(formularios, 'insertar', 1000 + 10 * i);
+      const tramosComoLoQueResumen = (contexto) => {
+        const tramos = [...document.querySelectorAll('.tramo-registros')];
+        const mezclados = tramos.filter((tramo) =>
+          tramo.classList.contains('tramo-registros--claves') === tramo.classList.contains('tramo-registros--vacias'));
+        afirmar(
+          tramos.length > 0 && mezclados.length === 0,
+          `${contexto}: cada tramo de registros es de claves o de libres (${tramos.length} tramo(s), ${mezclados.length} sin partir)`
+        );
+      };
+      const rotulosVisibles = () => [...document.querySelectorAll('.bloque .bloque__etiqueta')].map((el) => el.textContent);
+
+      // Buscando en B1, el bloque a medio llenar queda comprimido y aun así
+      // a la vista, con su tramo partido.
+      operar(formularios, 'buscar', 1050);
+      hastaElUltimoPasoDelAlgoritmo();
+      tramosComoLoQueResumen('bloque a medio llenar comprimido');
+      afirmar(rotulosVisibles().includes('B2'), `el último bloque con claves sigue a la vista (bloques: ${rotulosVisibles().join(' ')})`);
+      afirmarRenglonesDeBloquesAlineados('tramos partidos');
+
+      // Buscando en B2, el bloque del paso deja a la vista hasta su última
+      // clave —caben todas— y la primera libre.
+      operar(formularios, 'buscar', 1250);
+      hastaElUltimoPasoDelAlgoritmo();
+      tramosComoLoQueResumen('bloque del paso a medio llenar');
+      const enCurso = [...document.querySelectorAll('.bloque')]
+        .find((bloque) => bloque.querySelector('.bloque--en-curso'));
+      const textos = enCurso ? [...enCurso.querySelectorAll('.casilla')].map((el) => el.textContent.trim()) : [];
+      afirmar(
+        textos.includes('1270'),
+        `el bloque del paso muestra su última clave, 1270 (se ven: ${textos.filter(Boolean).join(' ')})`
+      );
+      afirmarRenglonesDeBloquesAlineados('frontera del bloque del paso');
+
+      // La clave que se inserta siempre se ve, aunque los renglones se eliden
+      // (pedido del usuario, 2026-10-11): insertar no lee bloques, y su bloque
+      // se comprimía como los demás con la clave dentro del tramo. 1105 entra
+      // en el renglón 12 de B1, en medio de un bloque lleno.
+      operar(formularios, 'insertar', 1105);
+      const insertada = document.querySelector('.casilla--insertada');
+      afirmar(
+        insertada && insertada.textContent.includes('1105'),
+        `al insertar, la clave nueva se ve con su marca (${insertada ? insertada.textContent.trim() : 'no está'})`
+      );
+      agotarTraza();
+      const tras = [...document.querySelectorAll('.bloque .casilla')].map((el) => el.textContent.trim());
+      afirmar(tras.includes('1105'), 'y en el paso final sigue a la vista');
+      tramosComoLoQueResumen('tras insertar');
+      afirmarRenglonesDeBloquesAlineados('tras insertar');
+
       document.querySelector('.pantalla-tema__volver').click();
     }
 
@@ -2440,6 +2496,11 @@
     }
 
     function afirmarRenglonesDeBloquesAlineados(contexto) {
+      // Se mide dónde quedan las casillas, no dónde van: tras insertar, la
+      // clave que se desborda al bloque siguiente viaja con el FLIP desde el
+      // último renglón del suyo, y en vuelo «empezaba» 836 px más abajo
+      // (2026-10-11, al dibujar el primer registro de los bloques comprimidos).
+      for (const animacion of document.getAnimations()) animacion.finish();
       const bloques = [...document.querySelectorAll('.bloque')];
       const pies = bloques.map((bloque) => {
         const casillas = [...bloque.querySelectorAll('.casilla')];
@@ -2454,9 +2515,9 @@
         `${contexto}: todos los bloques cierran en el mismo renglón (${[...new Set(sinElUltimo)].join(', ')})`
       );
 
-      // Solo los bloques dibujados enteros: uno comprimido empieza por su
-      // tramo, así que su primera casilla es la del último renglón y no la del
-      // primero.
+      // Desde el 2026-10-11 el bloque comprimido también empieza por una
+      // casilla —su primer registro—, así que entran todos; el filtro queda
+      // por si un bloque de un solo registro empezara en otro renglón.
       const primeras = bloques
         .filter((bloque) => bloque.querySelector('.bloque__registros').firstElementChild.classList.contains('casilla'))
         .map((bloque) => Math.round(bloque.querySelector('.casilla').getBoundingClientRect().top));

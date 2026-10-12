@@ -112,11 +112,52 @@
       });
     }
 
+    // Un tramo de registros **se parte donde terminan las claves** y cada
+    // pedazo se dibuja como lo que resume (CLAUDE.md 6.2; opción B de las
+    // maquetas de externas, elegida por el usuario el 2026-10-11): las claves
+    // como un bloque sólido, las libres punteadas. Sin partirlo, «⋯ 13 ⋯» en
+    // el bloque a medio llenar escondía 9 claves y 4 libres con el mismo
+    // dibujo que un bloque vacío. Un pedazo de un solo registro se dibuja
+    // como la casilla misma, y uno que cae entero en lo descartado se apaga
+    // con sus casillas.
+    function agregarTramoDeRegistros(contenedor, paso, bloque, desde, cantidad) {
+      const ocupado = (registro) => estado.estructura.claves[registro - 1] !== undefined;
+      let inicio = desde;
+      const fin = desde + cantidad - 1;
+      while (inicio <= fin) {
+        let corte = inicio;
+        while (corte + 1 <= fin && ocupado(corte + 1) === ocupado(inicio)) corte++;
+        const largo = corte - inicio + 1;
+        if (largo === 1) {
+          contenedor.appendChild(crearCasillaDeRegistro(paso, inicio, bloque));
+        } else {
+          const tramo = document.createElement('div');
+          let descartado = true;
+          for (let registro = inicio; registro <= corte && descartado; registro++) {
+            const descripcion = config.describirCasilla({ paso, indice: registro, bloque, ocupada: ocupado(registro) });
+            if (descripcion.estado !== 'descartada') descartado = false;
+          }
+          tramo.className = 'tramo-registros ' + (ocupado(inicio) ? 'tramo-registros--claves' : 'tramo-registros--vacias')
+            + (descartado ? ' tramo-registros--descartado' : '');
+          tramo.style.height = altoDeRenglones(largo);
+          tramo.textContent = `⋯ ${largo} ⋯`;
+          contenedor.appendChild(tramo);
+        }
+        inicio = corte + 1;
+      }
+    }
+
     // El bloque comprimido conserva **el único registro que el algoritmo llega
     // a mirar** —el último— y dice cuántos esconde. El tramo crece hasta
     // empujar esa casilla al renglón `r`, que es donde el registro está de
     // verdad: alineada con el último registro de los bloques completos y no
     // flotando a media altura (pedido del usuario sobre maqueta, 2026-09-11).
+    //
+    // **Y también el primero, solo por diseño** (pedido del usuario,
+    // 2026-10-11): el bloque se lee con su inicio y su final, como la fila
+    // —«1010 ⋯ 5700»—, y el renglón 1 de la escala deja de rotular un tramo.
+    // El algoritmo sigue comparando solo con el último: el primero se dibuja
+    // normal, nunca en evaluación.
     function crearBloqueComprimido(paso, bloque, forma) {
       const rango = dominio.externa.rangoDelBloque(forma, bloque);
       const registros = dominio.externa.registrosDelBloque(forma, bloque);
@@ -127,13 +168,8 @@
       // El tramo mide los renglones que oculta, así que el último registro
       // cae solo en el renglón que le toca: en un bloque completo, a la altura
       // del último de los demás; en el último bloque —más corto—, en el suyo.
-      if (registros > 1) {
-        const tramo = document.createElement('div');
-        tramo.className = 'tramo-registros';
-        tramo.style.height = altoDeRenglones(registros - 1);
-        tramo.textContent = `⋯ ${registros - 1} ⋯`;
-        contenedor.appendChild(tramo);
-      }
+      if (registros > 1) contenedor.appendChild(crearCasillaDeRegistro(paso, rango.primero, bloque));
+      if (registros > 2) agregarTramoDeRegistros(contenedor, paso, bloque, rango.primero + 1, registros - 2);
       contenedor.appendChild(crearCasillaDeRegistro(paso, rango.ultimo, bloque));
       return contenedor;
     }
@@ -147,11 +183,7 @@
 
       for (const segmento of segmentosDelRenglon) {
         if (segmento.tipo === 'tramo') {
-          const tramo = document.createElement('div');
-          tramo.className = 'tramo-registros';
-          tramo.style.height = altoDeRenglones(segmento.cantidad);
-          tramo.textContent = `⋯ ${segmento.cantidad} ⋯`;
-          contenedor.appendChild(tramo);
+          agregarTramoDeRegistros(contenedor, paso, bloque, rango.primero + segmento.desde - 1, segmento.cantidad);
           continue;
         }
         // El último bloque se dibuja **corto**: sus posiciones de más no
@@ -162,6 +194,20 @@
         contenedor.appendChild(crearCasillaDeRegistro(paso, rango.primero + segmento.indice - 1, bloque));
       }
       return contenedor;
+    }
+
+    // Cuántos renglones con clave tiene el bloque abierto, si está a medio
+    // llenar: con eso la elisión de renglones deja a la vista la última
+    // ocupada y la primera libre —o todas, si caben—, la regla 2 + 4 de la
+    // fila (CLAUDE.md 6.2). Lleno o vacío no hay frontera que mostrar.
+    function ocupadasDelBloque(bloque, forma) {
+      if (!bloque) return null;
+      const rango = dominio.externa.rangoDelBloque(forma, bloque);
+      let ocupadas = 0;
+      for (let registro = rango.primero; registro <= rango.ultimo; registro++) {
+        if (estado.estructura.claves[registro - 1] !== undefined) ocupadas++;
+      }
+      return ocupadas > 0 && ocupadas < rango.ultimo - rango.primero + 1 ? ocupadas : null;
     }
 
     function renderizarBloques(paso, opciones) {
@@ -177,13 +223,26 @@
       // estrechando dentro del bloque.
       const renglonDe = (registro) =>
         registro - dominio.externa.rangoDelBloque(forma, dominio.externa.bloqueDe(forma, registro)).primero + 1;
-      const renglonesRelevantes = paso ? config.casillasRelevantes(paso).map(renglonDe) : [];
+      //
+      // El paso final no trae las suyas: lleva en `vistas` las del último
+      // paso, para que la elisión no cambie al apagar los resaltados (§7).
+      const casillasDelPaso = paso ? (paso.vistas || config.casillasRelevantes(paso)) : [];
+      const renglonesRelevantes = casillasDelPaso.map(renglonDe);
+      // El bloque que se dibuja entero: el que lee el paso o, si el paso no
+      // lee ninguno, el de la casilla que señala. Es lo que deja a la vista la
+      // clave recién insertada —insertar no lee bloques— y la hallada en el
+      // paso final; sin eso su bloque se comprimía como los demás y la clave
+      // quedaba dentro del tramo (visto por el usuario, 2026-10-11).
+      const bloqueAbierto = paso
+        ? (paso.bloque || (casillasDelPaso.length ? dominio.externa.bloqueDe(forma, casillasDelPaso[0]) : null))
+        : null;
       const segmentosDelRenglon = vista.elision.calcularSegmentos({
         n: forma.registrosPorBloque,
         relevantes: renglonesRelevantes,
         orientacion: 'vertical',
         mostrarCompleta: estado.mostrarCompleta,
-        vecinas: false
+        vecinas: false,
+        ocupadas: ocupadasDelBloque(bloqueAbierto, forma)
       });
       // Cuando los renglones no caben, los bloques que no se están mirando se
       // comprimen a su último registro: es lo que hace que una búsqueda que se
@@ -196,11 +255,16 @@
       // binaria externa descarta por los dos lados y dice cuáles leyó.
       const comparados = (paso && (paso.bloquesLeidos || paso.bloquesDescartados)) || [];
       const relevantes = comparados.slice(-BLOQUES_RECIENTES);
-      if (paso && paso.bloque) relevantes.push(paso.bloque);
+      if (bloqueAbierto) relevantes.push(bloqueAbierto);
       // Y los extremos del rango de binaria externa: sin ellos, un tramo
       // «⋯ 7 bloques ⋯» se tragaba el bloque donde empieza el rango, que es
       // lo que el paso está diciendo.
       if (paso && paso.rangoBloques) relevantes.push(paso.rangoBloques.inicio, paso.rangoBloques.fin);
+      // Y el último bloque con claves: hasta ahí llega el archivo, y escondido
+      // en «⋯ k bloques ⋯» se perdía dónde terminan los datos (la regla 2 + 4
+      // de la fila, llevada a los bloques).
+      const ocupadas = estado.estructura.claves.filter((clave) => clave !== undefined).length;
+      if (ocupadas > 0) relevantes.push(dominio.externa.bloqueDe(forma, ocupadas));
       const segmentosDeBloques = vista.elision.calcularSegmentos({
         n: forma.bloques,
         relevantes,
@@ -230,12 +294,12 @@
           grupo.className = 'bloque';
           grupo.appendChild(crearRotuloDeBloque(bloque, paso));
           grupo.appendChild(
-            comprimirBloques && !(paso && paso.bloque === bloque)
+            comprimirBloques && bloque !== bloqueAbierto
               ? crearBloqueComprimido(paso, bloque, forma)
               : crearBloqueCompleto(paso, bloque, forma, segmentosDelRenglon)
           );
           dom.estructuraEl.appendChild(grupo);
-          if (paso && paso.bloque === bloque) grupoSeguido = grupo;
+          if (bloque === bloqueAbierto) grupoSeguido = grupo;
         }
 
         llevarALaVista(grupoSeguido);
