@@ -688,7 +688,7 @@ La clave rechazada **viaja en el paso y no en la estructura** (`paso.rechazada`)
 
 **Densidad para expandir** = `claves_intentadas / (n × r)`, revisada después de cada inserción — cuenta la clave recién procesada aunque haya chocado, porque chocar es justo el caso en que no llegó a entrar. Si la densidad llega al umbral, o si la cubeta de la clave está llena (eso solo, aparte de la densidad), se expande.
 
-**Densidad para reducir** = `claves_restantes / n` — **una fórmula distinta, sin multiplicar por `r`** (confirmado contra un taller resuelto del curso, comparando sus tablas casilla por casilla). Se revisa después de cada eliminación.
+**Densidad para reducir** = `claves_restantes / n` — **una fórmula distinta, sin multiplicar por `r`** (confirmado contra un taller resuelto del curso, comparando sus tablas casilla por casilla). Se revisa después de cada eliminación. **Y es la que muestra el panel mientras se elimina** (pedido del usuario, 2026-10-12): la métrica «Densidad de ocupación» pasa a «Densidad para reducir» con su porcentaje, que pasa de 100 —«175,0 %» con 7 claves en 4 cubetas—, y vuelve al terminar la operación siguiente o al vaciar. Antes mostraba siempre la de expandir, y el panel decía 58,3 % mientras el paso anunciaba una reducción por otra cifra. La pantalla recuerda qué operación lleva la traza (`estado.operacion`) y la métrica la recibe junto con la estructura y el paso; `etiquetaSegun` le cambia el rótulo. En la bitácora, al crear, los dos umbrales se escriben como se digitan: «82 %», «125 %».
 
 **Expansión total**: `n` se duplica. **Reducción total**: `n` se divide entre dos.
 

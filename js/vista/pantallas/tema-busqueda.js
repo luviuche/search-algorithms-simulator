@@ -75,9 +75,14 @@
       // La palabra del árbol, en los temas que solo construyen desde ella
       // (Huffman, `soloPalabra`): es lo que se guarda en el archivo, porque su
       // bosque no toca `estructura.claves` (ver `estructuraAGuardar`).
-      palabra: null
+      palabra: null,
+      // Qué operación lleva la traza en curso —hoy solo importa si es
+      // `eliminar`—: una métrica puede cambiar según lo que se está haciendo
+      // (cubetas, la densidad para reducir al eliminar). Se olvida al
+      // invalidar la reproducción.
+      operacion: null
     };
-    const dom = { metricas: {} };
+    const dom = { metricas: {}, etiquetasMetricas: {} };
 
     // En 24 horas y no en 12: "12:54:31 p. m." es el formato más largo posible,
     // y esta columna vive en el panel más estrecho de la pantalla.
@@ -323,6 +328,7 @@
       estado.indicePaso = -1;
       estado.pasos = null;
       estado.segmentosApilado = null;
+      estado.operacion = null;
       habilitarReproduccion(false);
       sincronizarCalculo(null);
       aplicarVisibilidadCalculo();
@@ -793,8 +799,10 @@
     }
 
     function actualizarMetricas(paso) {
+      const contexto = { estructura: estado.estructura, paso, operacion: estado.operacion };
       for (const metrica of config.metricas) {
-        dom.metricas[metrica.id].textContent = metrica.valor({ estructura: estado.estructura, paso });
+        dom.metricas[metrica.id].textContent = metrica.valor(contexto);
+        if (metrica.etiquetaSegun) dom.etiquetasMetricas[metrica.id].textContent = metrica.etiquetaSegun(contexto);
       }
     }
 
@@ -1096,6 +1104,7 @@
       }
       limpiarAlerta();
       invalidarReproduccion();
+      estado.operacion = 'eliminar';
       reproducirOperacion(
         config.eliminar({ estructura: estado.estructura, clave: validacion.valor }),
         `Eliminación iniciada: clave ${validacion.valor}.`
@@ -1935,6 +1944,7 @@
           valor: metrica.valor({ estructura: null, paso: null })
         });
         dom.metricas[metrica.id] = el.querySelector('.metrica__valor');
+        dom.etiquetasMetricas[metrica.id] = el.querySelector('.metrica__etiqueta');
         contenedorMetricas.appendChild(el);
       }
 

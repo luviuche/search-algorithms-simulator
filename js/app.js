@@ -1118,6 +1118,12 @@
         {
           id: 'densidad',
           etiqueta: 'Densidad de ocupación',
+          // **Al eliminar, la que decide si se reduce** (pedido del usuario,
+          // 2026-10-12): claves por cubeta, sin multiplicar por `r`, y por eso
+          // pasa de 100 % —«125 %»—. Con la de expandir a la vista el panel
+          // decía 41,7 % mientras el paso anunciaba una reducción por otra
+          // cifra.
+          etiquetaSegun: ({ operacion }) => (operacion === 'eliminar' ? 'Densidad para reducir' : 'Densidad de ocupación'),
           // En su renglón y con coma decimal, como el resto de la aplicación
           // («2,5 bits»): en la columna se leía «70.8» con el «%» debajo. El
           // espacio que lo separa del número no se parte.
@@ -1125,11 +1131,13 @@
           // Cuenta la clave que está esperando en la fila «Col»: en ese
           // instante el taller escribe 8/9 y no 7/9, porque la densidad mide
           // claves intentadas y esa ya se intentó (CLAUDE.md 5.7).
-          valor: ({ estructura, paso }) => (
-            estructura
-              ? `${(dominio.cubetas.densidadExpandir(estructura, paso && paso.rechazada ? 1 : 0) * 100).toFixed(1).replace('.', ',')}\u00a0%`
-              : '0,0\u00a0%'
-          )
+          valor: ({ estructura, paso, operacion }) => {
+            if (!estructura) return '0,0\u00a0%';
+            const densidad = operacion === 'eliminar'
+              ? dominio.cubetas.densidadReducir(estructura)
+              : dominio.cubetas.densidadExpandir(estructura, paso && paso.rechazada ? 1 : 0);
+            return `${(densidad * 100).toFixed(1).replace('.', ',')}\u00a0%`;
+          }
         }
       ]
     }

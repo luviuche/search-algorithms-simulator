@@ -2130,11 +2130,20 @@
         [...document.querySelectorAll('.columna-casilla:not(.columna-etiquetas)')[0].querySelectorAll('.casilla')]
       );
 
+      // Al eliminar, la métrica pasa a la densidad que decide si se reduce
+      // (pedido del usuario, 2026-10-12): claves por cubeta, sin `r`, que pasa
+      // de 100 %. Con 7 claves en 4 cubetas, 175 %; la de expandir diría 58,3.
+      const rotuloDensidad = () => document.querySelectorAll('.metrica__etiqueta')[3].textContent;
+      afirmar(rotuloDensidad() === 'Densidad de ocupación', `al insertar, la métrica es la densidad de ocupación (dice «${rotuloDensidad()}»)`);
       operar(formularios, 'eliminar', 48);
       agotarTraza(20);
       afirmar(
         metricas()[2] === '4',
         'eliminar una sola clave no alcanza a bajar la densidad del umbral de reducir'
+      );
+      afirmar(
+        rotuloDensidad() === 'Densidad para reducir' && metricas()[3] === '175,0\u00a0%',
+        `al eliminar, la métrica es la densidad para reducir: 7 claves en 4 cubetas (dice «${rotuloDensidad()}», ${metricas()[3]})`
       );
 
       vaciar();
@@ -2142,6 +2151,7 @@
         metricas()[2] === '2',
         `vaciar vuelve al n inicial y no al que la estructura alcanzó por expansión (reporta ${metricas()[2]})`
       );
+      afirmar(rotuloDensidad() === 'Densidad de ocupación', `al vaciar, la métrica vuelve a la densidad de ocupación (dice «${rotuloDensidad()}»)`);
 
       // El momento de la colisión, tal como lo escribe el docente en el taller
       // (CLAUDE.md 5.7): con n = 3 la clave 81 no cabe en la cubeta 0 y se

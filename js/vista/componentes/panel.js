@@ -25,7 +25,7 @@
     valorEl.className = 'metrica__valor texto-mono';
     valorEl.textContent = String(valor);
     const etiquetaEl = document.createElement('span');
-    etiquetaEl.className = 'texto-nivel-2';
+    etiquetaEl.className = 'metrica__etiqueta texto-nivel-2';
     etiquetaEl.textContent = etiqueta;
     if (formula) {
       const formulaEl = document.createElement('span');
