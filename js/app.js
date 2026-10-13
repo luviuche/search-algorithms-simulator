@@ -1045,7 +1045,11 @@
           validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para expandir'),
           // Se guarda como fracción y se digita como porcentaje: al abrir un
           // archivo hay que volverlo a escribir como se digita para validarlo.
-          comoTexto: dominio.cubetas.umbralComoTexto
+          comoTexto: dominio.cubetas.umbralComoTexto,
+          // Y en la bitácora se lee como se digitó, «82 %», y no como se
+          // guarda: «densidad para expandir (%) 0.82» decía porcentaje y
+          // escribía una fracción (2026-10-12).
+          enBitacora: (fraccion) => `densidad para expandir ${dominio.cubetas.umbralComoTexto(fraccion).replace('.', ',')} %`
         },
         {
           nombre: 'umbralReducir',
@@ -1054,7 +1058,9 @@
           marcador: '125',
           ayuda: 'Al caer por debajo de este porcentaje (claves por cubeta, sin contar los renglones), la estructura se reduce.',
           validar: (entrada) => dominio.cubetas.validarUmbral(entrada, 'Densidad para reducir'),
-          comoTexto: dominio.cubetas.umbralComoTexto
+          comoTexto: dominio.cubetas.umbralComoTexto,
+          // Esta sí pasa de 100: cuenta claves por cubeta, sin los renglones.
+          enBitacora: (fraccion) => `densidad para reducir ${dominio.cubetas.umbralComoTexto(fraccion).replace('.', ',')} %`
         }
       ],
       // La matriz "casilla principal + arreglo anidado" ya existe (CLAUDE.md
@@ -1064,6 +1070,12 @@
         tamano: (estructura) => estructura.parametros.r - 1,
         columnas: (estructura) => estructura.parametros.r - 1
       },
+      // El llenado automático mete `n × r` claves, lo que cabe en las cubetas
+      // de partida, y no `n` —una por cubeta—, que dejaba la estructura a
+      // medio llenar y nunca llegaba a expandirse (pedido del usuario,
+      // 2026-10-12). Con la densidad revisada clave a clave, la expansión
+      // llega antes de llenarla, y el llenado la muestra.
+      clavesParaLlenar: (estructura) => estructura.n * estructura.parametros.r,
       insertar: algoritmos.cubetas.insertar,
       buscar: algoritmos.cubetas.buscar,
       eliminar: algoritmos.cubetas.eliminar,

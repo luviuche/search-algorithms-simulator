@@ -1002,9 +1002,12 @@
       const { min, max } = config.sinLongitud
         ? { min: 1, max: 9999 }
         : dominio.limites.rangoValido(estado.estructura.l);
-      const objetivo = estado.estructura.n - dominio.estructura.cantidadClaves(estado.estructura);
+      // Cuántas claves pide llenar: `n`, salvo que el tema diga otra cosa
+      // (cubetas, `n × r`).
+      const total = config.clavesParaLlenar ? config.clavesParaLlenar(estado.estructura) : estado.estructura.n;
+      const objetivo = total - dominio.estructura.cantidadClaves(estado.estructura);
       if (objetivo <= 0) {
-        mostrarAlerta('error', `Estructura saturada: capacidad máxima de ${estado.estructura.n} casillas alcanzada.`);
+        mostrarAlerta('error', `Estructura saturada: capacidad máxima de ${total} casillas alcanzada.`);
         return;
       }
       limpiarAlerta();
@@ -1662,7 +1665,9 @@
         // Un parámetro de otro tratamiento no se registra: la bitácora diría
         // que se creó con un dato que la estructura no usa.
         .filter((parametro) => !parametro.soloConTratamiento || parametro.soloConTratamiento === tratamiento)
-        .map((parametro) => `, ${parametro.etiqueta.toLowerCase()} ${parametros[parametro.nombre]}`)
+        .map((parametro) => `, ${parametro.enBitacora
+          ? parametro.enBitacora(parametros[parametro.nombre])
+          : `${parametro.etiqueta.toLowerCase()} ${parametros[parametro.nombre]}`}`)
         .join('');
       // Sin `l` no hay nada que anunciar ahí (CLAUDE.md 5.7): decir "l =
       // undefined" mentiría sobre un dato que la estructura no tiene.

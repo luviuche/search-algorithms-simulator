@@ -362,6 +362,14 @@
         operar(formularios, 'insertar', clave);
         avanzar(aMedias && indice === claves.length - 1 ? pasosAAvanzar() : 80);
       });
+      // `&llenar=1` pulsa «Llenado automático» y avanza `&paso=` claves —todas,
+      // con `fin`—: así se fotografía el llenado de `n × r` claves a medias,
+      // con la expansión que dispara.
+      if (parametros.get('llenar')) {
+        document.querySelector('[data-accion="llenado-automatico"]').click();
+        avanzar(pasosAAvanzar(80));
+        return;
+      }
       const operacion = parametros.get('operacion');
       if (!operacion) return;
       operar(formularios, operacion, Number(parametros.get('clave')) || 48);

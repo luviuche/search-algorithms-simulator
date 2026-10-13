@@ -1170,7 +1170,7 @@ El profesor evalúa explícitamente que los bloques se muevan. Estas son las ani
 - **La bitácora anota cada clave**, que es el registro de lo que pasó, después de «Llenado automático: N claves».
 - La prueba de humo `llenadoAutomatico` lo vigila en secuencial, función módulo y cubetas: una clave por paso, narrada y marcada, que se puede retroceder, y que termina sin repetidas ni resaltados.
 
-En cubetas el llenado mete `n` claves —una por cubeta— y no `n × r`: cuenta con la cantidad de cubetas, como siempre.
+**En cubetas el llenado mete `n × r` claves**, lo que cabe en las cubetas de partida (`config.clavesParaLlenar`, pedido del usuario, 2026-10-12). Hasta entonces metía `n` —una por cubeta—: la estructura quedaba a medio llenar y el llenado nunca llegaba a mostrar una expansión. Con la densidad revisada clave a clave, la expansión llega antes de llenarla. En los demás temas sigue siendo `n`: con arreglos anidados la capacidad es `n × n`, y llenar la matriz entera sería demasiado para preparar un ejemplo.
 
 Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por eso `renderizarEstructura` acepta la duración como dato de quien dibuja en vez de tenerla fija.
 

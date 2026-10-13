@@ -2648,11 +2648,13 @@
     function llenadoAutomatico() {
       registro.push('', '── Llenado automático ──');
       const casos = [
-        { tema: 'Búsqueda secuencial', datos: { n: 8, l: 2 } },
-        { tema: 'Función módulo', datos: { n: 8, l: 2, tratamiento: 'reasignacion' } },
-        { tema: 'Otras búsquedas dinámicas', datos: { n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 82, umbralReducir: 125 } }
+        { tema: 'Búsqueda secuencial', datos: { n: 8, l: 2 }, total: 8 },
+        { tema: 'Función módulo', datos: { n: 8, l: 2, tratamiento: 'reasignacion' }, total: 8 },
+        // En cubetas, `n × r` claves y no una por cubeta (2026-10-12): con
+        // n = 2 y r = 3 son 6, y la densidad dispara la expansión antes.
+        { tema: 'Otras búsquedas dinámicas', datos: { n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 82, umbralReducir: 125 }, total: 6 }
       ];
-      for (const { tema, datos } of casos) {
+      for (const { tema, datos, total } of casos) {
         entrarATema(tema);
         const formularios = [...document.querySelectorAll('form.panel')];
         enviar(formularios[0], datos);
@@ -2672,8 +2674,8 @@
           `${tema}: una clave por paso, narrada y marcada, y se puede retroceder (paso 2: ${enElSegundo} clave(s), ${marcada} marcada(s); al retroceder: ${alRetroceder})`
         );
         afirmar(
-          alFinal.length >= 2 && new Set(alFinal).size === alFinal.length && !document.querySelector('.casilla--insertada'),
-          `${tema}: termina lleno, sin claves repetidas y sin resaltados (${alFinal.length} clave(s))`
+          alFinal.length === total && new Set(alFinal).size === alFinal.length && !document.querySelector('.casilla--insertada'),
+          `${tema}: termina con sus ${total} claves, sin repetidas y sin resaltados (${alFinal.length} clave(s))`
         );
         document.querySelector('.pantalla-tema__volver').click();
       }
