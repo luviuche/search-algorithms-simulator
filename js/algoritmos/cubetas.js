@@ -95,12 +95,21 @@
   // inserción por clave, igual que se ve una inserción cualquiera. No hace
   // falta sondear renglón por renglón —la simulación ya sabe dónde cae cada
   // una—, así que aquí no hay pasos de tipo `sondeo`.
+  //
+  // Cada paso lleva `pendientes`: las claves de `orden` que todavía no se
+  // recolocaron. La densidad del panel las suma, igual que a la clave
+  // rechazada, para que no se lea «0,0 %» mientras el anuncio dice que la
+  // estructura se reduce por un 100 %: la tabla está vacía, pero las claves
+  // siguen en el archivo.
   function pasosDeReubicacion({ orden, n, r, contadores }) {
     const simulacion = intentarColocarTodo(orden, n, r);
     const pasos = [];
-    for (const vivo of orden) {
+    orden.forEach((vivo, indice) => {
       const { direccion, calculo } = calculoCubeta(vivo, n);
-      pasos.push(...pasosDelCalculoCubeta(calculo, direccion, contadores));
+      const pendientes = orden.length - indice;
+      for (const paso of pasosDelCalculoCubeta(calculo, direccion, contadores)) {
+        pasos.push(Object.assign(paso, { pendientes }));
+      }
       const enPrincipal = simulacion.claves[direccion - 1] === vivo;
       const posicion = enPrincipal ? undefined : simulacion.anidados[direccion - 1].indexOf(vivo) + 1;
       const renglon = enPrincipal ? 1 : posicion + 1;
@@ -115,9 +124,10 @@
         efecto: { tipo: 'colocar-cubeta', casilla: direccion, posicion, clave: vivo },
         comparaciones: contadores.comparaciones,
         accesos: contadores.accesos,
+        pendientes: pendientes - 1,
         mensaje: `La clave ${vivo} se recoloca en el renglón ${renglon} de la cubeta ${mostrar(direccion)}.`
       }));
-    }
+    });
     return pasos;
   }
 
@@ -136,6 +146,7 @@
     const pasos = [crearPaso(tipoPaso, {
       n,
       efecto: { tipo: 'redimensionar', n },
+      pendientes: orden.length,
       comparaciones: contadores.comparaciones,
       accesos: contadores.accesos,
       mensaje: mensajeAnuncio
@@ -372,7 +383,7 @@
           orden,
           r,
           contadores,
-          mensajeAnuncio: `Densidad de ocupación del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se reduce de n = ${estructura.n} a n = ${nPropuesto}.`
+          mensajeAnuncio: `Densidad para reducir del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se reduce de n = ${estructura.n} a n = ${nPropuesto}.`
         }));
       }
     }

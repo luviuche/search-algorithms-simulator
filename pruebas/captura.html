@@ -273,7 +273,6 @@
 
       // Con ?operacion= se fotografía además una búsqueda o una eliminación
       // sobre el árbol ya armado; ?paso= se aplica entonces a esa operación.
-      const operacion = parametros.get('operacion');
       if (!operacion) return;
       operar(formularios, operacion, parametros.get('clave') || 'u');
       avanzar(pasosAAvanzar(20));
@@ -290,7 +289,6 @@
       // que ya estaba, además de la del que entra.
       avanzar(pasosDeLaPalabra(80));
 
-      const operacion = parametros.get('operacion');
       if (!operacion) return;
       operar(formularios, operacion, parametros.get('clave') || 'a');
       avanzar(pasosAAvanzar(20));
@@ -305,7 +303,6 @@
       panel.querySelector('[data-accion="insertar-palabra"]').click();
       avanzar(pasosDeLaPalabra(80));
 
-      const operacion = parametros.get('operacion');
       if (!operacion) return;
       operar(formularios, operacion, parametros.get('clave') || 'a');
       avanzar(pasosAAvanzar(20));
@@ -357,7 +354,11 @@
       // Con `?paso=` la última clave se deja a medio reproducir, que es la
       // única forma de fotografiar un momento intermedio —la colisión, antes
       // de que la expansión lo tape— sin depender de que la traza se agote.
-      const aMedias = parametros.has('paso') && parametros.get('paso') !== 'fin';
+      // Con `&operacion=` o `&llenar=` lo que queda a medias es eso, y las
+      // claves se insertan enteras.
+      const operacion = parametros.get('operacion');
+      const aMedias = parametros.has('paso') && parametros.get('paso') !== 'fin'
+        && !operacion && !parametros.get('llenar');
       claves.forEach((clave, indice) => {
         operar(formularios, 'insertar', clave);
         avanzar(aMedias && indice === claves.length - 1 ? pasosAAvanzar() : 80);
@@ -370,7 +371,6 @@
         avanzar(pasosAAvanzar(80));
         return;
       }
-      const operacion = parametros.get('operacion');
       if (!operacion) return;
       operar(formularios, operacion, Number(parametros.get('clave')) || 48);
       avanzar(pasosAAvanzar(80));

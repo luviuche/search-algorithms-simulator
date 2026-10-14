@@ -69,8 +69,9 @@
   // Densidad para decidir si reducir: es otra cuenta, no la misma dividida al
   // revés (confirmado contra el taller: no multiplica por `r`). Compara
   // claves restantes contra la cantidad de cubetas, no contra su capacidad.
-  function densidadReducir(estructura) {
-    return estructuras.cantidadClaves(estructura) / estructura.n;
+  // `pendientes`, como en la de expandir: las que esperan a recolocarse.
+  function densidadReducir(estructura, pendientes = 0) {
+    return (estructuras.cantidadClaves(estructura) + pendientes) / estructura.n;
   }
 
   function validarR(entrada) {

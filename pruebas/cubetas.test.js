@@ -218,3 +218,43 @@ for (const modoExpansion of ['total', 'parcial']) {
     assert.equal(retrato(reabierta), retrato(original));
   });
 }
+
+// Al cambiar de tamaño la tabla se vacía y las claves vuelven una a una: cada
+// paso lleva cuántas faltan, y la densidad que las suma se lee igual desde el
+// anuncio hasta la última recolocada —la del n nuevo—, en vez de arrancar en
+// 0 % justo cuando el anuncio cita la cifra que lo disparó.
+test('durante la reubicación la densidad cuenta las claves que faltan por recolocar', () => {
+  const casos = [
+    {
+      operacion: 'eliminar',
+      preparar: [115, 96, 48, 79, 35],
+      pasos: (estructura) => cubetasAlg.eliminar({ estructura, clave: 48 }),
+      densidad: (estructura, pendientes) => cubetasDom.densidadReducir(estructura, pendientes),
+      esperada: 4 / 2
+    },
+    {
+      operacion: 'insertar',
+      preparar: [115, 96, 48, 79],
+      pasos: (estructura) => cubetasAlg.insertar({ estructura, clave: 35 }),
+      densidad: (estructura, pendientes) => cubetasDom.densidadExpandir(estructura, pendientes),
+      esperada: 5 / 12
+    }
+  ];
+  for (const caso of casos) {
+    const estructura = crear({ n: 2, r: 3, modoExpansion: 'total' });
+    insertarTodas(estructura, caso.preparar);
+    const pasos = caso.pasos(estructura);
+    const anuncio = pasos.findIndex((paso) => paso.efecto && paso.efecto.tipo === 'redimensionar');
+    assert.ok(anuncio >= 0, `${caso.operacion}: la traza cambia de tamaño`);
+    pasos.forEach((paso, indice) => {
+      if (paso.efecto) APLICADORES[paso.efecto.tipo](estructura, paso.efecto);
+      if (indice < anuncio) return;
+      assert.equal(
+        caso.densidad(estructura, paso.pendientes).toFixed(4),
+        caso.esperada.toFixed(4),
+        `${caso.operacion}, paso ${indice + 1}: ${paso.mensaje}`
+      );
+    });
+    assert.equal(pasos[pasos.length - 1].pendientes, 0);
+  }
+});

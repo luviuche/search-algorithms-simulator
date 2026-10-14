@@ -1130,12 +1130,17 @@
           ancha: true,
           // Cuenta la clave que está esperando en la fila «Col»: en ese
           // instante el taller escribe 8/9 y no 7/9, porque la densidad mide
-          // claves intentadas y esa ya se intentó (CLAUDE.md 5.7).
+          // claves intentadas y esa ya se intentó (CLAUDE.md 5.7). Durante una
+          // expansión o una reducción cuenta también las que faltan por
+          // recolocar: desde el anuncio se lee la densidad del n nuevo.
           valor: ({ estructura, paso, operacion }) => {
             if (!estructura) return '0,0\u00a0%';
+            const pendientes = paso && paso.pendientes !== undefined
+              ? paso.pendientes
+              : (paso && paso.rechazada ? 1 : 0);
             const densidad = operacion === 'eliminar'
-              ? dominio.cubetas.densidadReducir(estructura)
-              : dominio.cubetas.densidadExpandir(estructura, paso && paso.rechazada ? 1 : 0);
+              ? dominio.cubetas.densidadReducir(estructura, pendientes)
+              : dominio.cubetas.densidadExpandir(estructura, pendientes);
             return `${(densidad * 100).toFixed(1).replace('.', ',')}\u00a0%`;
           }
         }
