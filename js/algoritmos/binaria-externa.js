@@ -108,7 +108,7 @@
         lineas.push({ etiqueta: 'Último registro', expresion: `${objetivo} = ${ultimaClave}`, resultado: 'encontrada' });
         pasos.push(crearPaso(TIPOS_PASO.ENCONTRADA, Object.assign(comun, {
           calculo: lineas,
-          mensaje: `Clave encontrada en el bloque ${medio}.`
+          mensaje: `Clave localizada en el bloque ${medio}.`
         })));
         return pasos;
       }
@@ -185,7 +185,7 @@
         lineas.push({ etiqueta: `Renglón ${medio}`, expresion: `${objetivo} = ${clave}`, resultado: 'encontrada' });
         pasos.push(crearPaso(TIPOS_PASO.ENCONTRADA, Object.assign(comun, {
           calculo: lineas,
-          mensaje: `Clave encontrada en el bloque ${bloque}.`
+          mensaje: `Clave localizada en el bloque ${bloque}.`
         })));
         return pasos;
       }
@@ -224,7 +224,7 @@
         lineaDelBloque,
         { etiqueta: 'No está', expresion: `${accesos} accesos a bloque`, resultado: '—' }
       ],
-      mensaje: `La clave no está en el bloque ${bloque}, y por el orden del archivo no puede estar en otro: ${accesos} accesos a bloque.`
+      mensaje: `Clave no localizada en el bloque ${bloque}, y por el orden del archivo no puede estar en otro, tras ${accesos} accesos a bloque.`
     }));
     return pasos;
   }

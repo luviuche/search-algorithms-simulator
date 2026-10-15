@@ -47,7 +47,7 @@ test('el recorrido de la maqueta: dos bloques leídos y la binaria dentro del qu
 
   const fin = ultimo(pasos);
   assert.equal(fin.tipo, 'encontrada');
-  assert.equal(fin.mensaje, 'Clave encontrada en el bloque 4.');
+  assert.equal(fin.mensaje, 'Clave localizada en el bloque 4.');
   assert.equal(fin.comparaciones, 5);
   assert.equal(fin.accesos, 2);
 });

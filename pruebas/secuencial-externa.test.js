@@ -20,7 +20,7 @@ test('encuentra la clave y lo dice por bloque, no por registro', () => {
   assert.equal(fin.tipo, 'encontrada');
   assert.equal(fin.bloque, 2);
   assert.equal(fin.casilla, 8);
-  assert.equal(fin.mensaje, 'Clave encontrada en el bloque 2.');
+  assert.equal(fin.mensaje, 'Clave localizada en el bloque 2.');
 });
 
 // La lección del tema: leer un bloque cuesta, y por eso se lee uno por bloque

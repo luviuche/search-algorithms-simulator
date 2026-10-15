@@ -2265,7 +2265,7 @@
       agotarTraza(20);
       registro.push('  métricas: ' + metricas().join(' · '));
       afirmar(
-        document.querySelector('.alerta').textContent.includes('Clave encontrada en el bloque 2'),
+        document.querySelector('.alerta').textContent.includes('Clave localizada en el bloque 2'),
         'el aviso ubica la clave por bloque y no por número de registro'
       );
       // Dos accesos y no tres: al insertar 1100, 1310 pasó al bloque 2, así
@@ -2536,7 +2536,7 @@
 
       hastaElUltimoPasoDelAlgoritmo();
       afirmar(
-        document.querySelector('.alerta').textContent.includes('Clave encontrada en el bloque 4'),
+        document.querySelector('.alerta').textContent.includes('Clave localizada en el bloque 4'),
         'el aviso ubica la clave por bloque'
       );
       registro.push('  métricas: ' + metricas().join(' · '));
@@ -2575,7 +2575,7 @@
       afirmarRenglonesDeBloquesAlineados('binaria externa elidida');
       hastaElUltimoPasoDelAlgoritmo();
       afirmar(
-        document.querySelector('.alerta').textContent.includes('Clave encontrada en el bloque'),
+        document.querySelector('.alerta').textContent.includes('Clave localizada en el bloque'),
         'y la encuentra'
       );
 

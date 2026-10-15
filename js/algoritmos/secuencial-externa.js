@@ -128,7 +128,7 @@
               accesos,
               cierre: { etiqueta: 'Encontrada', expresion: 'en el bloque', resultado: `B${bloque}` }
             }),
-            mensaje: `Clave encontrada en el bloque ${bloque}.`
+            mensaje: `Clave localizada en el bloque ${bloque}.`
           }));
           return pasos;
         }
@@ -169,7 +169,7 @@
           accesos,
           cierre: { etiqueta: 'No está', expresion: `${accesos} accesos a bloque`, resultado: '—' }
         }),
-        mensaje: `La clave no está en el bloque ${bloque}, y por el orden del archivo no puede estar en otro: ${accesos} accesos a bloque.`
+        mensaje: `Clave no localizada en el bloque ${bloque}, y por el orden del archivo no puede estar en otro, tras ${accesos} accesos a bloque.`
       }));
       return pasos;
     }
@@ -178,7 +178,7 @@
       bloquesDescartados: descartados.slice(),
       comparaciones,
       accesos,
-      mensaje: `${objetivo} supera al último registro del archivo: la clave no está, tras ${accesos} accesos a bloque.`
+      mensaje: `Clave no localizada: ${objetivo} supera al último registro del archivo, tras ${accesos} accesos a bloque.`
     }));
     return pasos;
   }
