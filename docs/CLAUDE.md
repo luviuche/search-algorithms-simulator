@@ -988,6 +988,8 @@ Dos decisiones de implementación que hay que respetar al tocar esto:
 
 El modo lo activa la configuración del tema (`apilada.rangoDePaso`); los temas que no lo declaran siguen con una estructura única, como secuencial.
 
+**El medio de una fila anterior queda con el borde naranja y sin relleno** (revisión de diseño, 2026-10-14). Antes cada fila conservaba su medio en «en evaluación» lleno, y a la tercera comparación había tres casillas que parecían mirarse a la vez. El relleno es solo de la fila del paso actual; el borde sigue diciendo por dónde se partió cada rango (`casilla--medio-anterior`, en `dibujos/apilado.js`).
+
 ### 6.4 Regla de índices
 
 Bajo la estructura horizontal —y al costado de la vertical— corre una escala continua que numera las posiciones, con marcas mayores cada 5. Cuando hay elisión, la escala se comprime pero **mantiene visible la numeración real de lo dibujado**: cada casilla que sobrevive conserva su índice, así que la numeración nunca miente sobre dónde está una clave. Es el elemento distintivo del producto. **El tramo comprimido no se rotula** (ver 6.2): declara cuánto oculta desde su propia casilla (`⋯ 18 ⋯`) y deja el hueco de la escala vacío.

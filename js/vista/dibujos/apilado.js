@@ -112,6 +112,14 @@
           });
           casillaEl.style.gridColumn = columna;
           casillaEl.style.gridRow = String(filaCasillas);
+          // El medio de una fila anterior ya no se está mirando: queda con el
+          // borde naranja para que se lea por dónde se partió, pero sin el
+          // relleno, que es solo del paso actual (revisión de diseño,
+          // 2026-10-14). Con el relleno, a la tercera comparación había tres
+          // casillas «en evaluación» a la vez.
+          if (orden < indicePaso && descripcion.estado === 'en-evaluacion') {
+            casillaEl.classList.add('casilla--medio-anterior');
+          }
 
           const marcaEl = crearMarca(indice, n);
           marcaEl.style.gridColumn = columna;

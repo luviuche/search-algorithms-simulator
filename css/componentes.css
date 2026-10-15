@@ -60,6 +60,13 @@
   color: var(--estado-encontrada-borde);
 }
 
+/* Medio de una fila anterior del apilado de binaria (CLAUDE.md 6.3): el
+   borde de «en evaluación» sin su relleno. El relleno queda solo para la
+   casilla que se mira en el paso actual. */
+.casilla--en-evaluacion.casilla--medio-anterior {
+  background: var(--estado-ocupada-relleno);
+}
+
 /* Las marcas de insertada, encontrada y eliminada van en la esquina y fuera
    del flujo (pedido del usuario, 2026-09-24). Al lado del número lo empujaban
    a la izquierda y la clave dejaba de verse centrada justo en la casilla que
