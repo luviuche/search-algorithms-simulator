@@ -534,6 +534,16 @@
       siguiente.click();
       const filasBitacora = [...document.querySelectorAll('.bitacora__fila')].map((f) => f.textContent);
       afirmar(filasBitacora.length === filasAntes, 'la bitácora no repite el último mensaje al agotar la traza');
+      // La hora abre cada operación y los pasos van sin ella (2026-10-14).
+      const conHora = [...document.querySelectorAll('.bitacora__fila')]
+        .filter((f) => f.querySelector('.bitacora__hora').textContent !== '')
+        .map((f) => f.lastElementChild.textContent);
+      // En el humo todo cae en el mismo segundo, así que solo la primera
+      // línea la lleva; lo que importa es que ningún paso la tenga.
+      afirmar(
+        conHora.length >= 1 && !conHora.some((m) => m.startsWith('Se compara')),
+        `la hora abre la bitácora y no cae en los pasos (con hora: ${conHora.join(' | ')})`
+      );
       const metricasFinales = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
       afirmar(
         metricasFinales[0] === String(comparacionesEsperadas),

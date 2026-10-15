@@ -381,10 +381,10 @@ form input[type="checkbox"] {
 
 /* **La hora es el separador de su grupo, y los mensajes van a todo el
    ancho** (2026-09-27). Antes era una columna de ocho cifras a la izquierda de
-   cada mensaje, casi siempre vacía —la hora solo se escribe cuando cambia—,
-   y el mensaje se apretaba en el resto: cada entrada ocupaba dos o tres
-   renglones del panel más estrecho de la pantalla. Ahora la hora encabeza lo
-   que pasó en ese segundo y cada mensaje cabe en un renglón. Los mensajes van
+   cada mensaje, casi siempre vacía, y el mensaje se apretaba en el resto:
+   cada entrada ocupaba dos o tres renglones del panel más estrecho de la
+   pantalla. Ahora la hora encabeza cada operación (desde el 2026-10-14) y
+   cada mensaje cabe en un renglón. Los mensajes van
    en la letra de texto: son frases, y en monoespaciada se leían peor. */
 .bitacora__fila {
   display: flex;

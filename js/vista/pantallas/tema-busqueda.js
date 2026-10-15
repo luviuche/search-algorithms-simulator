@@ -92,8 +92,16 @@
       });
     }
 
-    function registrarBitacora(mensaje) {
-      vista.componentes.bitacora.agregarEntrada(dom.bitacora, { hora: horaActual(), mensaje });
+    // **La hora abre cada operación** (revisión de diseño, 2026-10-14): se
+    // escribe en la primera línea que deja una operación —«Búsqueda
+    // iniciada…», «Estructura creada…», o la única línea de una inserción sin
+    // traza— y no en los pasos. Antes se escribía cada vez que cambiaba el
+    // segundo, y al reproducir paso a paso caía en sitios al azar.
+    let horaPendiente = false;
+    function registrarBitacora(mensaje, { dePaso = false } = {}) {
+      const abre = !dePaso || horaPendiente;
+      horaPendiente = false;
+      vista.componentes.bitacora.agregarEntrada(dom.bitacora, { hora: horaActual(), mensaje, abre });
     }
 
     // `opciones` lleva el ícono y el rótulo cuando el aviso narra un paso (ver
@@ -888,6 +896,7 @@
       habilitarReproduccion(true);
       // Sin mensaje inicial cuando la operación es un solo paso que ya dice
       // lo que pasó (ver `pasoDeInsercion`).
+      horaPendiente = true;
       if (mensajeInicial) registrarBitacora(mensajeInicial);
       // **Cada paso se apunta una sola vez, la primera que se llega a él**
       // (2026-09-30). La bitácora es lo que pasó, no por dónde anda la
@@ -914,7 +923,7 @@
           sincronizarAviso(indice);
           // El paso final no dice nada: el aviso sigue con la noticia de la
           // operación, y repetirla en la bitácora solo sería ruido.
-          if (paso && paso.mensaje && !paso.final && indice > ultimoApuntado) registrarBitacora(paso.mensaje);
+          if (paso && paso.mensaje && !paso.final && indice > ultimoApuntado) registrarBitacora(paso.mensaje, { dePaso: true });
           ultimoApuntado = Math.max(ultimoApuntado, indice);
         }
       });

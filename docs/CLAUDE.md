@@ -1420,6 +1420,8 @@ Avisar de la recolocación no es un detalle: las claves son las mismas pero su s
 
 **La hora se escribe solo cuando cambia, y en 24 horas** (2026-09-11). Una traza entera cae dentro del mismo segundo, así que la hora se repetía quince renglones seguidos en la columna más estrecha de la pantalla, y `12:54:31 p. m.` es además el formato más largo posible. Con el cambio, la hora marca *cuándo empezó lo que viene debajo*, que es lo que de verdad aporta.
 
+**Desde el 2026-10-14 la hora abre cada operación** (revisión de diseño). La lleva la primera línea que deja una operación —«Búsqueda iniciada…», «Estructura creada…», o la única de una inserción sin traza— y no los pasos; tampoco se repite si es la misma que la última escrita. Con la regla de cambiar de segundo, al reproducir paso a paso caía a mitad de una operación sin marcar nada. `registrarBitacora(mensaje, { dePaso })` y `entrada.abre` en `bitacora.js`.
+
 **El hueco de la hora se conserva aunque el texto no esté**, para que los mensajes sigan alineados: su columna mide `8ch` de la monoespaciada —lo que mide `HH:MM:SS`— y no `max-content`. Cada fila es su propia cuadrícula, así que con `max-content` el renglón cuya hora se omite daba una columna de ancho cero y su mensaje se corría a la izquierda, desalineado de los demás. La hora omitida sí viaja en `aria-label`: la repetición estorba a la vista, que abarca varios renglones de un golpe, no al oído.
 
 ---
