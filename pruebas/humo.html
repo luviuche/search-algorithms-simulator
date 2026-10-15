@@ -2259,6 +2259,14 @@
         claveDelRenglon(1, 5) === '1204' && claveDelRenglon(2, 1) === '1310',
         `insertar en medio empuja la última clave al bloque siguiente (B1 termina en ${claveDelRenglon(1, 5)}, B2 abre con ${claveDelRenglon(2, 1)})`
       );
+      // La bitácora la ubica como se dibuja: en bloques y renglones, no en una
+      // «casilla 3» que en esta pantalla no existe (2026-10-14).
+      agotarTraza();
+      const filasInsercion = [...document.querySelectorAll('.bitacora__fila')].map((f) => f.textContent);
+      afirmar(
+        filasInsercion.some((fila) => fila.includes('Clave insertada: 1100 en el renglón 3 del bloque 1')),
+        'la inserción se ubica por renglón y bloque, no por casilla'
+      );
 
       const metricas = () => [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
       operar(formularios, 'buscar', 3020);

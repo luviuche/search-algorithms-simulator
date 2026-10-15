@@ -292,6 +292,12 @@
       // la parada de externas, elegida por el usuario el 2026-09-30).
       calculoSoloEnOperacion: true,
       buscar: ({ estructura, objetivo }) => leer(estructura, objetivo),
+      nombrarSitio: (indice, estructura) => {
+        const forma = dominio.externa.formaDelArchivo(estructura.n);
+        const bloque = dominio.externa.bloqueDe(forma, indice);
+        const renglon = indice - dominio.externa.rangoDelBloque(forma, bloque).primero + 1;
+        return `el renglón ${renglon} del bloque ${bloque}`;
+      },
       // Borrar lee el archivo como buscar: la eliminación no tiene camino
       // propio, usa el del tema (CLAUDE.md 5.6). Lo único suyo es cómo nombra
       // el sitio: el estudiante ubica el bloque, no el número de registro

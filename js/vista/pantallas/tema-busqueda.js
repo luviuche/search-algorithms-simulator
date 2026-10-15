@@ -971,7 +971,7 @@
           return;
         }
         reproducirOperacion(
-          [pasoDeInsercion(resultado.indice, `Clave insertada: ${validacion.valor} en la casilla ${resultado.indice}.`)],
+          [pasoDeInsercion(resultado.indice, `Clave insertada: ${validacion.valor} en ${nombrarSitio(resultado.indice)}.`)],
           null
         );
         return;
@@ -1052,6 +1052,14 @@
       reproducirOperacion(pasos, `Llenado automático: ${pasos.length} claves.`);
     }
 
+    // Cómo se nombra el sitio donde quedó una clave insertada sin traza. Las
+    // externas lo dicen en bloques y renglones, como se dibuja el archivo y
+    // como se compara (revisión de diseño, 2026-10-14): «la casilla 8» no
+    // existía en su pantalla.
+    function nombrarSitio(indice) {
+      return config.nombrarSitio ? config.nombrarSitio(indice, estado.estructura) : `la casilla ${indice}`;
+    }
+
     // Coloca una clave del llenado y devuelve su paso, o `null` si no entró
     // —repetida, o sin sitio—. Sin contadores: no es una búsqueda.
     function pasoDeLlenado(clave) {
@@ -1060,7 +1068,7 @@
         const resultado = dominio.estructura.insertar(estado.estructura, clave);
         if (!resultado.exito) return null;
         return Object.assign(
-          pasoDeInsercion(resultado.indice, `Clave insertada: ${clave} en la casilla ${resultado.indice}.`),
+          pasoDeInsercion(resultado.indice, `Clave insertada: ${clave} en ${nombrarSitio(resultado.indice)}.`),
           { efecto: { tipo: 'insertar', clave } }
         );
       }
