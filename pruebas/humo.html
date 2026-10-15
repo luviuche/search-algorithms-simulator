@@ -2986,6 +2986,15 @@
         'se marcan las dos que se van a unir'
       );
       afirmar(!document.querySelector('.tabla-codigos'), 'la tabla todavía no está: ninguna letra tiene código aún');
+      // Las reducciones se cuentan a medida que se hacen, como en el panel
+      // del cálculo, y no el total desde el principio (2026-10-14).
+      const reduccionesAhora = document.querySelectorAll('.metrica__valor')[1].textContent;
+      const enElPanel = [...document.querySelectorAll('.calculo__linea')]
+        .filter((linea) => linea.textContent.trim().startsWith('Reducción')).length;
+      afirmar(
+        enElPanel < 5 && reduccionesAhora === String(enElPanel),
+        `a media construcción la métrica cuenta las reducciones del panel (métrica ${reduccionesAhora}, panel ${enElPanel})`
+      );
 
       // Ir y volver por la traza no reescribe la historia: cada paso se
       // apunta una vez, la primera que se llega a él (2026-09-30: al

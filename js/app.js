@@ -750,7 +750,13 @@
         {
           id: 'reducciones',
           etiqueta: 'Reducciones',
-          valor: ({ paso }) => (paso && paso.total ? String(Math.max(hojasDelPaso(paso) - 1, 0)) : '0')
+          // Las hechas hasta el paso, contadas como las cuenta el panel del
+          // cálculo (revisión de diseño, 2026-10-14): antes mostraba desde el
+          // principio el total que hará falta —«5» mientras el panel iba por
+          // la reducción 2—. Al terminar coinciden: letras distintas − 1.
+          valor: ({ paso }) => String(paso && paso.calculo
+            ? paso.calculo.filter((linea) => linea.etiqueta.startsWith('Reducción')).length
+            : 0)
         },
         {
           // La conclusión del tema: cuántos bits cuesta en promedio una letra.
