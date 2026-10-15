@@ -167,8 +167,10 @@
       expansion: 'advertencia',
       reduccion: 'info',
       // El árbol de Huffman terminado —con su longitud media— es la noticia
-      // del tema; las uniones de en medio son el trámite y no avisan.
-      construido: 'info'
+      // del tema; las uniones de en medio son el trámite y no avisan. En
+      // verde, como una búsqueda que encontró (2026-10-14): lleva el mismo ✓,
+      // y en gris se leía como otra clase de resultado. Índices también.
+      construido: 'exito'
     });
     const RESULTADOS_QUE_QUEDAN = new Set(['encontrada', 'no-encontrada', 'construido', 'rechazada', 'saturada']);
 
