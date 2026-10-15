@@ -283,10 +283,16 @@
       'retirar-cubeta': (efecto) => (efecto.posicion === undefined
         ? dominio.estructura.retirarDe(estado.estructura, efecto.casilla)
         : dominio.estructura.retirarDeAnidado(estado.estructura, efecto.casilla, efecto.posicion)),
+      // La fila «Col» de cada cubeta (CLAUDE.md 5.7): donde se guarda la
+      // clave que chocó con una cubeta llena, hasta que la densidad expanda.
+      'colocar-col': (efecto) => dominio.estructura.colocarEnCol(estado.estructura, efecto.casilla, efecto.clave),
+      'retirar-col': (efecto) => dominio.estructura.retirarDeCol(estado.estructura, efecto.casilla, efecto.col),
+      'subir-de-col': (efecto) => dominio.estructura.subirDeCol(estado.estructura, efecto.casilla, efecto.posicion),
       redimensionar: (efecto) => {
         estado.estructura.n = efecto.n;
         estado.estructura.claves = new Array(efecto.n);
         estado.estructura.anidados = new Array(efecto.n);
+        estado.estructura.desbordes = new Array(efecto.n);
         estado.estructura.ordenLlegada = [];
         return { exito: true };
       },
@@ -313,6 +319,7 @@
       return {
         claves: estado.estructura.claves.slice(),
         anidados: (estado.estructura.anidados || []).map((anidado) => (anidado ? anidado.slice() : anidado)),
+        desbordes: (estado.estructura.desbordes || []).map((col) => (col ? col.slice() : col)),
         n: estado.estructura.n,
         ordenLlegada: (estado.estructura.ordenLlegada || []).slice()
       };
@@ -328,6 +335,9 @@
       // Solo lo usan las otras búsquedas dinámicas (CLAUDE.md 5.x), donde `n`
       // puede cambiar dentro de la misma operación: sin restaurarlo, retroceder
       // antes de una expansión a medio reproducir dejaría el `n` ya crecido.
+      if (base.desbordes) {
+        estado.estructura.desbordes = base.desbordes.map((col) => (col ? col.slice() : col));
+      }
       if (base.n !== undefined) estado.estructura.n = base.n;
       if (base.ordenLlegada) {
         estado.estructura.ordenLlegada = base.ordenLlegada.slice();

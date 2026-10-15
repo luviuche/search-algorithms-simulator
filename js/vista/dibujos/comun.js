@@ -38,7 +38,7 @@
     // la cubeta—, así que se dibuja una columna de etiquetas a la izquierda,
     // alineada con el mismo `--espacio-1` que separa los renglones dentro de
     // cada cubeta.
-    function crearEtiquetasRenglones(segmentosDelAnidado, hayRechazada) {
+    function crearEtiquetasRenglones(segmentosDelAnidado, renglonesCol = 0) {
       const columna = document.createElement('div');
       columna.className = 'columna-casilla columna-etiquetas';
 
@@ -68,10 +68,13 @@
       // La fila de la clave rechazada no es un renglón más de la cubeta: es
       // donde espera lo que no cupo, y por eso se rotula «Col» y no con un
       // número (así lo escribe el docente en el taller, CLAUDE.md 5.7).
-      if (hayRechazada) {
+      // Con varias claves en Col, solo el primer renglón lleva el rótulo: los
+      // de abajo son más de lo mismo.
+      for (let k = 0; k < renglonesCol; k++) {
         const etiqueta = document.createElement('span');
         etiqueta.className = 'renglon__marca renglon__marca--col';
-        etiqueta.textContent = 'Col';
+        etiqueta.textContent = k === 0 ? 'Col' : '\u00a0';
+        if (k === 0) etiqueta.classList.add('en-col--primera');
         columna.appendChild(etiqueta);
       }
       return columna;

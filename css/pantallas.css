@@ -580,6 +580,15 @@ form.panel > .pantalla-tema__reproduccion {
   border-right: 1px dashed var(--borde-fuerte);
 }
 
+/* El tramo de la matriz de cubetas baja por todos los renglones: su alto lo
+   pone la vista, que sabe cuántos son. El conteo va arriba, a la altura del
+   primer renglón, donde se lee junto a las claves. */
+.tramo-elidido--cubetas {
+  align-items: flex-start;
+  padding-top: calc((var(--alto-casilla) - 1em) / 2);
+  box-sizing: border-box;
+}
+
 /* El tramo de las vacías del final de una estructura ordenada se dibuja como
    ellas, punteado y con su relleno (opción 2 + 4, 2026-10-09): así no se
    confunde con un tramo que esconde claves. */
@@ -630,6 +639,14 @@ form.panel > .pantalla-tema__reproduccion {
 .renglon__marca--col {
   font-size: 11px;
   color: var(--estado-colision-borde);
+}
+
+/* La fila «Col» se separa un poco de los renglones de la cubeta: guarda lo
+   que no cupo en ellos, y pegada a ellos se leía como un renglón más
+   (2026-10-14). Lo llevan su rótulo y la primera celda de cada columna, para
+   que la fila siga a una sola altura. */
+.en-col--primera {
+  margin-top: var(--espacio-3);
 }
 
 /* El hueco que deja la fila «Col» bajo las cubetas que no rechazaron nada:

@@ -2224,6 +2224,62 @@
         `la densidad cuenta la clave que espera: 8/9 = 88,9 % (reporta ${metricas()[3]})`
       );
 
+      // **Col guarda, no expande** (corrección del usuario, 2026-10-14): con
+      // un umbral que no se alcanza, la 8 y la 10 chocan con la cubeta 0
+      // llena y se quedan en su Col, a la vista al terminar la operación.
+      vaciar();
+      enviar(formularios[0], {
+        n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 99, umbralReducir: 1
+      });
+      for (const clave of [2, 4, 6, 8, 10]) {
+        operar(formularios, 'insertar', clave);
+        agotarTraza(30);
+      }
+      const enCol = () => [...document.querySelectorAll('.columna-casilla')]
+        .flatMap((columna) => [...columna.children].filter((el) => el.classList.contains('casilla')).slice(3))
+        .map((el) => el.textContent);
+      afirmar(metricas()[2] === '2', `una cubeta llena no expande sin la densidad (n = ${metricas()[2]})`);
+      afirmar(
+        enCol().join(',') === '8,10',
+        `Col guarda las dos claves que chocaron y se ven al terminar (reporta ${enCol().join(',') || 'nada'})`
+      );
+      operar(formularios, 'buscar', 10);
+      agotarTraza(30);
+      afirmar(
+        document.querySelector('.alerta').textContent.includes('Col de la cubeta 0'),
+        'buscar llega a Col cuando la cubeta está llena'
+      );
+      operar(formularios, 'eliminar', 4);
+      agotarTraza(30);
+      afirmar(
+        enCol().join(',') === '10',
+        `al quedar un renglón libre, la primera de Col sube a la cubeta (Col: ${enCol().join(',') || 'nada'})`
+      );
+
+      // La elisión de la matriz (2026-10-14): el tramo es una columna más,
+      // del primer renglón al último, y no una cajita montada entre la
+      // numeración y el primer renglón.
+      vaciar();
+      enviar(formularios[0], {
+        n: 32, r: 3, modoExpansion: 'total', umbralExpandir: 99, umbralReducir: 1
+      });
+      for (const clave of [5, 37, 12]) {
+        operar(formularios, 'insertar', clave);
+        agotarTraza(30);
+      }
+      document.getAnimations().forEach((animacion) => animacion.finish());
+      const tramo = document.querySelector('.tramo-elidido--cubetas');
+      const vecina = tramo && tramo.closest('.columna-casilla').nextElementSibling;
+      const renglonesVecina = vecina ? [...vecina.querySelectorAll('.casilla')] : [];
+      const cajaTramo = tramo ? tramo.getBoundingClientRect() : null;
+      const arriba = renglonesVecina.length ? renglonesVecina[0].getBoundingClientRect().top : NaN;
+      const abajo = renglonesVecina.length ? renglonesVecina[renglonesVecina.length - 1].getBoundingClientRect().bottom : NaN;
+      registro.push(cajaTramo ? `  tramo de ${Math.round(cajaTramo.top)} a ${Math.round(cajaTramo.bottom)}; renglones de ${Math.round(arriba)} a ${Math.round(abajo)}` : '  sin tramo');
+      afirmar(
+        !!cajaTramo && Math.abs(cajaTramo.top - arriba) <= 1 && Math.abs(cajaTramo.bottom - abajo) <= 1,
+        'el tramo elidido de la matriz baja del primer renglón al último'
+      );
+
       document.querySelector('.pantalla-tema__volver').click();
     }
 

@@ -47,6 +47,11 @@
         // declaran siempre para que dibujar y contar no dependan de qué
         // tratamiento se eligió, igual que `claves`.
         anidados: modo === MODOS.DISPERSA ? new Array(n) : [],
+        // La fila «Col» de cada cubeta en otras búsquedas dinámicas (CLAUDE.md
+        // 5.7): las claves que chocaron con una cubeta llena esperan aquí,
+        // guardadas, hasta que la densidad pida expandir. Una lista por
+        // dirección, sin tope. Los demás temas no la usan y queda vacía.
+        desbordes: modo === MODOS.DISPERSA ? new Array(n) : [],
         // En qué orden llegaron las claves, para poder rehacer la estructura.
         ordenLlegada: [],
         // Cuánto cabe en la estructura secundaria de cada dirección. Cero es
@@ -109,6 +114,7 @@
       if (!anidado) continue;
       for (const clave of anidado) if (clave !== undefined) total++;
     }
+    for (const col of estructura.desbordes || []) if (col) total += col.length;
     return total;
   }
 
@@ -157,6 +163,10 @@
     const anidados = estructura.anidados || [];
     for (let i = 0; i < anidados.length; i++) {
       if (anidados[i] && anidados[i].indexOf(valor) !== -1) return i + 1;
+    }
+    const desbordes = estructura.desbordes || [];
+    for (let i = 0; i < desbordes.length; i++) {
+      if (desbordes[i] && desbordes[i].indexOf(valor) !== -1) return i + 1;
     }
     return 0;
   }
@@ -259,6 +269,48 @@
     return { exito: true, indice, posicion, valor };
   }
 
+  // La fila «Col» de una cubeta (CLAUDE.md 5.7): la clave que chocó con una
+  // cubeta llena se guarda al final de su lista, y al salir la lista se cierra
+  // sola —no tiene renglones fijos que conservar—.
+  function colDe(estructura, indice) {
+    return (estructura.desbordes && estructura.desbordes[indice - 1]) || [];
+  }
+
+  function colocarEnCol(estructura, indice, valor) {
+    if (!estructura.desbordes) estructura.desbordes = new Array(estructura.n);
+    if (!estructura.desbordes[indice - 1]) estructura.desbordes[indice - 1] = [];
+    estructura.desbordes[indice - 1].push(valor);
+    anotarLlegada(estructura, valor);
+    return { exito: true, indice, col: estructura.desbordes[indice - 1].length };
+  }
+
+  function retirarDeCol(estructura, indice, col) {
+    const lista = colDe(estructura, indice);
+    const valor = lista[col - 1];
+    if (valor === undefined) {
+      return { exito: false, mensaje: `Casilla vacía: el lugar ${col} de Col de ${indice} no contiene ninguna clave.` };
+    }
+    lista.splice(col - 1, 1);
+    olvidarLlegada(estructura, valor);
+    return { exito: true, indice, col, valor };
+  }
+
+  // Cuando una cubeta con claves en Col pierde una de las suyas, la primera
+  // de Col sube al renglón libre: si no, la búsqueda se detendría en el hueco
+  // y no llegaría a Col. No cambia el orden de llegada: la clave es la misma.
+  function subirDeCol(estructura, indice, posicion) {
+    const lista = colDe(estructura, indice);
+    if (lista.length === 0) return { exito: true, indice };
+    const valor = lista.shift();
+    if (posicion === undefined) {
+      estructura.claves[indice - 1] = valor;
+    } else {
+      if (!estructura.anidados[indice - 1]) estructura.anidados[indice - 1] = [];
+      estructura.anidados[indice - 1][posicion - 1] = valor;
+    }
+    return { exito: true, indice, posicion, valor };
+  }
+
   // Cierra los huecos del arreglo anidado y, si la casilla de la dirección
   // quedó vacía, sube a ella la primera clave del anidado.
   //
@@ -291,6 +343,10 @@
     colocarEnAnidado,
     retirarDeAnidado,
     compactarAnidado,
+    colDe,
+    colocarEnCol,
+    retirarDeCol,
+    subirDeCol,
     anidadoDe,
     cantidadClaves,
     capacidad,

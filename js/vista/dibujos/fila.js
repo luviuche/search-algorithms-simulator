@@ -1,5 +1,6 @@
 (function () {
   const vista = window.CC2.vista;
+  const dominio = window.CC2.dominio;
 
   // La vista de una sola estructura (CLAUDE.md 6.1 y 6.2): una fila
   // horizontal, o la tabla vertical de los temas hash con sus arreglos
@@ -52,12 +53,17 @@
         dom.estructuraEl.innerHTML = '';
         // Una sola columna de etiquetas para toda la matriz, no una por
         // cubeta: los renglones son los mismos en todas (CLAUDE.md 5.7).
-        // La clave que chocó vive en el paso, no en la estructura: no está
-        // colocada en ningún sitio, está esperando a que la expansión le haga
-        // hueco. Por eso se dibuja desde aquí y no desde `claves`.
-        const rechazada = (paso && paso.rechazada) || null;
+        // La fila «Col» (CLAUDE.md 5.7): las claves que chocaron con una
+        // cubeta llena, guardadas en la estructura hasta que la densidad
+        // expanda. Tiene tantos renglones como la cubeta que más guarda, para
+        // que cada renglón de Col quede a una sola altura en toda la matriz.
+        const renglonesCol = esMatrizHorizontal
+          // `Array.from` y no `map`: las cubetas sin Col son huecos del arreglo,
+          // y `map` los conserva, que en `Math.max` dan `NaN`.
+          ? Math.max(0, ...Array.from(estado.estructura.desbordes || [], (col) => (col ? col.length : 0)))
+          : 0;
         if (esMatrizHorizontal) {
-          dom.estructuraEl.appendChild(crearEtiquetasRenglones(columnasDelAnidado, !!rechazada));
+          dom.estructuraEl.appendChild(crearEtiquetasRenglones(columnasDelAnidado, renglonesCol));
         }
 
         for (const segmento of segmentos) {
@@ -80,6 +86,21 @@
             // —cada una mide lo suyo—, así que va solo en la primera columna.
             if (vertical) tramoEl.style.gridColumn = cruzaLaMatriz ? '2 / -1' : '2';
             if (cruzaLaMatriz) tramoEl.classList.add('tramo-elidido--matriz');
+            // En la matriz horizontal de cubetas, el tramo es una columna más:
+            // deja el sitio del número de arriba y baja por todos los
+            // renglones, dibujado como las cubetas vacías que resume (revisión
+            // con el usuario, 2026-10-14). Antes medía 40 px fijos y quedaba
+            // como una cajita montada entre la numeración y el primer renglón.
+            if (esMatrizHorizontal) {
+              const lugarDelNumero = document.createElement('span');
+              lugarDelNumero.className = 'escala__marca';
+              lugarDelNumero.textContent = '\u00a0';
+              lugarDelNumero.setAttribute('aria-hidden', 'true');
+              grupo.appendChild(lugarDelNumero);
+              const renglones = 1 + columnasDelAnidado.length;
+              tramoEl.classList.add('tramo-elidido--vacias', 'tramo-elidido--cubetas');
+              tramoEl.style.height = `calc(${renglones} * var(--alto-casilla) + ${renglones - 1} * var(--espacio-1))`;
+            }
             grupo.appendChild(tramoEl);
             dom.estructuraEl.appendChild(grupo);
             continue;
@@ -145,25 +166,30 @@
           // los secundarios debajo —`.columna-casilla` ya es un flex en
           // columna, así que apilarlos basta, sin pistas de grid—. Horizontal
           // sin matriz (secuencial, binaria) sigue con la marca al pie.
-          // Bajo la cubeta que la rechazó va la clave que no cupo; bajo las
-          // demás, un hueco del mismo alto, para que la fila «Col» quede a una
-          // sola altura y la escala siga rotulando lo que rotula.
+          // Bajo cada cubeta, lo que guarda en Col; donde no hay nada, un hueco
+          // del mismo alto, para que cada renglón de Col quede a una sola
+          // altura y la escala siga rotulando lo que rotula.
           const filaCol = [];
-          if (rechazada) {
-            const esLaSuya = rechazada.casilla === indice;
-            const celda = esLaSuya
-              ? vista.componentes.casilla.crearCasilla({
-                clave: rechazada.clave,
-                indice: `col-${indice}`,
-                estado: 'colision',
-                modificadores: ['anidada']
-              })
-              : document.createElement('span');
-            if (!esLaSuya) {
-              celda.className = 'casilla-hueca';
-              celda.setAttribute('aria-hidden', 'true');
+          const col = dominio.estructura.colDe(estado.estructura, indice);
+          for (let k = 1; k <= renglonesCol; k++) {
+            if (col[k - 1] === undefined) {
+              const hueco = document.createElement('span');
+              hueco.className = 'casilla-hueca';
+              if (k === 1) hueco.classList.add('en-col--primera');
+              hueco.setAttribute('aria-hidden', 'true');
+              filaCol.push(hueco);
+              continue;
             }
-            filaCol.push(celda);
+            const descripcion = config.describirCasilla({ paso, indice, col: k, ocupada: true });
+            filaCol.push(vista.componentes.casilla.crearCasilla({
+              clave: col[k - 1],
+              // La identidad es la clave y no el lugar: al subir de Col a la
+              // cubeta, el FLIP la sigue hasta su renglón nuevo.
+              indice: `col-${col[k - 1]}`,
+              estado: descripcion.estado,
+              modificadores: ['anidada'].concat(descripcion.modificadores || [])
+            }));
+            if (k === 1) filaCol[filaCol.length - 1].classList.add('en-col--primera');
           }
 
           grupo.append(...(vertical || esMatrizHorizontal

@@ -1097,12 +1097,25 @@
       // (CLAUDE.md 5.7). Es el único tema donde eso pasa, así que se dice.
       mensajeReinicio: (estructura) => `Estructura vaciada: sin claves, y n vuelve a ${estructura.n}.`,
       casillasRelevantes: (paso) => (paso.casilla ? [paso.casilla] : []),
-      describirCasilla: ({ paso, indice, posicion, ocupada }) => {
+      describirCasilla: ({ paso, indice, posicion, col, ocupada }) => {
         const base = ocupada ? 'ocupada' : 'vacia';
         if (!paso) return { estado: base };
 
         const modificadores = [];
-        if (paso.casilla === indice && paso.posicion === posicion) {
+        // Una clave guardada en Col (CLAUDE.md 5.7): la pinta el paso que la
+        // dejó ahí, la mira, la halla o la saca; en reposo es una ocupada más.
+        if (col !== undefined) {
+          if (paso.casilla !== indice || paso.col !== col) return { estado: base, modificadores };
+          if (paso.tipo === TIPOS_PASO.COLISION) return { estado: 'colision', modificadores };
+          if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada', modificadores };
+          if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada', modificadores };
+          return { estado: 'en-evaluacion', modificadores };
+        }
+        // Mientras se revisa Col, los renglones de su cubeta ya se pasaron.
+        if (paso.col !== undefined && paso.casilla === indice && paso.tipo === TIPOS_PASO.COMPARACION) {
+          return { estado: ocupada ? 'descartada' : base, modificadores };
+        }
+        if (paso.casilla === indice && paso.posicion === posicion && paso.col === undefined) {
           if (paso.tipo === TIPOS_PASO.ENCONTRADA) return { estado: 'encontrada', modificadores };
           if (paso.tipo === TIPOS_PASO.INSERCION) return { estado: 'insertada', modificadores };
           if (paso.tipo === TIPOS_PASO.ELIMINACION) return { estado: 'eliminada', modificadores };
@@ -1147,9 +1160,9 @@
           // recolocar: desde el anuncio se lee la densidad del n nuevo.
           valor: ({ estructura, paso, operacion }) => {
             if (!estructura) return '0,0\u00a0%';
-            const pendientes = paso && paso.pendientes !== undefined
-              ? paso.pendientes
-              : (paso && paso.rechazada ? 1 : 0);
+            // La clave que choca ya está guardada en Col y la cuenta la
+            // estructura; las que esperan a recolocarse, no.
+            const pendientes = paso && paso.pendientes !== undefined ? paso.pendientes : 0;
             const densidad = operacion === 'eliminar'
               ? dominio.cubetas.densidadReducir(estructura, pendientes)
               : dominio.cubetas.densidadExpandir(estructura, pendientes);

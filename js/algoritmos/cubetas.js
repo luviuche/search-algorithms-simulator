@@ -61,33 +61,35 @@
     return pasos;
   }
 
-  // Prueba a colocar cada clave de `orden` en una tabla de `n` cubetas de `r`
-  // renglones, sin tocar la estructura real —es una simulación de bolsillo,
-  // igual que la redispersión al eliminar en `hash/operaciones.js`—. Si
-  // alguna no cabe, informa el fracaso para que el llamador pruebe un `n`
-  // mayor: eso puede pasar si una expansión no alcanza a aliviar una cubeta
-  // muy cargada por mala suerte del módulo.
-  function intentarColocarTodo(orden, n, r) {
+  // Coloca cada clave de `orden`, en ese orden, en una tabla de `n` cubetas
+  // de `r` renglones, sin tocar la estructura real —es una simulación de
+  // bolsillo, igual que la redispersión al eliminar en `hash/operaciones.js`—.
+  // La que cae en una cubeta llena queda en su Col, como en una inserción
+  // cualquiera (pedido del usuario, 2026-10-14): `n` lo decide la densidad, no
+  // que todo quepa en los renglones.
+  function colocarTodo(orden, n, r) {
     const claves = new Array(n);
     const anidados = new Array(n).fill(null).map(() => []);
+    const desbordes = new Array(n).fill(null).map(() => []);
+    const sitio = new Map();
     for (const vivo of orden) {
       const direccion = (vivo % n) + 1;
       if (claves[direccion - 1] === undefined) {
         claves[direccion - 1] = vivo;
+        sitio.set(vivo, { direccion });
         continue;
       }
       const anidado = anidados[direccion - 1];
-      let colocada = false;
-      for (let posicion = 0; posicion < r - 1; posicion++) {
-        if (anidado[posicion] === undefined) {
-          anidado[posicion] = vivo;
-          colocada = true;
-          break;
-        }
+      const libre = [...Array(r - 1).keys()].find((posicion) => anidado[posicion] === undefined);
+      if (libre !== undefined) {
+        anidado[libre] = vivo;
+        sitio.set(vivo, { direccion, posicion: libre + 1 });
+        continue;
       }
-      if (!colocada) return { exito: false };
+      desbordes[direccion - 1].push(vivo);
+      sitio.set(vivo, { direccion, col: desbordes[direccion - 1].length });
     }
-    return { exito: true, claves, anidados };
+    return sitio;
   }
 
   // Recoloca cada clave de `orden`, en ese mismo orden, sobre una tabla que
@@ -97,12 +99,11 @@
   // una—, así que aquí no hay pasos de tipo `sondeo`.
   //
   // Cada paso lleva `pendientes`: las claves de `orden` que todavía no se
-  // recolocaron. La densidad del panel las suma, igual que a la clave
-  // rechazada, para que no se lea «0,0 %» mientras el anuncio dice que la
-  // estructura se reduce por un 100 %: la tabla está vacía, pero las claves
-  // siguen en el archivo.
-  function pasosDeReubicacion({ orden, n, r, contadores }) {
-    const simulacion = intentarColocarTodo(orden, n, r);
+  // recolocaron. La densidad del panel las suma, para que no se lea «0,0 %»
+  // mientras el anuncio dice que la estructura se reduce por un 100 %: la
+  // tabla está vacía, pero las claves siguen en el archivo.
+  function pasosDeReubicacion({ orden, n, contadores, r }) {
+    const sitios = colocarTodo(orden, n, r);
     const pasos = [];
     orden.forEach((vivo, indice) => {
       const { direccion, calculo } = calculoCubeta(vivo, n);
@@ -110,36 +111,34 @@
       for (const paso of pasosDelCalculoCubeta(calculo, direccion, contadores)) {
         pasos.push(Object.assign(paso, { pendientes }));
       }
-      const enPrincipal = simulacion.claves[direccion - 1] === vivo;
-      const posicion = enPrincipal ? undefined : simulacion.anidados[direccion - 1].indexOf(vivo) + 1;
-      const renglon = enPrincipal ? 1 : posicion + 1;
-
+      const { posicion, col } = sitios.get(vivo);
       contadores.accesos++;
-      pasos.push(crearPaso(TIPOS_PASO.INSERCION, {
+      const comun = {
         calculo,
         direccion,
         casilla: direccion,
-        posicion,
         clave: vivo,
-        efecto: { tipo: 'colocar-cubeta', casilla: direccion, posicion, clave: vivo },
         comparaciones: contadores.comparaciones,
         accesos: contadores.accesos,
-        pendientes: pendientes - 1,
+        pendientes: pendientes - 1
+      };
+      if (col !== undefined) {
+        pasos.push(crearPaso(TIPOS_PASO.COLISION, Object.assign(comun, {
+          col,
+          colision: direccion,
+          efecto: { tipo: 'colocar-col', casilla: direccion, clave: vivo },
+          mensaje: `La clave ${vivo} cae en la cubeta ${mostrar(direccion)}, que está llena: queda en Col.`
+        })));
+        return;
+      }
+      const renglon = posicion === undefined ? 1 : posicion + 1;
+      pasos.push(crearPaso(TIPOS_PASO.INSERCION, Object.assign(comun, {
+        posicion,
+        efecto: { tipo: 'colocar-cubeta', casilla: direccion, posicion, clave: vivo },
         mensaje: `La clave ${vivo} se recoloca en el renglón ${renglon} de la cubeta ${mostrar(direccion)}.`
-      }));
+      })));
     });
     return pasos;
-  }
-
-  // Expande o reduce, con reintento: si el `n` que tocaba según la serie
-  // elegida no alcanza a alojar todo (posible con mala suerte del módulo, no
-  // por diseño), se sigue creciendo por esa misma serie hasta que quepa.
-  function tamanoQueQuepaTodo(orden, n0, r, modo, nDesde) {
-    let n = nDesde;
-    while (!intentarColocarTodo(orden, n, r).exito) {
-      n = dominioCubetas.siguienteN(n, n0, modo);
-    }
-    return n;
   }
 
   function pasosDeCambioDeTamano({ tipoPaso, n, orden, r, contadores, mensajeAnuncio }) {
@@ -165,7 +164,6 @@
     });
 
     contadores.accesos++;
-    let huboColision = false;
 
     if (estructura.claves[direccion - 1] === undefined) {
       pasos.push(crearPaso(TIPOS_PASO.INSERCION, Object.assign(comun(), {
@@ -207,45 +205,44 @@
       }
 
       if (recorrido.agotado) {
-        huboColision = true;
+        // La clave que choca con una cubeta llena **se guarda en su Col** y
+        // ahí se queda, con las que choquen después, hasta que la densidad
+        // pida expandir (corrección del usuario, 2026-10-14; así lo hace el
+        // docente en el taller). Hasta entonces la colisión expandía por sí
+        // sola, y Col solo existía el instante entre chocar y recolocarse.
+        const col = estructuras.colDe(estructura, direccion).length + 1;
         pasos.push(crearPaso(TIPOS_PASO.COLISION, Object.assign(comun(), {
           casilla: direccion,
           colision: direccion,
+          col,
           recorridas: recorridas.slice(),
-          // La clave rechazada se queda a la vista, en la fila «Col» debajo de
-          // la cubeta que no la admitió, hasta que la expansión la recoloque
-          // (así la escribe el docente en el taller; CLAUDE.md 5.7). Viaja en
-          // el paso y no en la estructura: no está colocada en ningún sitio,
-          // está esperando.
-          rechazada: { clave, casilla: direccion },
-          mensaje: `Cubeta ${mostrar(direccion)} llena: sus ${r} renglones están ocupados y la clave ${clave} no entra todavía.`
+          clave,
+          efecto: { tipo: 'colocar-col', casilla: direccion, clave },
+          mensaje: `Cubeta ${mostrar(direccion)} llena: sus ${r} renglones están ocupados y la clave ${clave} queda en Col.`
         })));
       }
     }
 
     // Se revisa después de insertar (o de chocar), siempre: la clave que se
-    // acaba de procesar cuenta como intentada haya entrado o no —chocar es
-    // justo el caso donde no llegó a colocarse—, y una cubeta llena dispara
-    // la expansión por sí sola, aparte de la densidad.
+    // acaba de procesar cuenta haya entrado en la cubeta o haya quedado en
+    // Col. **Solo la densidad expande**: una cubeta llena manda la clave a Col,
+    // no a expandir.
     const intentos = estructuras.cantidadClaves(estructura) + 1;
     const densidad = intentos / (estructura.n * r);
-    if (densidad >= estructura.parametros.umbralExpandir || huboColision) {
+    if (densidad >= estructura.parametros.umbralExpandir) {
       const { n0, modoExpansion } = estructura.parametros;
       // `clave` no está todavía en `ordenLlegada` —el efecto que la coloca (o
       // el choque que la dejó afuera) sigue sin aplicarse—, así que se agrega
       // a mano para que la reubicación no la olvide, haya entrado o no.
       const orden = (estructura.ordenLlegada || []).concat([clave]);
-      const nPropuesto = dominioCubetas.siguienteN(estructura.n, n0, modoExpansion);
-      const nFinal = tamanoQueQuepaTodo(orden, n0, r, modoExpansion, nPropuesto);
+      const nFinal = dominioCubetas.siguienteN(estructura.n, n0, modoExpansion);
       pasos.push(...pasosDeCambioDeTamano({
         tipoPaso: TIPOS_PASO.EXPANSION,
         n: nFinal,
         orden,
         r,
         contadores,
-        mensajeAnuncio: huboColision
-          ? `Cubeta llena: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
-          : `Densidad de ocupación del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
+        mensajeAnuncio: `Densidad de ocupación del ${(densidad * 100).toFixed(1).replace('.', ',')} %: la estructura se expande de n = ${estructura.n} a n = ${nFinal}.`
       }));
     }
 
@@ -317,12 +314,36 @@
       }
     }
 
-    if (recorrido.agotado) {
-      pasos.push(crearPaso(TIPOS_PASO.NO_ENCONTRADA, Object.assign(comun(), {
+    if (!recorrido.agotado) return pasos;
+
+    // Cubeta llena y ninguna coincide: si guarda claves en Col, se siguen
+    // revisando ahí, en el orden en que llegaron (pedido del usuario,
+    // 2026-10-14). Col solo tiene claves cuando la cubeta está llena, así que
+    // un renglón vacío ya prueba que la clave no está.
+    const col = estructuras.colDe(estructura, direccion);
+    for (let k = 0; k < col.length; k++) {
+      contadores.accesos++;
+      contadores.comparaciones++;
+      if (col[k] === objetivo) {
+        pasos.push(crearPaso(TIPOS_PASO.ENCONTRADA, Object.assign(comun(), {
+          casilla: direccion,
+          col: k + 1,
+          mensaje: `Clave localizada en Col de la cubeta ${mostrar(direccion)} tras ${contadores.comparaciones} comparaciones.`
+        })));
+        return pasos;
+      }
+      pasos.push(crearPaso(TIPOS_PASO.COMPARACION, Object.assign(comun(), {
         casilla: direccion,
-        mensaje: `Clave no localizada en la estructura tras ${contadores.comparaciones} comparaciones: la cubeta ${mostrar(direccion)} está llena y ninguna coincide.`
+        col: k + 1,
+        mensaje: `Col de la cubeta ${mostrar(direccion)}: ${objetivo} no coincide con ${col[k]}; se revisa ${k + 1 < col.length ? 'la siguiente' : 'si queda alguna'}.`
       })));
     }
+    pasos.push(crearPaso(TIPOS_PASO.NO_ENCONTRADA, Object.assign(comun(), {
+      casilla: direccion,
+      mensaje: col.length > 0
+        ? `Clave no localizada en la estructura tras ${contadores.comparaciones} comparaciones: ni la cubeta ${mostrar(direccion)} ni su Col la tienen.`
+        : `Clave no localizada en la estructura tras ${contadores.comparaciones} comparaciones: la cubeta ${mostrar(direccion)} está llena y ninguna coincide.`
+    })));
     return pasos;
   }
 
@@ -336,6 +357,23 @@
     const posicion = hallazgo.posicion;
     const r = estructura.parametros.r;
     const anidado = estructura.anidados[casilla - 1] || [];
+    const col = estructuras.colDe(estructura, casilla);
+
+    if (hallazgo.col !== undefined) {
+      pasos.push(crearPaso(TIPOS_PASO.ELIMINACION, {
+        calculo: hallazgo.calculo,
+        direccion: hallazgo.direccion,
+        casilla,
+        col: hallazgo.col,
+        clave,
+        efecto: { tipo: 'retirar-col', casilla, col: hallazgo.col },
+        comparaciones: contadores.comparaciones,
+        accesos: contadores.accesos,
+        mensaje: `Clave ${clave} eliminada de Col de la cubeta ${mostrar(casilla)}.`
+      }));
+      pasos.push(...pasosDeReduccion({ estructura, clave, contadores, r }));
+      return pasos;
+    }
     // Solo hay algo que cerrar si queda una clave detrás de la que sale.
     const hayQueCerrar = posicion === undefined
       ? anidado.some((entrada) => entrada !== undefined)
@@ -368,8 +406,32 @@
       }));
     }
 
-    // Se revisa después de eliminar, con la clave ya fuera: la densidad de
-    // reducir compara contra `n`, no contra la capacidad (CLAUDE.md 5.x).
+    // La cubeta estaba llena —por eso tiene claves en Col— y le quedó un
+    // renglón libre, el último: la primera de Col sube a él. Sin esto la
+    // búsqueda se detendría en el hueco y no llegaría a Col.
+    if (col.length > 0) {
+      const ultimo = r - 1;
+      pasos.push(crearPaso(TIPOS_PASO.DESPLAZAMIENTO, {
+        calculo: hallazgo.calculo,
+        direccion: hallazgo.direccion,
+        casilla,
+        posicion: ultimo === 0 ? undefined : ultimo,
+        clave: col[0],
+        efecto: { tipo: 'subir-de-col', casilla, posicion: ultimo === 0 ? undefined : ultimo },
+        comparaciones: contadores.comparaciones,
+        accesos: contadores.accesos,
+        mensaje: `La clave ${col[0]} sube de Col al renglón ${r} de la cubeta ${mostrar(casilla)}.`
+      }));
+    }
+
+    pasos.push(...pasosDeReduccion({ estructura, clave, contadores, r }));
+    return pasos;
+  }
+
+  // Se revisa después de eliminar, con la clave ya fuera: la densidad de
+  // reducir compara contra `n`, no contra la capacidad (CLAUDE.md 5.x).
+  function pasosDeReduccion({ estructura, clave, contadores, r }) {
+    const pasos = [];
     const restantes = estructuras.cantidadClaves(estructura) - 1;
     const densidad = restantes / estructura.n;
     if (densidad < estructura.parametros.umbralReducir) {

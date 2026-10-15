@@ -20,10 +20,14 @@ const APLICADORES = {
     else estructuras.retirarDeAnidado(estructura, efecto.casilla, efecto.posicion);
   },
   'compactar-anidado': (estructura, efecto) => estructuras.compactarAnidado(estructura, efecto.casilla),
+  'colocar-col': (estructura, efecto) => estructuras.colocarEnCol(estructura, efecto.casilla, efecto.clave),
+  'retirar-col': (estructura, efecto) => estructuras.retirarDeCol(estructura, efecto.casilla, efecto.col),
+  'subir-de-col': (estructura, efecto) => estructuras.subirDeCol(estructura, efecto.casilla, efecto.posicion),
   redimensionar: (estructura, efecto) => {
     estructura.n = efecto.n;
     estructura.claves = new Array(efecto.n);
     estructura.anidados = new Array(efecto.n);
+    estructura.desbordes = new Array(efecto.n);
     estructura.ordenLlegada = [];
   }
 };
@@ -132,12 +136,71 @@ test('expansión parcial: n recorre 2, 3, 4, 6 y 8 igual que en el taller', () =
   assert.equal(retrato(estructura), RETRATO_FINAL_17);
 });
 
-test('una cubeta llena dispara la expansión aunque la densidad no la pida', () => {
-  const estructura = crear({ n: 2, r: 3, modoExpansion: 'parcial', umbralExpandir: 0.99 });
-  for (const clave of CLAVES.slice(0, 8)) aplicar(estructura, cubetasAlg.insertar({ estructura, clave }));
-  // Con un umbral casi imposible de alcanzar, lo único que puede haber
-  // disparado la expansión hasta n = 4 es la colisión de la 8ª clave (81).
+// Una cubeta llena no expande: la clave queda en su Col y ahí se guarda,
+// con las que choquen después, hasta que la densidad pida expandir
+// (corrección del usuario, 2026-10-14; CLAUDE.md 5.7).
+test('una cubeta llena guarda la clave en Col y no expande si la densidad no lo pide', () => {
+  const estructura = crear({ n: 2, r: 3, modoExpansion: 'total' });
+  insertarTodas(estructura, [2, 4, 6, 8]);
+  assert.equal(estructura.n, 2, '4/6 = 66,7 % no llega al 82 %');
+  assert.deepEqual(estructuras.colDe(estructura, 1), [8]);
+  assert.equal(estructuras.cantidadClaves(estructura), 4, 'la clave en Col cuenta');
+
+  // La siguiente sí la lleva al 82 %: 5/6 = 83,3 %. Ahí expande, y la 8 sale
+  // de Col a su cubeta nueva.
+  insertarTodas(estructura, [10]);
   assert.equal(estructura.n, 4);
+  assert.deepEqual(estructuras.colDe(estructura, 1), []);
+});
+
+test('Col guarda varias claves de la misma cubeta, en el orden en que llegan', () => {
+  const estructura = crear({ n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 0.99 });
+  insertarTodas(estructura, [2, 4, 6, 8, 10]);
+  assert.equal(estructura.n, 2);
+  assert.deepEqual(estructuras.colDe(estructura, 1), [8, 10]);
+});
+
+test('al expandir, las claves de Col se recolocan con las demás en su orden de llegada', () => {
+  const estructura = crear({ n: 2, r: 3, modoExpansion: 'total' });
+  insertarTodas(estructura, [2, 4, 6, 8, 1]);
+  // 5/6 = 83,3 %: expande a n = 4 y la 8 sale de Col.
+  assert.equal(estructura.n, 4);
+  assert.deepEqual(estructuras.colDe(estructura, 1), []);
+  assert.equal(retrato(estructura), '1:4,8 2:1 3:2,6');
+});
+
+test('al recolocar, la que vuelve a caer en una cubeta llena queda otra vez en Col', () => {
+  const estructura = crear({ n: 2, r: 2, modoExpansion: 'total', umbralExpandir: 0.8 });
+  // Todas múltiplos de 4: con n = 4 siguen cayendo en la cubeta 0.
+  insertarTodas(estructura, [4, 8, 12, 1]);
+  assert.equal(estructura.n, 4, '4/4 = 100 % expande a n = 4');
+  assert.deepEqual(estructuras.colDe(estructura, 1), [12]);
+});
+
+test('buscar sigue por Col cuando la cubeta está llena', () => {
+  const estructura = crear({ n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 0.99 });
+  insertarTodas(estructura, [2, 4, 6, 8, 10]);
+  const hallada = cubetasAlg.buscar({ estructura, objetivo: 10 });
+  const fin = hallada[hallada.length - 1];
+  assert.equal(fin.tipo, 'encontrada');
+  assert.equal(fin.col, 2);
+  assert.equal(fin.comparaciones, 5, 'tres renglones y dos de Col');
+
+  const ausente = cubetasAlg.buscar({ estructura, objetivo: 12 });
+  assert.equal(ausente[ausente.length - 1].tipo, 'no-encontrada');
+});
+
+test('eliminar de Col la saca de la lista; eliminar de la cubeta sube la primera de Col', () => {
+  const estructura = crear({ n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 0.99, umbralReducir: 0.1 });
+  insertarTodas(estructura, [2, 4, 6, 8, 10]);
+  eliminarTodas(estructura, [8]);
+  assert.deepEqual(estructuras.colDe(estructura, 1), [10]);
+
+  eliminarTodas(estructura, [4]);
+  assert.deepEqual(estructuras.colDe(estructura, 1), []);
+  assert.equal(retrato(estructura), '1:2,6,10');
+  const hallada = cubetasAlg.buscar({ estructura, objetivo: 10 });
+  assert.equal(hallada[hallada.length - 1].tipo, 'encontrada', 'la que subió se sigue encontrando');
 });
 
 test('reducción total: n vuelve a la mitad y compacta cada cubeta', () => {
@@ -171,21 +234,19 @@ test('buscar recorre la cubeta secuencialmente tras calcular la dirección', () 
   assert.equal(ausente[ausente.length - 1].tipo, 'no-encontrada');
 });
 
-// La clave que chocó espera en la fila «Col» y cuenta para la densidad: en ese
+// La clave que chocó queda en la fila «Col» y cuenta para la densidad: en ese
 // instante el taller escribe D.O. = 8/9 = 88,89 %, no 7/9 (CLAUDE.md 5.7).
-test('la clave rechazada viaja en el paso y cuenta para la densidad', () => {
+test('la clave que choca queda en Col y cuenta para la densidad', () => {
   const estructura = crear({ n: 2, r: 3, modoExpansion: 'parcial' });
   insertarTodas(estructura, [115, 96, 48, 79, 35, 26, 57]);
   assert.equal(estructura.n, 3);
   assert.equal(cubetasDom.densidadExpandir(estructura).toFixed(4), (7 / 9).toFixed(4));
 
   const pasos = cubetasAlg.insertar({ estructura, clave: 81 });
-  const choque = pasos.find((paso) => paso.tipo === 'colision');
-  assert.deepEqual(choque.rechazada, { clave: 81, casilla: 1 });
-  assert.equal(
-    (cubetasDom.densidadExpandir(estructura, 1) * 100).toFixed(2),
-    '88.89'
-  );
+  const choque = pasos.findIndex((paso) => paso.tipo === 'colision');
+  assert.deepEqual(pasos[choque].efecto, { tipo: 'colocar-col', casilla: 1, clave: 81 });
+  aplicar(estructura, pasos.slice(0, choque + 1));
+  assert.equal((cubetasDom.densidadExpandir(estructura) * 100).toFixed(2), '88.89');
 });
 
 // Guardar una tabla expandida y volver a abrirla (CLAUDE.md 10): el archivo
