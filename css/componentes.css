@@ -143,6 +143,28 @@ form input[type="checkbox"] {
   width: auto;
 }
 
+/* Las listas desplegables con la misma caja que los campos de texto
+   (revisión de diseño, 2026-10-14): con el aspecto del sistema medían 20 px,
+   sin relleno y en otra letra, al lado de campos de 36. `appearance: none`
+   le quita la flecha del sistema, así que se dibuja una con dos degradados
+   en el color del borde. */
+.panel select,
+form select {
+  appearance: none;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-control);
+  background-color: var(--superficie);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--tinta-suave) 50%),
+    linear-gradient(135deg, var(--tinta-suave) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding: var(--espacio-2) calc(var(--espacio-2) + 20px) var(--espacio-2) var(--espacio-2);
+  font-weight: 400;
+  cursor: pointer;
+}
+
 /* `hidden` tiene que ganarle al `display` propio: sin esto, `form.panel
    { display: flex }` deja a la vista la configuración plegada y
    `.panel__resumen { display: flex }` el resumen que todavía no toca
