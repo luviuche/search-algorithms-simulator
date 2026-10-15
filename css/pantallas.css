@@ -264,6 +264,10 @@
 .indice__tema-descripcion {
   min-width: 0;
   text-align: right;
+  /* Cuando no cabe en un renglón, se parte parejo (revisión de diseño,
+     2026-10-14): dejaba una palabra sola abajo —«bloque por / bloque»,
+     «reducción / dinámica de n»—. */
+  text-wrap: balance;
 }
 
 /* Lo que un tema sin construir tiene al otro lado de la guía. Va en la
