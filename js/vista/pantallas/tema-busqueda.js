@@ -120,6 +120,13 @@
       reservarAltoDelAviso({ desdeCero: true });
     }
 
+    // Quita el aviso al terminar una operación sin soltar el alto que le
+    // guardaba el lienzo: si lo soltara, la estructura subiría de golpe justo
+    // cuando la última clave termina de entrar.
+    function retirarAviso() {
+      dom.alertas.innerHTML = '';
+    }
+
     // **El aviso flota, pero la fila de arriba del lienzo le guarda su alto**
     // (2026-10-07). Mientras fue una noticia de un renglón a 13 px cabía en
     // los 20 px de esa fila; narrando cada paso mide un rótulo y hasta dos
@@ -163,6 +170,7 @@
       // del tema; las uniones de en medio son el trámite y no avisan.
       construido: 'info'
     });
+    const RESULTADOS_QUE_QUEDAN = new Set(['encontrada', 'no-encontrada', 'construido', 'rechazada', 'saturada']);
 
     // **El aviso narra el paso en pantalla, todos y no solo las noticias**
     // (opción B de las maquetas, elegida por el usuario el 2026-10-07). Hasta
@@ -197,6 +205,15 @@
         if (estado.pasos[i].final) continue;
         const tipo = AVISO_POR_PASO[estado.pasos[i].tipo];
         if (tipo) {
+          // Al terminar, el resultado solo se queda si responde algo: lo que
+          // halló una búsqueda, lo que costó construir (Huffman, índices) o
+          // por qué una clave no entró. Una inserción, una eliminación o un
+          // llenado ya se ven en la estructura, y su aviso se va (pedido del
+          // usuario, 2026-10-14); lo que dijo sigue en la bitácora.
+          if (!RESULTADOS_QUE_QUEDAN.has(estado.pasos[i].tipo)) {
+            retirarAviso();
+            return;
+          }
           // Del mismo tamaño que la narración: el resultado es lo que más
           // importa leer, y en un aviso chico se leía peor que los pasos.
           mostrarAlerta(tipo, estado.pasos[i].mensaje, { icono: estado.pasos[i].tipo, rotulo: 'Resultado' });

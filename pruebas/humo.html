@@ -1080,10 +1080,23 @@
 
       const formularios = entrarAModulo({ n: 10, l: 4, tratamiento: 'ninguno' });
       operar(formularios, 'insertar', 7412);
+      control('siguiente').click();
+      afirmar(!!aviso(), 'mientras se reproduce, la inserción se narra en el aviso');
+      const altoDelAviso = () => parseFloat(getComputedStyle(document.querySelector('.pantalla-tema__lienzo')).getPropertyValue('--alto-aviso')) || 0;
+      const altoAntes = altoDelAviso();
       agotarTraza();
+      // Al terminar, el aviso de una inserción se va (pedido del usuario,
+      // 2026-10-14): la clave ya se ve en la estructura y lo dicho queda en la
+      // bitácora. El lienzo conserva el alto que le guardaba, o la estructura
+      // subiría de golpe al entrar la última clave.
+      afirmar(!aviso(), 'al terminar la inserción, el aviso se va');
       afirmar(
-        !!aviso() && aviso().textContent.includes('insertada'),
-        'la inserción deja constancia en el aviso, no solo en la bitácora'
+        [...document.querySelectorAll('.bitacora__fila')].some((fila) => fila.textContent.includes('insertada')),
+        'lo que dijo la inserción sigue en la bitácora'
+      );
+      afirmar(
+        altoAntes > 0 && altoDelAviso() >= altoAntes,
+        'el lienzo conserva el alto del aviso y la estructura no salta'
       );
 
       // 5312 comparte dirección con 7412 y sin tratamiento no entra.
