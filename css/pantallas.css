@@ -306,6 +306,18 @@
   overflow: hidden;
 }
 
+/* En pantallas anchas el panel crece a 420 px (elegido con capturas,
+   2026-10-14): a 340 la bitácora parte casi cada renglón en dos —en residuos
+   múltiples, cinco de seis— y a 420 caben 9 entradas en una línea. La
+   estructura no lo echa de menos a 1920. El corte deja fuera 1536 (zoom al
+   125 %), donde el árbol de residuos con 420 ya toca el borde del lienzo y
+   no le quedaría lugar al cálculo de la dirección. */
+@media (min-width: 1600px) {
+  .pantalla-tema {
+    grid-template-columns: 1fr 420px;
+  }
+}
+
 .pantalla-tema__encabezado {
   grid-column: 1 / -1;
   display: flex;

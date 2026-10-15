@@ -425,6 +425,13 @@
       registro.push(
         `  panel lateral: ${lateral.scrollHeight} px de contenido en ${lateral.clientHeight} px visibles`
       );
+      // 420 px desde 1600 de ancho, 340 por debajo (CLAUDE.md 6.9): a 1536
+      // —zoom al 125 %— el ancho le quitaría el lugar al dibujo.
+      const anchoEsperado = window.innerWidth >= 1600 ? 420 : 340;
+      afirmar(
+        Math.round(lateral.getBoundingClientRect().width) === anchoEsperado,
+        `el panel lateral mide ${anchoEsperado} px a ${window.innerWidth} de ancho (mide ${Math.round(lateral.getBoundingClientRect().width)})`
+      );
 
       const caja = document.querySelector('.estructura-horizontal, .estructura-vertical').getBoundingClientRect();
       afirmar(

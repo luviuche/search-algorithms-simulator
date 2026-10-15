@@ -1138,6 +1138,8 @@ Lo que sí protege al aula desconocida es que **las fuentes viajen con la aplica
 - **La derivación de índices no cabe a lo alto** y se desplaza por dentro: es el «estrechar y desplazar» de §5.10.
 - **La bitácora queda bajo el borde del panel lateral**: lo cubre la narración del paso en el aviso (§6.2), que está siempre a la vista.
 
+**El panel lateral mide 420 px desde 1600 de ancho y 340 por debajo** (elegido con capturas a 340, 380 y 420, 2026-10-14). A 340 la bitácora partía casi cada renglón en dos —en residuos múltiples, cinco de las seis entradas visibles—; a 420 caben nueve, todas en una línea, y a 1920 la estructura no echa de menos los 80 px. El corte deja 1536 × 760 (zoom al 125 %) con 340: ahí el árbol de residuos con el panel ancho ya toca el borde del lienzo y no le quedaría lugar al cálculo de la dirección. El humo afirma el ancho que toca a cada tamaño.
+
 ## 7. Animación
 
 El profesor evalúa explícitamente que los bloques se muevan. Estas son las animaciones obligatorias:
