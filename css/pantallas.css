@@ -1007,6 +1007,15 @@ form.panel > .pantalla-tema__reproduccion {
   border-bottom: 1px solid var(--borde-fuerte);
 }
 
+/* Las columnas que son símbolos —k, Li, Pi— se escriben como en el tablero:
+   en mayúsculas, «LI» y «PI» dejaban de ser los mismos símbolos que el pie de
+   la tabla escribe «Σ Pi × Li» (revisión de diseño, 2026-10-14). */
+.tabla-codigos th.tabla-codigos__simbolo {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+
 .tabla-codigos td {
   text-align: right;
   padding: var(--espacio-1) var(--espacio-3);

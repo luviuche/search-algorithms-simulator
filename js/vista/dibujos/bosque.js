@@ -212,7 +212,7 @@
       el.innerHTML = `
         <thead>
           <tr>
-            <th class="tabla-codigos__clave">k</th><th>Código</th><th>Li</th><th>Pi</th><th>Pi × Li</th>
+            <th class="tabla-codigos__clave tabla-codigos__simbolo">k</th><th>Código</th><th class="tabla-codigos__simbolo">Li</th><th class="tabla-codigos__simbolo">Pi</th><th class="tabla-codigos__simbolo">Pi × Li</th>
           </tr>
         </thead>
         <tbody>${filas}</tbody>
