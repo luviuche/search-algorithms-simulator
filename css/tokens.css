@@ -27,8 +27,16 @@
   --estado-descartada-relleno: #E5E9EC;
   --estado-encontrada-borde: #1B7A63;
   --estado-encontrada-relleno: #CFE9E1;
-  --estado-colision-borde: #A8324A;
-  --estado-colision-relleno: #F3D6DC;
+  /* Colisión en morado y eliminada en rojo (2026-10-14): compartían el rojo,
+     y proyectados se leían como lo mismo. El morado no lo usa ningún otro
+     estado, y la casilla que choca es también la que se está mirando, así
+     que un ámbar se habría confundido con el naranja de «en evaluación».
+     El borde llega a 5:1 contra el lienzo. */
+  --estado-colision-borde: #7B4B9E;
+  --estado-colision-relleno: #E9DDF2;
+  --estado-colision-trama: #F3ECF8;
+  --estado-eliminada-borde: #A8324A;
+  --estado-eliminada-relleno: #F3D6DC;
 
   /* Alertas: deliberadamente distintas de los colores de estado del algoritmo (CLAUDE.md 8.1) */
   --alerta-info-borde: #35507A;

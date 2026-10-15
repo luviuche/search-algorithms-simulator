@@ -90,8 +90,8 @@
     45deg,
     var(--estado-colision-relleno),
     var(--estado-colision-relleno) 4px,
-    #F8E3E8 4px,
-    #F8E3E8 8px
+    var(--estado-colision-trama) 4px,
+    var(--estado-colision-trama) 8px
   );
 }
 
@@ -454,17 +454,17 @@ form input[type="checkbox"] {
 }
 
 /* Casilla de la que sale una clave: la que se elimina, y la que se levanta
-   para volver a dispersarse. Comparte el rojo de la colisión —las dos son un
-   paso que quita, no que coloca— y su refuerzo no cromático es la equis
-   (CLAUDE.md 8.1). */
+   para volver a dispersarse. El rojo es solo suyo —quitar una clave—, y su
+   refuerzo no cromático es la equis (CLAUDE.md 8.1). Hasta el 2026-10-14
+   compartía el rojo con la colisión. */
 .casilla--eliminada {
-  border-color: var(--estado-colision-borde);
-  background: var(--estado-colision-relleno);
+  border-color: var(--estado-eliminada-borde);
+  background: var(--estado-eliminada-relleno);
 }
 
 .casilla--eliminada::after {
   content: '✕';
-  color: var(--estado-colision-borde);
+  color: var(--estado-eliminada-borde);
 }
 
 /* Dirección que devolvió la función hash cuando el sondeo ya se fue de ella:

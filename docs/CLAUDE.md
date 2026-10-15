@@ -1222,7 +1222,10 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 | En evaluación | `#B8731C` | `#F7E2BD` | Borde de 2 px |
 | Descartada | `#97A3AC` | `#E5E9EC` | Opacidad 0.5 |
 | Encontrada | `#1B7A63` | `#CFE9E1` | Glifo de verificación |
-| Colisión | `#A8324A` | `#F3D6DC` | Trama diagonal |
+| Colisión | `#7B4B9E` | `#E9DDF2` | Trama diagonal |
+| Eliminada | `#A8324A` | `#F3D6DC` | Glifo ✕ |
+
+**La colisión es morada y la eliminada roja** (revisión de diseño, 2026-10-14; maquetas con rojo, ámbar y morado). Compartían el rojo y proyectados se leían como lo mismo. El ámbar se descartó porque la casilla que choca es también la que se está mirando, y junto al naranja de «en evaluación» se confundía. El morado no lo usa ningún otro estado; la fila «Col», la nota del salto descartado y el subrayado de la dirección de origen lo siguen, porque hablan de la colisión.
 
 **Contraste pensado para proyectar** (revisión de diseño, 2026-10-04). Un proyector aclara los negros y lava los colores, así que lo que hay que *ver* —bordes de casilla, líneas, el naranja de «en evaluación»— llega al menos a **3:1** contra el lienzo, y el texto gris a **4,5:1**. Antes el borde de la vacía estaba en 1,47:1, el naranja en 2,69:1 y el gris de líneas en 1,98:1: en una simulación de proyector las casillas vacías —las que muestran el tamaño de la tabla— desaparecían. Cada valor nuevo es el más claro que conserva el matiz y llega a la meta, así que los colores siguen significando lo mismo. **La descartada queda como estaba** a propósito: apagado es descartado, y que ceda es su función. Si se toca un token, medirlo de nuevo.
 
