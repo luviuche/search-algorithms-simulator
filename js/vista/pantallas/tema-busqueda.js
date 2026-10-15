@@ -1823,6 +1823,39 @@
     // Los botones nombran solo el verbo y no `Insertar clave`: el campo que
     // tienen encima ya dice sobre qué operan, y tres rótulos con la palabra
     // repetida no caben en una fila del panel (CLAUDE.md 9).
+    // El resumen de la configuración plegada —«n = 24 · l = 2  Editar»— y su
+    // enlace, en la cabecera del panel que lo lleve.
+    function conectarResumen(contenedor) {
+      dom.resumenEstructura = contenedor.querySelector('[data-resumen="estructura"]');
+      dom.resumenTexto = contenedor.querySelector('.panel__resumen-texto');
+      contenedor.querySelector('[data-accion="editar-configuracion"]').addEventListener('click', () => {
+        estado.editandoConfiguracion = true;
+        sincronizarConfiguracion();
+        const primerCampo = dom.configuracion && dom.configuracion.querySelector('input, select');
+        if (primerCampo) primerCampo.focus();
+      });
+    }
+
+    // Índices no tiene panel de operaciones (`sinOperaciones`), así que el
+    // resumen va en la cabecera del de la reproducción (revisión de diseño,
+    // 2026-10-14). Sin un sitio para el resumen, la configuración se quedaba
+    // abierta tras construir y dejaba métricas y bitácora fuera de la vista.
+    function crearPanelReproduccion(reproduccion) {
+      const contenedor = document.createElement('section');
+      contenedor.className = 'panel';
+      contenedor.innerHTML = `
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo texto-nivel-2">Reproducción</h2>
+          <span class="panel__resumen" data-resumen="estructura" hidden>
+            <span class="panel__resumen-texto"></span>
+            <button type="button" class="boton-enlace" data-accion="editar-configuracion">Editar</button>
+          </span>
+        </div>`;
+      contenedor.appendChild(reproduccion);
+      conectarResumen(contenedor);
+      return contenedor;
+    }
+
     function crearPanelOperaciones() {
       const contenedor = document.createElement('form');
       contenedor.className = 'panel';
@@ -1904,14 +1937,7 @@
           llenarAutomaticamente();
         });
       }
-      dom.resumenEstructura = contenedor.querySelector('[data-resumen="estructura"]');
-      dom.resumenTexto = contenedor.querySelector('.panel__resumen-texto');
-      contenedor.querySelector('[data-accion="editar-configuracion"]').addEventListener('click', () => {
-        estado.editandoConfiguracion = true;
-        sincronizarConfiguracion();
-        const primerCampo = dom.configuracion && dom.configuracion.querySelector('input, select');
-        if (primerCampo) primerCampo.focus();
-      });
+      conectarResumen(contenedor);
       const porPalabra = contenedor.querySelector('[data-accion="insertar-palabra"]');
       if (porPalabra) {
         porPalabra.addEventListener('click', () => {
@@ -2263,7 +2289,7 @@
       // clave que no opera sobre nada (CLAUDE.md 5.x). Crear la estructura
       // *es* la operación, y la derivación arranca con ella.
       ...(config.sinOperaciones
-        ? [vista.componentes.panel.crearPanel({ contenido: reproduccion })]
+        ? [crearPanelReproduccion(reproduccion)]
         : [operaciones]),
       crearPanelMetricas(),
       panelBitacora

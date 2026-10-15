@@ -3118,6 +3118,12 @@
         seVe('guardar') && seVe('vaciar'),
         'guardar y vaciar aparecen en cuanto hay estructura'
       );
+      // Construida, la configuración se pliega como en los demás temas, con
+      // su resumen en la cabecera de la reproducción (2026-10-14).
+      afirmar(
+        formularios[0].hidden && seVe('editar-configuracion'),
+        'al construir, la configuración se pliega y queda el enlace «Editar»'
+      );
 
       // Crear es la operación: la derivación tiene que estar en marcha sin que
       // nadie pulse nada más.
