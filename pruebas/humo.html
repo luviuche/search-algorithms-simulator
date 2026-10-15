@@ -370,8 +370,15 @@
 
       const formularios = [...document.querySelectorAll('form.panel')];
       afirmar(control('vaciar').hidden, 'sin estructura no hay nada que reiniciar: el botón no aparece');
+      const deOperacion = () => ['insertar', 'buscar', 'eliminar', 'llenado-automatico']
+        .map((accion) => formularios[1].querySelector(`[data-accion="${accion}"]`));
+      afirmar(
+        deOperacion().every((boton) => boton.disabled) && formularios[1].querySelector('[name="clave"]').disabled,
+        'sin estructura, las operaciones se ven apagadas'
+      );
       enviar(formularios[0], { n, l });
       afirmar(!control('vaciar').hidden, 'con la estructura creada, el botón de reiniciar aparece');
+      afirmar(deOperacion().every((boton) => !boton.disabled), 'con la estructura creada, las operaciones se encienden');
       for (const clave of claves) operar(formularios, 'insertar', clave);
 
       const dibujadas = [...document.querySelectorAll('.casilla')].length;

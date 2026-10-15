@@ -250,6 +250,16 @@ form select {
 
 .boton-enlace:hover { color: var(--tinta); }
 
+.boton-enlace:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.panel input:disabled {
+  cursor: not-allowed;
+  background: var(--superficie-hundida);
+}
+
 .boton-enlace:focus-visible {
   outline: 2px solid var(--estado-evaluacion-borde);
   outline-offset: 2px;

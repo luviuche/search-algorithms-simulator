@@ -1337,7 +1337,23 @@
       return config.sinLongitud ? `n = ${estructura.n}` : `n = ${estructura.n} · l = ${estructura.l}`;
     }
 
+    // **Sin estructura, las operaciones se ven apagadas** (revisión de
+    // diseño, 2026-10-14), como ya se veía la reproducción. Recién entrado,
+    // «Insertar» estaba en negro y «Buscar», «Eliminar» y el llenado parecían
+    // disponibles, y lo único que hacían era avisar que no había estructura.
+    // Solo en los temas con configuración: los demás entran con la suya.
+    const CONTROLES_DE_OPERACION = [
+      'input[name="clave"]', 'input[name="palabra"]', '[data-accion="insertar"]', '[data-accion="buscar"]',
+      '[data-accion="eliminar"]', '[data-accion="llenado-automatico"]', '[data-accion="insertar-palabra"]'
+    ].join(', ');
+    function sincronizarOperaciones() {
+      if (!dom.operaciones || config.sinConfiguracion) return;
+      const hay = Boolean(estado.estructura);
+      for (const control of dom.operaciones.querySelectorAll(CONTROLES_DE_OPERACION)) control.disabled = !hay;
+    }
+
     function sincronizarConfiguracion() {
+      sincronizarOperaciones();
       if (!dom.configuracion || !dom.resumenEstructura) return;
       const plegada = Boolean(estado.estructura) && !estado.editandoConfiguracion;
       dom.configuracion.hidden = plegada;
@@ -1810,6 +1826,7 @@
     function crearPanelOperaciones() {
       const contenedor = document.createElement('form');
       contenedor.className = 'panel';
+      dom.operaciones = contenedor;
       // En los temas de bits la clave es una letra, y además se puede insertar
       // una palabra entera: es como se arma el ejercicio de clase —«prueba»
       // son p, r, u, e, b y a—. Las seis inserciones viajan en una sola traza,
@@ -2261,8 +2278,9 @@
       crearYRegistrar({ n: tamano.n, l: tamano.l, tratamiento: null, parametros: {}, alEntrar: true });
     } else {
       // Y los demás entran con el lienzo diciendo qué falta, en vez de con un
-      // rectángulo gris y mudo.
+      // rectángulo gris y mudo, y con las operaciones apagadas.
       renderizarEstructura(null);
+      sincronizarOperaciones();
     }
     return pantalla;
   }
