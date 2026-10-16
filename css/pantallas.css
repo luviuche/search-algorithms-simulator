@@ -581,11 +581,9 @@ form.panel > .pantalla-tema__reproduccion {
 }
 
 /* El tramo de la matriz de cubetas baja por todos los renglones: su alto lo
-   pone la vista, que sabe cuántos son. El conteo va arriba, a la altura del
-   primer renglón, donde se lee junto a las claves. */
+   pone la vista, que sabe cuántos son. El conteo va en el centro de la
+   columna (pedido del usuario, 2026-10-15: arriba se leía como un renglón). */
 .tramo-elidido--cubetas {
-  align-items: flex-start;
-  padding-top: calc((var(--alto-casilla) - 1em) / 2);
   box-sizing: border-box;
 }
 

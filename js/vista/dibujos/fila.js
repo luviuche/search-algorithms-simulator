@@ -58,9 +58,11 @@
         // expanda. Tiene tantos renglones como la cubeta que más guarda, para
         // que cada renglón de Col quede a una sola altura en toda la matriz.
         const renglonesCol = esMatrizHorizontal
-          // `Array.from` y no `map`: las cubetas sin Col son huecos del arreglo,
-          // y `map` los conserva, que en `Math.max` dan `NaN`.
-          ? Math.max(0, ...Array.from(estado.estructura.desbordes || [], (col) => (col ? col.length : 0)))
+          // Solo las cubetas que se dibujan: una escondida en un tramo no
+          // puede pedir renglones que nadie va a llenar.
+          ? Math.max(0, ...segmentos
+            .filter((segmento) => segmento.tipo === 'casilla')
+            .map((segmento) => dominio.estructura.colDe(estado.estructura, segmento.indice).length))
           : 0;
         if (esMatrizHorizontal) {
           dom.estructuraEl.appendChild(crearEtiquetasRenglones(columnasDelAnidado, renglonesCol));
@@ -98,7 +100,8 @@
               lugarDelNumero.setAttribute('aria-hidden', 'true');
               grupo.appendChild(lugarDelNumero);
               const renglones = 1 + columnasDelAnidado.length;
-              tramoEl.classList.add('tramo-elidido--vacias', 'tramo-elidido--cubetas');
+              tramoEl.classList.add(segmento.claves ? 'tramo-elidido--claves' : 'tramo-elidido--vacias', 'tramo-elidido--cubetas');
+              if (segmento.claves) tramoEl.classList.remove('tramo-elidido--vacias');
               tramoEl.style.height = `calc(${renglones} * var(--alto-casilla) + ${renglones - 1} * var(--espacio-1))`;
             }
             grupo.appendChild(tramoEl);

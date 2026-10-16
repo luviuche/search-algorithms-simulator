@@ -2279,6 +2279,28 @@
         !!cajaTramo && Math.abs(cajaTramo.top - arriba) <= 1 && Math.abs(cajaTramo.bottom - abajo) <= 1,
         'el tramo elidido de la matriz baja del primer renglón al último'
       );
+      // Elisión por el paso (opción C, 2026-10-15): la última clave cayó en
+      // la cubeta 12, que se ve con sus vecinas; la 5, con claves, queda en un
+      // tramo sólido, y el control para ver la tabla entera está a la vista.
+      const rotulos = [...document.querySelectorAll('.estructura-horizontal .escala__marca')].map((m) => m.textContent.trim()).filter(Boolean);
+      registro.push('  cubetas a la vista: ' + rotulos.join(' '));
+      afirmar(
+        ['0', '11', '12', '13', '31'].every((r) => rotulos.includes(r)) && !rotulos.includes('5'),
+        `se ven la primera, la última y la cubeta del paso con sus vecinas (${rotulos.join(' ')})`
+      );
+      afirmar(!!document.querySelector('.tramo-elidido--cubetas.tramo-elidido--claves'), 'el tramo que esconde claves se dibuja sólido');
+      afirmar(!document.querySelector('.lienzo__control').hidden, '«Ver estructura completa» está a la vista');
+      // Una cubeta con claves en Col se ve aunque no sea la del paso: la 3 se
+      // llena y la 51 queda en su Col; después se inserta en la 20. Escondida,
+      // dejaba la fila «Col» rotulada y vacía (visto por el usuario, 2026-10-15).
+      for (const clave of [3, 35, 67, 99, 20]) {
+        operar(formularios, 'insertar', clave);
+        agotarTraza(30);
+      }
+      document.getAnimations().forEach((animacion) => animacion.finish());
+      const rotulosCol = [...document.querySelectorAll('.estructura-horizontal .escala__marca')].map((m) => m.textContent.trim()).filter(Boolean);
+      afirmar(rotulosCol.includes('3') && rotulosCol.includes('20'), `la cubeta con claves en Col se ve junto a la del paso (${rotulosCol.join(' ')})`);
+      afirmar(enCol().join(',') === '99', `la fila «Col» muestra su clave (reporta ${enCol().join(',') || 'nada'})`);
 
       document.querySelector('.pantalla-tema__volver').click();
     }

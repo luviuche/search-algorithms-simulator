@@ -369,6 +369,19 @@
       // punteados como ellas (2026-10-09, la regla de la fila llevada a hash).
       if (config.modo === dominio.estructura.MODOS.DISPERSA) {
         for (const segmento of segmentos) if (segmento.tipo === 'tramo') segmento.vacias = true;
+        // Con la elisión por el paso un tramo puede esconder claves: se dibuja
+        // sólido, como un bloque de ocupadas, para que no se lea como vacío.
+        if (config.elisionPorPaso) {
+          for (const segmento of segmentos) {
+            if (segmento.tipo !== 'tramo') continue;
+            let conClaves = false;
+            for (let i = segmento.desde; i <= segmento.hasta; i++) {
+              if (estado.estructura.claves[i - 1] !== undefined) conClaves = true;
+            }
+            segmento.vacias = !conClaves;
+            segmento.claves = conClaves;
+          }
+        }
       }
       return segmentos;
     }
@@ -385,6 +398,30 @@
       let relevantes = [];
       if (paso) relevantes = paso.vistas || config.casillasRelevantes(paso);
       if (config.modo !== dominio.estructura.MODOS.DISPERSA) return relevantes;
+      // **Cubetas elide por el paso, no por las claves** (opción C de las
+      // maquetas, elegida por el usuario el 2026-10-15): se ven la primera,
+      // la última y la cubeta del paso con una vecina a cada lado, y lo demás
+      // —con claves o sin ellas— va en tramos. Con la regla de las dispersas,
+      // una tabla expandida a n = 16 con claves en casi todas las cubetas no
+      // tenía nada que comprimir: se dibujaba entera, achicada hasta costar
+      // leerla, y sin el control para verla completa. Lo que importa ver es
+      // dónde entra o se reacomoda la clave, y eso lo trae el paso.
+      if (config.elisionPorPaso) {
+        const n = estado.estructura.n;
+        const conVecinas = [];
+        for (const indice of relevantes) {
+          conVecinas.push(indice);
+          if (indice > 1) conVecinas.push(indice - 1);
+          if (indice < n) conVecinas.push(indice + 1);
+        }
+        // Y toda cubeta con claves en Col (2026-10-15): llena y con claves
+        // esperando es justo lo que interesa ver, y escondida dejaba la fila
+        // «Col» rotulada y vacía, con su clave en una columna sin dibujar.
+        for (let indice = 1; indice <= n; indice++) {
+          if (dominio.estructura.colDe(estado.estructura, indice).length > 0) conVecinas.push(indice);
+        }
+        return conVecinas;
+      }
 
       const ocupadas = [];
       const claves = estado.estructura.claves;

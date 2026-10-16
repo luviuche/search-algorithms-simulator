@@ -1097,6 +1097,9 @@
       // (CLAUDE.md 5.7). Es el único tema donde eso pasa, así que se dice.
       mensajeReinicio: (estructura) => `Estructura vaciada: sin claves, y n vuelve a ${estructura.n}.`,
       casillasRelevantes: (paso) => (paso.casilla ? [paso.casilla] : []),
+      // Con más de 12 cubetas se ven la primera, la última y la del paso con
+      // sus vecinas; el resto va en tramos (CLAUDE.md 5.7).
+      elisionPorPaso: true,
       describirCasilla: ({ paso, indice, posicion, col, ocupada }) => {
         const base = ocupada ? 'ocupada' : 'vacia';
         if (!paso) return { estado: base };
