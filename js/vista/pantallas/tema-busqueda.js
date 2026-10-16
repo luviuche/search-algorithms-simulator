@@ -1061,14 +1061,17 @@
 
       const base = instantaneaDeLaEstructura();
       const pasos = [];
+      let colocadas = 0;
       let intentos = 0;
-      while (pasos.length < objetivo && intentos < objetivo * 50) {
+      while (colocadas < objetivo && intentos < objetivo * 50) {
         intentos++;
-        const paso = pasoDeLlenado(Math.floor(Math.random() * (max - min + 1)) + min);
-        if (paso) pasos.push(paso);
+        const pasosDeLaClave = pasosDeLlenado(Math.floor(Math.random() * (max - min + 1)) + min);
+        if (!pasosDeLaClave) continue;
+        colocadas++;
+        pasos.push(...pasosDeLaClave);
       }
       restaurarEstructura(base);
-      reproducirOperacion(pasos, `Llenado automático: ${pasos.length} claves.`);
+      reproducirOperacion(pasos, `Llenado automático: ${colocadas} claves.`);
     }
 
     // Cómo se nombra el sitio donde quedó una clave insertada sin traza. Las
@@ -1079,39 +1082,60 @@
       return config.nombrarSitio ? config.nombrarSitio(indice, estado.estructura) : `la casilla ${indice}`;
     }
 
-    // Coloca una clave del llenado y devuelve su paso, o `null` si no entró
+    // Coloca una clave del llenado y devuelve sus pasos, o `null` si no entró
     // —repetida, o sin sitio—. Sin contadores: no es una búsqueda.
-    function pasoDeLlenado(clave) {
+    //
+    // **Un paso por clave, y uno más si la clave cambia el tamaño** (2026-10-15).
+    // Antes la clave que disparaba una expansión dejaba un solo paso con los dos
+    // mensajes pegados —«La clave 529 se recoloca… Densidad de ocupación del
+    // 83,3 %: la estructura se expande…»—, y el primero ni siquiera era el de
+    // su inserción sino el de su reubicación posterior. Ahora el primero dice
+    // dónde entró la clave (o que quedó en Col) y el segundo anuncia el cambio
+    // y hace la reubicación, como dos renglones de la bitácora.
+    function pasosDeLlenado(clave) {
       if (dominio.estructura.casillaDe(estado.estructura, clave) !== 0) return null;
       if (!config.insertar) {
         const resultado = dominio.estructura.insertar(estado.estructura, clave);
         if (!resultado.exito) return null;
-        return Object.assign(
+        return [Object.assign(
           pasoDeInsercion(resultado.indice, `Clave insertada: ${clave} en ${nombrarSitio(resultado.indice)}.`),
           { efecto: { tipo: 'insertar', clave } }
-        );
+        )];
       }
       const pasosDeLaClave = config.insertar({ estructura: estado.estructura, clave });
-      const efectos = pasosDeLaClave.filter((paso) => paso.efecto).map((paso) => paso.efecto);
-      if (efectos.length === 0) return null;
-      efectos.forEach((efecto) => APLICADORES[efecto.tipo](efecto));
-      // El paso que la colocó —en cubetas, una expansión vuelve a colocar las
-      // demás claves después—, con su casilla y su posición para marcarla.
-      const colocacion = pasosDeLaClave.filter((paso) => paso.tipo === TIPOS_PASO.INSERCION
-        && paso.efecto && paso.efecto.clave === clave).pop()
-        || pasosDeLaClave.filter((paso) => paso.tipo === TIPOS_PASO.INSERCION).pop();
-      const cambio = pasosDeLaClave.find((paso) => paso.tipo === TIPOS_PASO.EXPANSION || paso.tipo === TIPOS_PASO.REDUCCION);
-      const paso = {
-        tipo: TIPOS_PASO.INSERCION,
+      if (!pasosDeLaClave.some((paso) => paso.efecto)) return null;
+      const indiceDelCambio = pasosDeLaClave.findIndex(
+        (paso) => paso.tipo === TIPOS_PASO.EXPANSION || paso.tipo === TIPOS_PASO.REDUCCION
+      );
+      const antes = indiceDelCambio === -1 ? pasosDeLaClave : pasosDeLaClave.slice(0, indiceDelCambio);
+      const despues = indiceDelCambio === -1 ? [] : pasosDeLaClave.slice(indiceDelCambio);
+      const efectosDe = (lista) => lista.filter((paso) => paso.efecto).map((paso) => paso.efecto);
+
+      // El paso que la colocó: en un renglón de su cubeta, o en Col si chocó.
+      const colocacion = antes.filter((paso) => (paso.tipo === TIPOS_PASO.INSERCION || paso.tipo === TIPOS_PASO.COLISION)
+        && paso.efecto && paso.efecto.clave === clave).pop();
+      const entrada = {
+        tipo: colocacion ? colocacion.tipo : TIPOS_PASO.INSERCION,
         comparaciones: 0,
         accesos: 0,
-        mensaje: [colocacion && colocacion.mensaje, cambio && cambio.mensaje].filter(Boolean).join(' '),
-        efecto: { tipo: 'lote', efectos }
+        mensaje: colocacion ? colocacion.mensaje : `Clave insertada: ${clave}.`,
+        efecto: { tipo: 'lote', efectos: efectosDe(antes) }
       };
-      for (const campo of ['casilla', 'posicion', 'direccion']) {
-        if (colocacion && colocacion[campo] !== undefined) paso[campo] = colocacion[campo];
+      for (const campo of ['casilla', 'posicion', 'direccion', 'col', 'colision']) {
+        if (colocacion && colocacion[campo] !== undefined) entrada[campo] = colocacion[campo];
       }
-      return paso;
+      efectosDe(antes).forEach((efecto) => APLICADORES[efecto.tipo](efecto));
+      if (despues.length === 0) return [entrada];
+
+      const cambio = despues[0];
+      efectosDe(despues).forEach((efecto) => APLICADORES[efecto.tipo](efecto));
+      return [entrada, {
+        tipo: cambio.tipo,
+        comparaciones: 0,
+        accesos: 0,
+        mensaje: cambio.mensaje,
+        efecto: { tipo: 'lote', efectos: efectosDe(despues) }
+      }];
     }
 
     function iniciarBusqueda(texto) {

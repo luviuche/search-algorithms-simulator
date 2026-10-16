@@ -2810,6 +2810,17 @@
           alFinal.length === total && new Set(alFinal).size === alFinal.length && !document.querySelector('.casilla--insertada'),
           `${tema}: termina con sus ${total} claves, sin repetidas y sin resaltados (${alFinal.length} clave(s))`
         );
+        // Un mensaje por renglón (2026-10-15): la clave que expandía dejaba
+        // en uno solo su reubicación y el anuncio de la expansión, pegados.
+        const filas = [...document.querySelectorAll('.bitacora__fila')].map((f) => f.lastElementChild.textContent);
+        const pegadas = filas.filter((fila) => /\. [A-ZÁÉÍÓÚ]/.test(fila));
+        afirmar(pegadas.length === 0, `${tema}: un mensaje por renglón en la bitácora (${pegadas.length} pegado(s): ${pegadas[0] || '—'})`);
+        if (tema === 'Otras búsquedas dinámicas') {
+          afirmar(
+            filas.some((fila) => fila.startsWith('Densidad de ocupación')),
+            'la expansión del llenado tiene su propio renglón'
+          );
+        }
         document.querySelector('.pantalla-tema__volver').click();
       }
     }
