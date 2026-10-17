@@ -76,6 +76,7 @@
     // La primera vez no hay de dónde venir: nada entra animado.
     if (posicionesPrevias.size === 0) return;
 
+    const movimientos = [];
     for (const el of contenedor.querySelectorAll(IDENTIFICADOS)) {
       const previa = posicionesPrevias.get(identidad(el));
       if (!previa) {
@@ -87,11 +88,41 @@
       const deltaX = (previa.left - actual.left) / zoom;
       const deltaY = (previa.top - actual.top) / zoom;
       if (deltaX === 0 && deltaY === 0) continue;
-      reemplazarAnimacion(el, [
+      movimientos.push({ el, deltaX, deltaY });
+    }
+
+    // **Lo que se mueve distinto del resto viaja por encima** (revisión de
+    // animaciones, 2026-10-16). En las externas la última clave de cada
+    // bloque pasa al siguiente en diagonal, cruzando sobre las que solo bajan
+    // un renglón, y a media animación el renglón era un montón de claves
+    // encimadas. Lo que se corre junto con todo —la tabla entera al entrar el
+    // cálculo— no se levanta: es un solo bloque que se mueve.
+    const comun = deltaMasComun(movimientos);
+    for (const { el, deltaX, deltaY } of movimientos) {
+      const animacion = reemplazarAnimacion(el, [
         { transform: `translate(${deltaX}px, ${deltaY}px)` },
         { transform: 'translate(0, 0)' }
       ], { duration: duracionMs, easing });
+      if (el.dataset.clave === undefined || (Math.round(deltaX) === comun.x && Math.round(deltaY) === comun.y)) continue;
+      el.classList.add('en-viaje');
+      const bajar = () => el.classList.remove('en-viaje');
+      animacion.addEventListener('finish', bajar);
+      animacion.addEventListener('cancel', bajar);
     }
+  }
+
+  // El desplazamiento que comparten más elementos, redondeado al píxel: el de
+  // la fila que se corre entera. Con uno solo moviéndose no hay «resto».
+  function deltaMasComun(movimientos) {
+    const cuenta = new Map();
+    let mejor = { x: NaN, y: NaN, veces: 0 };
+    for (const { deltaX, deltaY } of movimientos) {
+      const clave = `${Math.round(deltaX)},${Math.round(deltaY)}`;
+      const veces = (cuenta.get(clave) || 0) + 1;
+      cuenta.set(clave, veces);
+      if (veces > mejor.veces) mejor = { x: Math.round(deltaX), y: Math.round(deltaY), veces };
+    }
+    return mejor.veces > 1 ? mejor : { x: NaN, y: NaN };
   }
 
   function animarCambioEstado(el, { duracionMs = 400, easing = 'ease-in-out' } = {}) {

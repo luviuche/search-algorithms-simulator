@@ -67,6 +67,15 @@
   background: var(--estado-ocupada-relleno);
 }
 
+/* La casilla que viaja distinto del resto pasa por encima, con la sombra de
+   un objeto levantado (ver `animarFlip`): así se lee como «pasa sobre las
+   demás» y no como un choque. Se quita al terminar el viaje. */
+.casilla.en-viaje {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--elev-2);
+}
+
 /* Las marcas de insertada, encontrada y eliminada van en la esquina y fuera
    del flujo (pedido del usuario, 2026-09-24). Al lado del número lo empujaban
    a la izquierda y la clave dejaba de verse centrada justo en la casilla que
