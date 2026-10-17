@@ -790,6 +790,11 @@
       if (dom.controlElision) dom.controlElision.hidden = true;
     }
 
+    // Los efectos de un paso, abriendo los lotes del llenado automático.
+    function efectosDe(efecto) {
+      return efecto.tipo === 'lote' ? efecto.efectos.flatMap(efectosDe) : [efecto];
+    }
+
     function dibujar(paso, indicePaso, opciones) {
       if (esArbol()) {
         renderizarArbol(paso, opciones);
@@ -825,10 +830,18 @@
       // el centro: la estructura parecía salir de abajo de un cuadro. Ahora
       // el apilado se va y la fila entra entera con el desvanecido de cada
       // fila nueva del apilado.
+      //
+      // **Lo mismo cuando cubetas cambia de tamaño** (2026-10-16): la tabla
+      // nueva es otra, vacía y con otro `n`, y las casillas vacías de la vieja
+      // se deslizaban hacia las de la nueva, encimando renglones, mientras las
+      // claves desaparecían de golpe. Ahora la tabla nueva entra entera en su
+      // sitio, y cada clave vuelve después con su paso.
       const saleDelApilado = dom.estructuraEl.classList.contains('estructura-apilada');
-      if (saleDelApilado) dom.estructuraEl.innerHTML = '';
+      const cambiaDeTamano = Boolean(paso && paso.efecto && efectosDe(paso.efecto).some((efecto) => efecto.tipo === 'redimensionar'));
+      const entraEntera = saleDelApilado || cambiaDeTamano;
+      if (entraEntera) dom.estructuraEl.innerHTML = '';
       renderizarFilaUnica(paso, opciones);
-      if (saleDelApilado && !vista.animacion.prefiereMovimientoReducido()) {
+      if (entraEntera && !vista.animacion.prefiereMovimientoReducido()) {
         vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
           { opacity: 0, transform: 'translateY(-6px)' },
           { opacity: 1, transform: 'translateY(0)' }
