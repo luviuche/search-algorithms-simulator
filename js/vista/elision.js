@@ -48,7 +48,8 @@
     orientacion = 'horizontal',
     mostrarCompleta = false,
     vecinas = true,
-    ocupadas = null
+    ocupadas = null,
+    ocupadasAlEmpezar = ocupadas
   }) {
     const umbral = orientacion === 'horizontal' ? UMBRAL_HORIZONTAL : UMBRAL_VERTICAL;
     if (mostrarCompleta || n <= umbral) {
@@ -57,14 +58,23 @@
       return todas;
     }
 
+    // **Lo que se ve del lleno se decide con las claves que había al empezar
+    // la operación** (revisión de animaciones, 2026-10-16). Al eliminar la
+    // duodécima clave, la regla pasaba de «se esconden las del medio» a «se
+    // dibujan todas» en el mismo paso en que las claves se corren, y la fila
+    // saltaba de 9 elementos a 14: el corrimiento —lo que el paso enseña— se
+    // perdía entre casillas que entraban y se reacomodaban. La última ocupada
+    // de ahora queda a la vista igual, con sus vecinas, para que ningún tramo
+    // mezcle claves y libres.
     const delLleno = [];
-    if (ocupadas !== null && ocupadas > 0) {
-      if (ocupadas < umbral) {
-        for (let i = 1; i <= ocupadas; i++) delLleno.push(i);
+    if (ocupadasAlEmpezar !== null && ocupadasAlEmpezar > 0) {
+      if (ocupadasAlEmpezar < umbral) {
+        for (let i = 1; i <= ocupadasAlEmpezar; i++) delLleno.push(i);
       } else {
-        delLleno.push(ocupadas);
+        delLleno.push(ocupadasAlEmpezar);
       }
     }
+    if (ocupadas !== null && ocupadas > 0 && ocupadas !== ocupadasAlEmpezar) delLleno.push(ocupadas);
     const visibles = indicesSiempreVisibles(n, [...relevantes, ...delLleno], vecinas);
     const segmentos = [];
     let inicioOculto = null;

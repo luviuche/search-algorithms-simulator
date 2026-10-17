@@ -369,6 +369,12 @@
         // En las ordenadas las claves llenan el prefijo: se ve hasta dónde.
         ocupadas: estado.estructura.modo === dominio.estructura.MODOS.ORDENADA
           ? dominio.estructura.cantidadClaves(estado.estructura)
+          : null,
+        // Con las que había al empezar la operación en curso (`clavesBase`),
+        // para que la forma de la fila no cambie a mitad de ella (ver
+        // `calcularSegmentos`).
+        ocupadasAlEmpezar: estado.estructura.modo === dominio.estructura.MODOS.ORDENADA
+          ? (estado.pasos && estado.clavesBase ? estado.clavesBase.claves.length : dominio.estructura.cantidadClaves(estado.estructura))
           : null
       });
       // En una dispersa toda casilla ocupada es relevante (ver

@@ -96,3 +96,20 @@ test('sin `ocupadas` —una tabla dispersa— nada cambia y ningún tramo se mar
   assert.deepEqual(indicesDe(segmentos), [1, 8, 9, 10, 40]);
   assert.ok(tramosDe(segmentos).every((t) => !t.vacias));
 });
+
+// Al eliminar la duodécima clave la regla cambiaba en mitad de la operación:
+// con 12 se escondían las del medio y con 11 se dibujaban todas, y la fila
+// saltaba de forma justo en el paso del corrimiento (2026-10-16). Con las que
+// había al empezar, la forma se mantiene; la última ocupada de ahora sigue a
+// la vista, para que ningún tramo mezcle claves y libres.
+test('la forma de la fila se decide con las claves que había al empezar la operación', () => {
+  const alEmpezar = calcularSegmentos({ n: 24, relevantes: [10], ocupadas: 12 });
+  const alCorrerse = calcularSegmentos({ n: 24, relevantes: [10], ocupadas: 11, ocupadasAlEmpezar: 12 });
+  assert.ok(indicesDe(alCorrerse).length <= indicesDe(alEmpezar).length + 1, 'no aparecen las claves del medio');
+  assert.ok(indicesDe(alCorrerse).includes(11) && indicesDe(alCorrerse).includes(12), 'la última ocupada y la primera libre se ven');
+  for (const tramo of tramosDe(alCorrerse)) {
+    assert.ok(tramo.vacias || tramo.claves, `el tramo ${tramo.desde}–${tramo.hasta} no mezcla claves y libres`);
+  }
+  // Sin operación en curso, la regla de siempre: con 11 se dibujan todas.
+  assert.ok(indicesDe(calcularSegmentos({ n: 24, relevantes: [], ocupadas: 11 })).includes(5));
+});
