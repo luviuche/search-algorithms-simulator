@@ -999,6 +999,8 @@ El modo lo activa la configuración del tema (`apilada.rangoDePaso`); los temas 
 
 **El medio de una fila anterior queda con el borde naranja y sin relleno** (revisión de diseño, 2026-10-14). Antes cada fila conservaba su medio en «en evaluación» lleno, y a la tercera comparación había tres casillas que parecían mirarse a la vez. El relleno es solo de la fila del paso actual; el borde sigue diciendo por dónde se partió cada rango (`casilla--medio-anterior`, en `dibujos/apilado.js`).
 
+**Al terminar, la fila entra en su sitio y no viaja desde el apilado** (revisión de animaciones, 2026-10-16). El FLIP buscaba cada casilla por su clave entre las del apilado, donde cada clave está una vez por fila, y la hacía subir desde la última —fuera de la vista— mientras la escala y los tramos, que no viajan, aparecían de golpe en el centro: la estructura parecía salir de abajo de un cuadro (visto por el usuario). Ahora `dibujar` vacía el apilado antes de dibujar la fila y la hace entrar entera con el desvanecido de cada fila nueva (180 ms, 6 px).
+
 ### 6.4 Regla de índices
 
 Bajo la estructura horizontal —y al costado de la vertical— corre una escala continua que numera las posiciones, con marcas mayores cada 5. Cuando hay elisión, la escala se comprime pero **mantiene visible la numeración real de lo dibujado**: cada casilla que sobrevive conserva su índice, así que la numeración nunca miente sobre dónde está una clave. Es el elemento distintivo del producto. **El tramo comprimido no se rotula** (ver 6.2): declara cuánto oculta desde su propia casilla (`⋯ 18 ⋯`) y deja el hueco de la escala vacío.

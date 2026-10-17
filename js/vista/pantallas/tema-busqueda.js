@@ -817,7 +817,23 @@
         renderizarApilado(indicePaso);
         return;
       }
+      // **Al salir del apilado, la fila aparece en su sitio y no viaja**
+      // (revisión de animaciones, 2026-10-16). El FLIP buscaba cada casilla
+      // por su número entre las del apilado, donde cada número está una vez
+      // por fila, y la hacía subir desde la última fila —fuera de la vista—
+      // mientras la escala y los tramos, que no viajan, aparecían de golpe en
+      // el centro: la estructura parecía salir de abajo de un cuadro. Ahora
+      // el apilado se va y la fila entra entera con el desvanecido de cada
+      // fila nueva del apilado.
+      const saleDelApilado = dom.estructuraEl.classList.contains('estructura-apilada');
+      if (saleDelApilado) dom.estructuraEl.innerHTML = '';
       renderizarFilaUnica(paso, opciones);
+      if (saleDelApilado && !vista.animacion.prefiereMovimientoReducido()) {
+        vista.animacion.reemplazarAnimacion(dom.estructuraEl, [
+          { opacity: 0, transform: 'translateY(-6px)' },
+          { opacity: 1, transform: 'translateY(0)' }
+        ], { duration: 180, easing: 'ease-out' });
+      }
     }
 
     // Las columnas del apilado se fijan una vez por búsqueda, con las casillas
