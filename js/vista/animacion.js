@@ -52,19 +52,36 @@
   // donde el anterior lo dejó en vuelo, avanzar pasos seguidos acumulaba el
   // error hasta mandar las casillas a decenas de miles de píxeles (visto por
   // la prueba de humo, 2026-10-04).
+  //
+  // **Lo que no tenía sitio antes entra desvanecido** (revisión de
+  // animaciones, 2026-10-16). Además de las casillas (`data-clave`), siguen
+  // la animación los números de la escala y los tramos (`data-flip`). Hasta
+  // entonces esos aparecían de golpe en su posición final mientras las
+  // casillas todavía venían en camino, y se encimaban: el tramo tapaba la
+  // casilla de al lado durante los primeros 100 ms. Lo que de verdad es nuevo
+  // —una casilla que sale de un tramo, un tramo que resume otras— entra con
+  // la opacidad, en el mismo tiempo que el resto se mueve.
+  const IDENTIFICADOS = '[data-clave], [data-flip]';
+  const identidad = (el) => (el.dataset.clave !== undefined ? `c:${el.dataset.clave}` : `f:${el.dataset.flip}`);
+
   function animarFlip(contenedor, aplicarCambio, { duracionMs = 400, easing = 'ease-in-out' } = {}) {
     const posicionesPrevias = new Map();
-    for (const el of contenedor.querySelectorAll('[data-clave]')) {
-      posicionesPrevias.set(el.dataset.clave, el.getBoundingClientRect());
+    for (const el of contenedor.querySelectorAll(IDENTIFICADOS)) {
+      posicionesPrevias.set(identidad(el), el.getBoundingClientRect());
     }
 
     aplicarCambio();
 
     if (prefiereMovimientoReducido()) return;
+    // La primera vez no hay de dónde venir: nada entra animado.
+    if (posicionesPrevias.size === 0) return;
 
-    for (const el of contenedor.querySelectorAll('[data-clave]')) {
-      const previa = posicionesPrevias.get(el.dataset.clave);
-      if (!previa) continue;
+    for (const el of contenedor.querySelectorAll(IDENTIFICADOS)) {
+      const previa = posicionesPrevias.get(identidad(el));
+      if (!previa) {
+        reemplazarAnimacion(el, [{ opacity: 0 }, { opacity: 1 }], { duration: duracionMs, easing });
+        continue;
+      }
       const actual = el.getBoundingClientRect();
       const zoom = zoomEfectivo(el);
       const deltaX = (previa.left - actual.left) / zoom;

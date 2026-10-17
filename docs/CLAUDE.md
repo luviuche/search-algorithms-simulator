@@ -1178,6 +1178,7 @@ El profesor evalúa explícitamente que los bloques se muevan. Estas son las ani
 
 - Animar **solo `transform` y `opacity`**, nunca propiedades de layout.
 - Para el reordenamiento al insertar, usar la técnica **FLIP**: medir posición antes, aplicar el cambio, medir después, animar el delta con `transform`.
+- **El FLIP sigue también a los números de la escala y a los tramos** (`data-flip`: `marca-<i>` y `tramo-<desde>-<hasta>`), no solo a las casillas (`data-clave`), y **lo que no tenía sitio antes entra con la opacidad** en el mismo tiempo (revisión de animaciones, 2026-10-16). Antes aparecían de golpe en su posición final mientras las casillas venían en camino, y se encimaban: el tramo tapaba la casilla vecina los primeros 100 ms. La primera vez que se dibuja no anima nada.
 - **Las animaciones son interrumpibles.** Si el usuario avanza pasos en rápida sucesión, se reemplazan; no se encolan. Con la traza esto es trivial: se salta al paso destino.
 - Respetar `prefers-reduced-motion`: sustituir la animación por cambio de estado directo.
 - Cada casilla necesita una **identidad estable** —clave como llave, no índice— para que el reordenamiento anime el movimiento y no un redibujado.

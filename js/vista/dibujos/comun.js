@@ -30,6 +30,9 @@
       const el = document.createElement('span');
       el.className = 'escala__marca' + (esMarcaMayor(indice, n) ? ' escala__marca--mayor' : '');
       el.textContent = String(config.numerarDesdeCero ? indice - 1 : indice);
+      // Identidad para el FLIP (CLAUDE.md 7): el número viaja con su casilla
+      // en vez de aparecer de golpe en su sitio nuevo.
+      el.dataset.flip = `marca-${indice}`;
       return el;
     }
 
@@ -104,6 +107,10 @@
         + (vacias ? ' tramo-elidido--vacias' : '')
         + (claves ? ' tramo-elidido--claves' : '');
       el.textContent = `⋯ ${hasta - desde + 1} ⋯`;
+      // El tramo es el mismo mientras resuma las mismas casillas: con esa
+      // identidad se desliza con la fila; si cambia lo que resume, es nuevo y
+      // entra desvanecido (ver `animarFlip`).
+      el.dataset.flip = `tramo-${desde}-${hasta}`;
       return el;
     }
 
