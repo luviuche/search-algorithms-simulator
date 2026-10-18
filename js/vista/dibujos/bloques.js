@@ -45,6 +45,16 @@
     // no se confunda con una casilla.
     const CASILLAS_POR_TRAMO = 1.5;
 
+    // **En una ventana baja la matriz se aprieta para caber** (opción D de las
+    // maquetas, elegida por el usuario el 2026-10-17). Con N = 400 medía 429 px
+    // y a 700 px de alto, con el zoom al 150 % o en un proyector XGA el lienzo
+    // le deja entre 270 y 370: el renglón que quedaba fuera era el último, el
+    // que el algoritmo compara. Primero se juntan los renglones que no dicen
+    // nada nuevo; lo que aún sobre se resuelve encogiendo la matriz, nunca por
+    // debajo de `ENCOGIMIENTO_MINIMO`: a 0,6 —encogerla sin quitar nada— las
+    // claves ya no se leían en un proyector.
+    const ENCOGIMIENTO_MINIMO = 0.75;
+
     // Lo que mide una lista de segmentos de renglón puestos uno bajo otro:
     // cada casilla, su alto; cada tramo, el alto fijo de un tramo; y los
     // huecos entre ellos. La escala y los bloques miden con esto, que es lo
@@ -249,17 +259,29 @@
       const bloqueFrontera = totalDeClaves > 0 ? dominio.externa.bloqueDe(forma, totalDeClaves) : null;
       const clavesDeLaFrontera = ocupadasDelBloque(bloqueFrontera, forma);
       if (clavesDeLaFrontera) renglonesRelevantes.push(clavesDeLaFrontera, clavesDeLaFrontera + 1);
-      // Un tramo de dos renglones se dibuja como sus dos casillas: con el
-      // tramo a casilla y media no ahorraba casi nada.
-      const segmentosDelRenglon = vista.elision.calcularSegmentos({
-        n: forma.registrosPorBloque,
-        relevantes: renglonesRelevantes,
-        orientacion: 'vertical',
-        mostrarCompleta: estado.mostrarCompleta,
-        vecinas: false
-      }).flatMap((segmento) => (segmento.tipo === 'tramo' && segmento.cantidad === 2
-        ? [{ tipo: 'casilla', indice: segmento.desde }, { tipo: 'casilla', indice: segmento.hasta }]
-        : [segmento]));
+      //
+      // **Apretados**, cuando la matriz no cabe de alto: el par de renglones
+      // vuelve a ser un tramo, y de la frontera queda solo la última clave.
+      // La primera libre sobra: con la última clave a la vista, el tramo de
+      // debajo es todo de libres y no se parte.
+      const segmentosDelRenglonSegun = (apretados) => {
+        const relevantesSegun = apretados && clavesDeLaFrontera
+          ? renglonesRelevantes.slice(0, -1)
+          : renglonesRelevantes;
+        const segmentos = vista.elision.calcularSegmentos({
+          n: forma.registrosPorBloque,
+          relevantes: relevantesSegun,
+          orientacion: 'vertical',
+          mostrarCompleta: estado.mostrarCompleta,
+          vecinas: false
+        });
+        if (apretados) return segmentos;
+        // Un tramo de dos renglones se dibuja como sus dos casillas: con el
+        // tramo a casilla y media no ahorraba casi nada.
+        return segmentos.flatMap((segmento) => (segmento.tipo === 'tramo' && segmento.cantidad === 2
+          ? [{ tipo: 'casilla', indice: segmento.desde }, { tipo: 'casilla', indice: segmento.hasta }]
+          : [segmento]));
+      };
 
       // Bloques que nunca se esconden dentro de un tramo: el primero y el
       // último —la regla de siempre—, el del paso, y los últimos comparados.
@@ -285,7 +307,7 @@
       });
 
       let grupoSeguido = null;
-      vista.animacion.animarFlip(dom.estructuraEl, () => {
+      const construir = (segmentosDelRenglon) => {
         dom.estructuraEl.className = 'estructura-bloques';
         dom.estructuraEl.removeAttribute('style');
         dom.estructuraEl.innerHTML = '';
@@ -308,12 +330,54 @@
           dom.estructuraEl.appendChild(grupo);
           if (bloque === bloqueAbierto) grupoSeguido = grupo;
         }
+      };
+
+      ultimoPaso = paso;
+      vista.animacion.animarFlip(dom.estructuraEl, () => {
+        construir(segmentosDelRenglonSegun(false));
+        // Se mide lo dibujado en vez de deducirlo: el alto que le queda a la
+        // matriz depende del aviso, que pasa de uno a dos renglones.
+        const caja = dom.estructuraEl;
+        const sobra = () => caja.scrollHeight > caja.clientHeight + 1;
+        if (!estado.mostrarCompleta && sobra()) construir(segmentosDelRenglonSegun(true));
+        let factor = 1;
+        if (sobra()) {
+          const estilo = getComputedStyle(caja);
+          const relleno = parseFloat(estilo.paddingTop) + parseFloat(estilo.paddingBottom);
+          factor = Math.max(ENCOGIMIENTO_MINIMO, (caja.clientHeight - relleno) / (caja.scrollHeight - relleno));
+        }
+        // Dentro de una operación solo se achica, como la fila (ver
+        // `ajustarEscala` en comun.js): medida paso a paso, la matriz pasaba
+        // de 0,8× a 1× según qué renglones abría el paso.
+        const enOperacion = paso && !paso.final;
+        if (enOperacion && estado.topeDeEncogimiento != null) factor = Math.min(factor, estado.topeDeEncogimiento);
+        estado.topeDeEncogimiento = factor;
+        if (factor < 1) caja.style.zoom = String(factor);
 
         llevarALaVista(grupoSeguido);
       }, opciones);
     }
 
-    return { esBloques, renderizarBloques };
+    // Cambiar la ventana cambia lo que cabe: se vuelve a dibujar el último
+    // paso para que se apriete o se suelte. **Al terminar lo que esté en
+    // vuelo**: el escenario también cambia de alto cuando el aviso de un paso
+    // pasa a dos renglones —el aviso se escribe después de dibujar—, y
+    // redibujar ahí cortaba la animación del paso a la mitad.
+    let ultimoPaso = null;
+    let ajustePendiente = false;
+    function ajustarBloques() {
+      if (ajustePendiente) return;
+      ajustePendiente = true;
+      const enVuelo = dom.estructuraEl ? dom.estructuraEl.getAnimations({ subtree: true }) : [];
+      Promise.all(enVuelo.map((animacion) => animacion.finished.catch(() => null))).then(() => {
+        ajustePendiente = false;
+        if (!esBloques() || !dom.estructuraEl || !dom.estructuraEl.isConnected
+          || !dom.estructuraEl.classList.contains('estructura-bloques')) return;
+        renderizarBloques(ultimoPaso);
+      });
+    }
+
+    return { ajustarBloques, esBloques, renderizarBloques };
   }
 
   window.CC2 = window.CC2 || {};

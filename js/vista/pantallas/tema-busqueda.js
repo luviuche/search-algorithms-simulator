@@ -387,7 +387,7 @@
     const { renderizarApilado } = dibujos.apilado({ estado, dom, config, comunes });
     const dibujoArbol = dibujos.arbol({ estado, dom, config, formaArbol, renderizarLienzoVacio, comunes });
     const { ajustarArbol, renderizarArbol, soltarApretado } = dibujoArbol;
-    const { esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
+    const { ajustarBloques, esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
     const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes, renderizarLienzoVacio });
 
@@ -2117,8 +2117,10 @@
       etiqueta.querySelector('input').addEventListener('change', (evento) => {
         estado.mostrarCompleta = evento.target.checked;
         // Lo que se ve cambia de ancho: la escala se vuelve a medir sin el
-        // tope de la operación en curso (ver `ajustarEscala`).
+        // tope de la operación en curso (ver `ajustarEscala`), y lo mismo el
+        // encogimiento de la matriz de las externas (ver `renderizarBloques`).
         comunes.soltarTopeDeEscala();
+        estado.topeDeEncogimiento = null;
         if (!estado.estructura) return;
         calcularSegmentosApilado();
         renderizarEstructura(estado.pasoActual, estado.indicePaso);
@@ -2270,6 +2272,9 @@
     }
     // El bosque de Huffman, igual (ver `ajustarBosque`).
     if (esBosque() && window.ResizeObserver) new ResizeObserver(ajustarBosque).observe(escenario);
+    // Y la matriz de las externas, que se aprieta si no cabe de alto (ver
+    // `ajustarBloques`).
+    if (esBloques() && window.ResizeObserver) new ResizeObserver(ajustarBloques).observe(escenario);
     // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
     // no parte de él: el panel recorta lo que se le sale a los lados.
     if (config.calculoSenalaCasilla && dom.calculo) {

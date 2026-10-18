@@ -2448,18 +2448,21 @@
           }
         }
         afirmar(faltan.length === 0, `${contexto}: cada renglón numerado tiene su casilla en todos los bloques${faltan.length ? ` (faltan ${faltan.join(' ')})` : ''}`);
-        // En la pantalla de referencia (950 px de alto o más, CLAUDE.md 6.9).
-        // Más bajo —700, un proyector XGA, el zoom a 150 %— al lienzo le
-        // quedan menos de 430 px y la matriz todavía se desplaza un poco; con
-        // los tramos midiendo lo que escondían eran unos 900.
+        // A cualquier alto (opción D, 2026-10-17): en la pantalla de referencia
+        // cabe tal cual, y más bajo —700, un proyector XGA, el zoom a 150 %—
+        // se aprieta y encoge, sin bajar de 0,75×.
         const matriz = document.querySelector('.estructura-bloques');
+        const encogida = parseFloat(matriz.style.zoom) || 1;
+        // Si ni a 0,75× cabe, se desplaza lo que falte: pasa en esta prueba en
+        // Linux, donde la ventana sin interfaz de «1280x633» deja un viewport
+        // de 546 px, y no en la aplicación a 633.
+        afirmar(
+          matriz.scrollHeight <= matriz.clientHeight + 1 || encogida === 0.75,
+          `${contexto}: la matriz cabe de alto sin desplazarse, o está en el mínimo (${matriz.scrollHeight} de ${matriz.clientHeight} px, ${encogida.toFixed(2)}×, viewport de ${window.innerHeight} px)`
+        );
+        afirmar(encogida >= 0.75, `${contexto}: la matriz no se encoge por debajo de 0,75× (${encogida.toFixed(2)}×)`);
         if (window.innerHeight >= 900) {
-          afirmar(
-            matriz.scrollHeight <= matriz.clientHeight + 1,
-            `${contexto}: la matriz cabe de alto sin desplazarse (${matriz.scrollHeight} de ${matriz.clientHeight} px)`
-          );
-        } else {
-          registro.push(`  ${contexto}: la matriz mide ${matriz.scrollHeight} de ${matriz.clientHeight} px de alto`);
+          afirmar(encogida === 1, `${contexto}: en la pantalla de referencia la matriz no se encoge (${encogida.toFixed(2)}×)`);
         }
       };
       const rotulosVisibles = () => [...document.querySelectorAll('.bloque .bloque__etiqueta')].map((el) => el.textContent);
