@@ -154,7 +154,14 @@
     return pasos;
   }
 
-  function insertar({ estructura, clave }) {
+  // `conservarTamano` lo pide quien abre un archivo (tema-busqueda.js,
+  // `colocarSinTraza`): el `n` guardado ya es el resultado, y reinsertar
+  // tiene que rehacer la misma tabla. Revisando la densidad, una tabla que
+  // una reducción dejó sobre el umbral de expandir —con 82 % y 125 %, 79
+  // claves en 32 cubetas: 82,3 %— se reabría expandida (fuzz de Col,
+  // 2026-10-18). Sin revisarla, reinsertar en orden de llegada da la misma
+  // tabla, Col incluida.
+  function insertar({ estructura, clave, conservarTamano = false }) {
     const contadores = { comparaciones: 0, accesos: 0 };
     const r = estructura.parametros.r;
     const { direccion, calculo } = calculoCubeta(clave, estructura.n);
@@ -229,7 +236,7 @@
     // no a expandir.
     const intentos = estructuras.cantidadClaves(estructura) + 1;
     const densidad = intentos / (estructura.n * r);
-    if (densidad >= estructura.parametros.umbralExpandir) {
+    if (!conservarTamano && densidad >= estructura.parametros.umbralExpandir) {
       const { n0, modoExpansion } = estructura.parametros;
       // `clave` no está todavía en `ordenLlegada` —el efecto que la coloca (o
       // el choque que la dejó afuera) sigue sin aplicarse—, así que se agrega

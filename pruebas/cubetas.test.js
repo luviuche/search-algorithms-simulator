@@ -52,6 +52,12 @@ function insertarTodas(estructura, claves) {
   for (const clave of claves) aplicar(estructura, cubetasAlg.insertar({ estructura, clave }));
 }
 
+// Así reinserta la pantalla al abrir un archivo (`colocarSinTraza`): sin
+// cambiar de tamaño, porque el `n` guardado ya es el que la tabla alcanzó.
+function reinsertarTodas(estructura, claves) {
+  for (const clave of claves) aplicar(estructura, cubetasAlg.insertar({ estructura, clave, conservarTamano: true }));
+}
+
 function eliminarTodas(estructura, claves) {
   for (const clave of claves) aplicar(estructura, cubetasAlg.eliminar({ estructura, clave }));
 }
@@ -65,6 +71,19 @@ function retrato(estructura) {
       .concat(estructura.anidados[i - 1] || [])
       .filter((valor) => valor !== undefined);
     if (renglones.length > 0) filas.push(`${i}:${renglones.join(',')}`);
+  }
+  return filas.join(' ');
+}
+
+// Lo mismo, con la fila «Col» de cada cubeta que la tenga.
+function retratoConCol(estructura) {
+  const filas = [];
+  for (let i = 1; i <= estructura.n; i++) {
+    const renglones = [estructura.claves[i - 1]]
+      .concat(estructura.anidados[i - 1] || [])
+      .filter((valor) => valor !== undefined);
+    const col = estructuras.colDe(estructura, i);
+    if (renglones.length > 0) filas.push(`${i}:${renglones.join(',')}${col.length ? ` Col ${col.join(',')}` : ''}`);
   }
   return filas.join(' ');
 }
@@ -203,6 +222,39 @@ test('eliminar de Col la saca de la lista; eliminar de la cubeta sube la primera
   assert.equal(hallada[hallada.length - 1].tipo, 'encontrada', 'la que subió se sigue encontrando');
 });
 
+// Col al reducir (2026-10-18): las claves de Col se recolocan con las demás,
+// y la que vuelve a caer en una cubeta llena queda otra vez en Col, igual que
+// al expandir. La tabla de partida: n = 4, la cubeta 0 llena con 4 y 8, y el
+// 12 en su Col.
+function tablaConColParaReducir() {
+  const estructura = crear({ n: 2, r: 2, modoExpansion: 'total', umbralExpandir: 0.75, umbralReducir: 1.25 });
+  insertarTodas(estructura, [4, 8, 12, 1, 3]);
+  assert.equal(retratoConCol(estructura), '1:4,8 Col 12 2:1 4:3');
+  return estructura;
+}
+
+test('al reducir, la clave de Col que vuelve a caer en una cubeta llena queda otra vez en Col', () => {
+  const estructura = tablaConColParaReducir();
+  // 4 claves en 4 cubetas: 100 % < 125 %, reduce a n = 2.
+  eliminarTodas(estructura, [3]);
+  assert.equal(estructura.n, 2);
+  assert.equal(retratoConCol(estructura), '1:4,8 Col 12 2:1');
+
+  // Y en la tabla reducida sigue la regla de siempre: al eliminar de la
+  // cubeta, la de Col sube al renglón que quedó libre, y se encuentra.
+  eliminarTodas(estructura, [4]);
+  assert.equal(retratoConCol(estructura), '1:8,12 2:1');
+  const hallada = cubetasAlg.buscar({ estructura, objetivo: 12 });
+  assert.equal(hallada[hallada.length - 1].tipo, 'encontrada');
+});
+
+test('eliminar una clave de Col también revisa la reducción', () => {
+  const estructura = tablaConColParaReducir();
+  eliminarTodas(estructura, [12]);
+  assert.equal(estructura.n, 2);
+  assert.equal(retratoConCol(estructura), '1:4,8 2:1,3');
+});
+
 test('reducción total: n vuelve a la mitad y compacta cada cubeta', () => {
   const estructura = crear({ n: 2, r: 3, modoExpansion: 'total' });
   insertarTodas(estructura, CLAVES);
@@ -268,7 +320,7 @@ for (const modoExpansion of ['total', 'parcial']) {
 
     const reabierta = crear({ n: datos.n, r: 3, modoExpansion, umbralExpandir: 0.82, umbralReducir: 1.25 });
     reabierta.parametros.n0 = archivo.nInicial(datos);
-    insertarTodas(reabierta, datos.claves);
+    reinsertarTodas(reabierta, datos.claves);
     assert.equal(reabierta.n, original.n);
     assert.equal(retrato(reabierta), retrato(original));
 
@@ -318,4 +370,26 @@ test('durante la reubicación la densidad cuenta las claves que faltan por recol
     });
     assert.equal(pasos[pasos.length - 1].pendientes, 0);
   }
+});
+
+// Una reducción puede dejar la tabla sobre el umbral de expandir: con 82 % y
+// 125 %, al bajar a 79 claves en 64 cubetas reduce a 32, y 79 / 96 = 82,3 %.
+// Es correcto —la próxima inserción expande—, pero al abrir el archivo,
+// reinsertando con la revisión de densidad, la clave 79 volvía a expandir y
+// la tabla se abría con 64 cubetas en vez de 32 (fuzz de Col, 2026-10-18).
+test('abrir una tabla que una reducción dejó sobre el umbral de expandir no la expande', () => {
+  const archivo = CC2.persistencia.archivo;
+  const original = crear({ n: 2, r: 3, modoExpansion: 'total' });
+  insertarTodas(original, Array.from({ length: 81 }, (_, i) => i + 1));
+  assert.equal(original.n, 64);
+  eliminarTodas(original, [1, 2]);
+  assert.equal(original.n, 32);
+  assert.ok(cubetasDom.densidadExpandir(original) >= 0.82, 'queda sobre el umbral de expandir');
+
+  const datos = JSON.parse(archivo.comoTexto(archivo.serializar({ tema: 'cubetas', estructura: original })));
+  const reabierta = crear({ n: datos.n, r: 3, modoExpansion: 'total' });
+  reabierta.parametros.n0 = archivo.nInicial(datos);
+  reinsertarTodas(reabierta, datos.claves);
+  assert.equal(reabierta.n, 32);
+  assert.equal(retratoConCol(reabierta), retratoConCol(original));
 });

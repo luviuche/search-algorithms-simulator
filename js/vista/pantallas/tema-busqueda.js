@@ -1461,7 +1461,9 @@
       if (dominio.estructura.casillaDe(estado.estructura, candidato) !== 0) {
         return { exito: false };
       }
-      const pasos = config.insertar({ estructura: estado.estructura, clave: candidato });
+      // Sin cambiar de tamaño: el `n` del archivo es el que la tabla alcanzó
+      // (ver `insertar` en algoritmos/cubetas.js); los demás temas lo ignoran.
+      const pasos = config.insertar({ estructura: estado.estructura, clave: candidato, conservarTamano: true });
       const huboColocacion = pasos.some((paso) => paso.efecto);
       if (!huboColocacion) return { exito: false };
       for (const paso of pasos) {
