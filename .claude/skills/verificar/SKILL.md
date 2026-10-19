@@ -59,13 +59,14 @@ Si el estado que hace falta no existe, **se agrega una función `preparar…` a 
 
 ## Trampas de este entorno
 
-Las tres viven resueltas en `scripts/navegador.js`; están aquí por si hay que llamar a Edge a mano.
+Las cuatro viven resueltas en `scripts/navegador.js`; están aquí por si hay que llamar a Edge a mano.
 
 - **`--screenshot` necesita ruta absoluta de Windows.** Con una relativa falla con "Access is denied" y no explica por qué.
 - **El `#salida` del volcado se extrae con una expresión regular sobre el HTML, no con `sed`.** El `<pre>` lleva atributo `style` y su texto es multilínea; grepear el volcado entero cuenta las palabras del propio script y da falsos positivos.
 - **Sin `--virtual-time-budget` suficiente el volcado sale a medias**, con pruebas que ni llegaron a correr. La prueba de humo usa 30 s de tiempo virtual, que no es tiempo de reloj.
+- **El viewport sale más bajo que `--window-size`** (2026-10-18): el navegador sin interfaz descuenta una barra que no dibuja, 87 px en Chromium para Linux. Con `1280,633` la página medía 546 de alto, y el humo «a 950» corría a 863, así que nunca corrían las comprobaciones de la pantalla de referencia (`innerHeight >= 900`). `volcar` mide el margen una vez por corrida (`margenDeLaVentana`) y lo suma a la ventana. **La captura no se puede compensar**: prepara el estado con el alto menor y agranda el viewport justo antes de la foto, así que la foto sale al tamaño pedido con el CSS reacomodado, pero lo que el código midió al prepararla —una escala, un tope— se decidió con 87 px menos, salvo lo que vuelve a medir al cambiar la ventana. Si una foto no cuadra con el humo, sospechar de esto.
 
-Se busca Edge en las rutas habituales de Windows y, si no está, el primer navegador de la familia Chromium que haya en el `PATH` (`microsoft-edge`, `chromium`, `google-chrome`…): **en Linux funciona sin configurar nada**. Para forzar otro, la variable de entorno `CC2_EDGE` (p. ej. `CC2_EDGE=/usr/bin/brave node …`).
+Se busca Edge en las rutas habituales de Windows y, si no está, el primer navegador de la familia Chromium que haya en el `PATH` (`microsoft-edge`, `chromium`, `google-chrome`…): **en Linux funciona sin configurar nada**. Para forzar otro, la variable de entorno `CC2_EDGE` (p. ej. `CC2_EDGE=/usr/bin/chromium node …`). **No sirve con Brave Origin**, el navegador del usuario desde 2026-10: sin interfaz no termina nunca —ni con perfil aparte, ni sin `--virtual-time-budget`, ni con `--headless=new`—, y `spawnSync` se queda esperando. Su lanzador (`/opt/brave-origin-bin/brave-origin`) le suma sus propias banderas. Las pruebas siguen en el Chromium del sistema, que tiene el mismo motor (Blink) una versión atrás.
 
 ## Qué se reporta al terminar
 

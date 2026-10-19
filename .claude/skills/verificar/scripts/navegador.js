@@ -73,15 +73,45 @@ function correr(banderas, { capturarSalida = false } = {}) {
   return capturarSalida ? resultado.stdout : '';
 }
 
+// **El viewport sale más bajo que la ventana** (2026-10-18): Chromium sin
+// interfaz descuenta el alto de una barra de navegador que no dibuja —87 px en
+// Linux—, así que `--window-size=1280,633` daba a la página 546 px de alto, y
+// la prueba de humo «a 950» corría a 863. Se mide una vez por corrida, con una
+// página mínima, en vez de fijar 87: en otro sistema puede ser otro, o cero.
+let margenMedido = null;
+function margenDeLaVentana() {
+  if (margenMedido !== null) return margenMedido;
+  const alto = 950;
+  const volcado = correr([
+    `--window-size=1500,${alto}`,
+    '--virtual-time-budget=1000',
+    '--dump-dom',
+    'data:text/html,<body><script>document.body.textContent = "viewport:" + innerHeight + ":"</script></body>'
+  ], { capturarSalida: true });
+  const medido = volcado.match(/viewport:(\d+):/);
+  margenMedido = medido ? Math.max(0, alto - Number(medido[1])) : 0;
+  return margenMedido;
+}
+
+// La ventana se pide con el margen sumado, para que la página tenga desde el
+// principio el alto que se pidió.
 function volcar({ ruta, consulta = '', ancho = 1500, alto = 950, presupuesto = 30000 }) {
   return correr([
-    `--window-size=${ancho},${alto}`,
+    `--window-size=${ancho},${alto + margenDeLaVentana()}`,
     `--virtual-time-budget=${presupuesto}`,
     '--dump-dom',
     urlDe(ruta, consulta)
   ], { capturarSalida: true });
 }
 
+// **La captura no se puede compensar así**: la página arranca igual con el
+// margen de menos (ver `margenDeLaVentana`), pero justo antes de la foto el
+// navegador agranda el viewport al tamaño de la ventana, y la foto sale de ese
+// tamaño. Sumarle el margen solo daría una foto más alta. La foto sí sale al
+// tamaño pedido, con el CSS ya reacomodado; lo que el código decidió midiendo
+// durante la preparación —una escala, un tope— se decidió con el alto menor,
+// salvo lo que vuelve a medir al cambiar la ventana.
+//
 // `quieto` pide al navegador movimiento reducido: la aplicación salta las
 // animaciones (FLIP, fundidos) y la foto sale con todo ya en su sitio. Sin
 // él, el navegador sin interfaz congela las animaciones en su primer cuadro.
@@ -114,4 +144,4 @@ function salidaDe(volcado) {
     .replace(/&amp;/g, '&');
 }
 
-module.exports = { RAIZ, navegador, urlDe, volcar, fotografiar, salidaDe };
+module.exports = { RAIZ, navegador, urlDe, volcar, fotografiar, salidaDe, margenDeLaVentana };
