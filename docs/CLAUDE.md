@@ -1402,11 +1402,18 @@ Consecuencia: **una estructura reciente se identifica por su tema y por los dato
 
 **Van en una tira bajo la barra del menú** (2026-09-27): cada una es una pastilla con su tema y los datos con que se creó —la fecha, en el `title`—, y si no caben todas se desvanece el borde derecho, como en el lienzo. Hasta entonces eran un panel de 320 px a la derecha que se quedaba con el ancho del catálogo; en un portátil las descripciones del índice acababan en columnas de una palabra. Sin recientes no hay tira.
 
-**No se pueden abrir**: guardan el nombre del tema y un resumen, no la estructura. Son un recordatorio. Hacerlas útiles —abrir el tema con la misma estructura— exigiría guardar también las claves, un autoguardado local del `.cc2`; queda como idea, no decidida.
+**Se abren como las dejó el estudiante** (pedido del usuario, 2026-10-21; elegido sobre «vacía con los mismos parámetros»). Hasta entonces guardaban solo el tema y un resumen: eran un recordatorio. Ahora cada una lleva `datos` —lo mismo que se escribiría en el `.cc2`, `archivo.serializar`—, la clave del tema en el catálogo y un `id`, y cada pastilla es un botón que entra al tema con esa estructura. Lo que quedó:
 
-`captura.html` las siembra con `?recientes=5` (y las borra con `?recientes=0`): el navegador sin interfaz no tiene ninguna guardada, y sin eso las capturas del menú salían siempre sin la tira, que es como casi nunca se ve de verdad.
+- **Abrir una reciente es abrir su archivo en su tema**: pasa por `cargarDatos`, con las mismas validaciones (lo guardado pudo quedar de una versión anterior de la aplicación). La bitácora dice «Estructura reciente abierta», no «Archivo abierto». Si no vale, se entra al tema como siempre y se dice por qué.
+- **Se actualiza en cuanto empieza cada operación, con el estado de cuando termine** (`datosDeLaReciente`, en `tema-busqueda.js`): se aplican todos los efectos de la traza —lo que hace `invalidarReproduccion` al abandonarla—, se copia, y se devuelve la estructura a como estaba en pantalla. Salir al menú a mitad de una expansión no deja la tabla a medio recolocar. También al vaciar y al abrir.
+- **Una por estructura, no por datos de creación.** La pantalla recuerda el `id` de la suya (`estado.recienteId`) y la va actualizando; la última tocada pasa al frente. Crear otra vez la misma —mismo tema, datos y claves— no repite la línea; con otras claves es otra estructura y no pisa la anterior. Un archivo abierto entra como una estructura más.
+- **Los árboles, que se crean al entrar, no dejan una reciente vacía** al abrirse desde la tira: entran directamente con la guardada.
+- **La pastilla dice cuántas claves tiene** («· 12 claves», «· vacía»; nada en índices, que no las tiene), que es lo que distingue dos con los mismos datos de creación. La fecha y el aviso de que vive en el navegador van en su `title`.
+- Las guardadas antes no traían nada que abrir y se descartan al leer.
 
-Hasta 5, en almacenamiento del navegador. **No son la copia real**: si el estudiante borra datos de navegación, desaparecen. La interfaz debe dejar claro que el archivo `.cc2` es la copia real.
+`captura.html` las siembra con `?recientes=5` (y las borra con `?recientes=0`), ya con sus `datos`: el navegador sin interfaz no tiene ninguna guardada, y sin eso las capturas del menú salían siempre sin la tira, que es como casi nunca se ve de verdad. El humo las abre por el DOM (`recientesQueSeAbren`), en secuencial, un árbol, cubetas expandida, Huffman e índices.
+
+Hasta 5, en almacenamiento del navegador. **No son la copia real**: si el estudiante borra datos de navegación, desaparecen. La interfaz debe dejar claro que el archivo `.cc2` es la copia real: hoy lo dice el `title` de cada pastilla.
 
 ### Al cargar
 

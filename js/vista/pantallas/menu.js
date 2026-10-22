@@ -129,11 +129,21 @@
   // catálogo, y en un portátil las descripciones del índice acababan en
   // columnas de una palabra. En la tira cada una es una pastilla —tema y los
   // datos con que se creó—, y si no caben todas se desvanece el borde, como
-  // en el lienzo. La fecha pasa al `title`.
+  // en el lienzo.
   //
-  // No se pueden abrir: guardan el nombre del tema y un resumen, no la
-  // estructura. Son un recordatorio; la copia real es el archivo .cc2.
-  function crearTiraRecientes(recientes) {
+  // **Y se abren** (pedido del usuario, 2026-10-21): cada pastilla es un botón
+  // que entra al tema con la estructura como la dejó el estudiante, y dice
+  // cuántas claves tiene, que es lo que distingue dos con los mismos datos de
+  // creación. El `title` lleva la fecha y que vive en el navegador: la copia
+  // real es el archivo .cc2 (CLAUDE.md 10.4).
+  function cantidadDeClaves(datos) {
+    if (datos.sinClaves) return '';
+    const cantidad = datos.claves.length;
+    if (cantidad === 0) return 'vacía';
+    return cantidad === 1 ? '1 clave' : `${cantidad} claves`;
+  }
+
+  function crearTiraRecientes(recientes, alAbrirReciente) {
     const tira = document.createElement('section');
     tira.className = 'tira-recientes';
     tira.setAttribute('aria-label', 'Estructuras recientes');
@@ -146,15 +156,26 @@
     lista.className = 'tira-recientes__lista';
     for (const item of recientes) {
       const li = document.createElement('li');
-      li.className = 'tira-recientes__item';
-      li.title = formatearFecha(item.fecha);
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'tira-recientes__item';
+      boton.title = `${formatearFecha(item.fecha)}. Guardada en este navegador; la copia real es el archivo .cc2.`;
       const tema = document.createElement('span');
       tema.className = 'tira-recientes__tema';
       tema.textContent = item.temaTitulo;
       const detalle = document.createElement('span');
       detalle.className = 'tira-recientes__detalle';
       detalle.textContent = item.detalle;
-      li.append(tema, detalle);
+      boton.append(tema, detalle);
+      const claves = cantidadDeClaves(item.datos);
+      if (claves) {
+        const cantidad = document.createElement('span');
+        cantidad.className = 'tira-recientes__claves';
+        cantidad.textContent = claves;
+        boton.append(cantidad);
+      }
+      boton.addEventListener('click', () => alAbrirReciente(item));
+      li.appendChild(boton);
       lista.appendChild(li);
     }
     tira.append(titulo, lista);
@@ -192,7 +213,7 @@
     return escala;
   }
 
-  function crearPantallaMenu({ catalogo, recientes, alSeleccionarTema }) {
+  function crearPantallaMenu({ catalogo, recientes, alSeleccionarTema, alAbrirReciente }) {
     const pantalla = document.createElement('div');
     pantalla.className = 'pantalla pantalla-menu-app';
 
@@ -233,7 +254,7 @@
 
     cuerpo.appendChild(columnaCatalogo);
     pantalla.append(barra);
-    if (recientes.length > 0) pantalla.append(crearTiraRecientes(recientes));
+    if (recientes.length > 0) pantalla.append(crearTiraRecientes(recientes, alAbrirReciente));
     pantalla.append(cuerpo);
 
     // Se escala al montarse y cada vez que cambia la ventana; el oyente se

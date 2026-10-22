@@ -641,6 +641,7 @@
       lienzoSinBarras();
       panelLateralPlegado();
       archivos();
+      recientesQueSeAbren();
       controlDeVelocidad();
     }
 
@@ -3432,6 +3433,116 @@
       registro.push('  diálogo de guardado disponible: ' + CC2.persistencia.archivo.hayDialogoDeGuardado());
 
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Las recientes del menú se abren como las dejó el estudiante (pedido del
+    // usuario, 2026-10-21; CLAUDE.md 10.4): se guardan tras cada operación,
+    // ya consumada aunque se salga a la mitad, y abrir una no la duplica.
+    function recientesQueSeAbren() {
+      registro.push('', '── Recientes que se abren ──');
+      try { window.localStorage.removeItem('cc2:recientes'); } catch (error) { /* sin almacenamiento */ }
+      const guardadas = () => CC2.persistencia.recientes.obtener();
+      const pastillas = () => [...document.querySelectorAll('.tira-recientes__item')];
+      const volver = () => document.querySelector('.pantalla-tema__volver').click();
+      const clavesEnPantalla = () => [...document.querySelectorAll('.estructura-horizontal .casilla')]
+        .map((casilla) => casilla.dataset.clave).filter((clave) => !clave.startsWith('vacia-'));
+
+      entrarATema('Búsqueda secuencial');
+      let formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { n: 12, l: 2 });
+      for (const clave of [10, 20, 30]) operar(formularios, 'insertar', clave);
+      // Se sale con la cuarta inserción recién empezada: la reciente la tiene.
+      operar(formularios, 'insertar', 40);
+      volver();
+
+      afirmar(pastillas().length === 1, `al volver, el menú muestra una reciente (${pastillas().length})`);
+      const pastilla = pastillas()[0];
+      afirmar(
+        pastilla && pastilla.textContent.includes('Búsqueda secuencial') && pastilla.textContent.includes('4 claves'),
+        `la pastilla dice el tema y cuántas claves tiene (${pastilla ? pastilla.textContent : 'ninguna'})`
+      );
+      afirmar(
+        pastilla && pastilla.tagName === 'BUTTON' && pastilla.title.includes('.cc2'),
+        'la pastilla es un botón, y su título dice que la copia real es el archivo .cc2'
+      );
+
+      pastilla.click();
+      const titulo = document.querySelector('.pantalla-tema h1');
+      afirmar(titulo && titulo.textContent === 'Búsqueda secuencial', `abrirla entra a su tema (${titulo ? titulo.textContent : 'nada'})`);
+      afirmar(
+        clavesEnPantalla().join(',') === '10,20,30,40',
+        `con las claves como quedaron, la inserción interrumpida incluida (${clavesEnPantalla().join(',')})`
+      );
+      afirmar(
+        document.querySelector('.bitacora').textContent.includes('Estructura reciente abierta'),
+        'la bitácora dice que se abrió una reciente, no un archivo'
+      );
+
+      formularios = [...document.querySelectorAll('form.panel')];
+      operar(formularios, 'eliminar', 20);
+      volver();
+      const deSecuencial = guardadas().filter((item) => item.tema === 'secuencial');
+      afirmar(
+        deSecuencial.length === 1 && deSecuencial[0].datos.claves.join(',') === '10,30,40',
+        `seguir trabajando actualiza la misma reciente, sin duplicarla (${deSecuencial.map((item) => item.datos.claves.join(',')).join(' | ')})`
+      );
+
+      // Un árbol se crea solo al entrar: abrirlo desde la reciente no tiene
+      // que dejar otra reciente vacía en la lista.
+      entrarATema('Árbol de búsqueda digital');
+      formularios = [...document.querySelectorAll('form.panel')];
+      for (const letra of ['c', 'a']) operar(formularios, 'insertar', letra);
+      volver();
+      pastillas().find((boton) => boton.textContent.includes('Árbol de búsqueda digital')).click();
+      volver();
+      const deArbol = guardadas().filter((item) => item.tema === 'arbol-digital');
+      afirmar(
+        deArbol.length === 1 && deArbol[0].datos.claves.length === 2,
+        `el árbol abierto desde su reciente no deja otra vacía (${deArbol.map((item) => item.datos.claves.length).join(' | ')})`
+      );
+      afirmar(pastillas()[0].textContent.includes('Árbol de búsqueda digital'), 'la última tocada va primero');
+
+      // Los temas que se abren distinto: cubetas expandida —su `n` cambió—,
+      // Huffman —se guarda su palabra— e índices —sin claves, sus parámetros—.
+      const abrirReciente = (tema) => pastillas().find((boton) => boton.textContent.includes(tema)).click();
+      const metricas = () => [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
+      const sinError = () => !document.querySelector('.pantalla-tema__alertas .alerta--error');
+
+      entrarATema('Otras búsquedas dinámicas');
+      formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { n: 2, r: 3, modoExpansion: 'total', umbralExpandir: 82, umbralReducir: 125 });
+      for (const clave of [15, 26, 48, 79, 35, 62]) operar(formularios, 'insertar', clave);
+      volver();
+      abrirReciente('Otras búsquedas dinámicas');
+      afirmar(sinError() && metricas()[2] === '4', `cubetas expandida se abre con n = 4 (n = ${metricas()[2]})`);
+      volver();
+
+      entrarATema('Árbol de Huffman');
+      const panelHuffman = document.querySelector('form.panel');
+      panelHuffman.querySelector('[name="palabra"]').value = 'ciencias';
+      panelHuffman.querySelector('[data-accion="insertar-palabra"]').click();
+      volver();
+      abrirReciente('Árbol de Huffman');
+      afirmar(
+        sinError() && document.querySelectorAll('.bosque__arbol').length === 1 && !!document.querySelector('.tabla-codigos'),
+        'Huffman se abre con el árbol de su palabra ya construido'
+      );
+      volver();
+
+      entrarATema('Índices primarios, secundarios y multinivel');
+      formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { r: 500000, B: 4096, R: 120, Ri: 15, tipo: 'primario', niveles: 'un-nivel' });
+      volver();
+      abrirReciente('Índices');
+      afirmar(
+        sinError() && document.querySelector('.bitacora').textContent.includes('Estructura reciente abierta'),
+        'índices se abre con sus parámetros'
+      );
+      volver();
+      afirmar(
+        guardadas().length === CC2.persistencia.recientes.MAXIMO,
+        `la lista no pasa de ${CC2.persistencia.recientes.MAXIMO} (${guardadas().length})`
+      );
     }
 
     // El deslizador crece hacia la derecha porque se llama «Velocidad»: a la

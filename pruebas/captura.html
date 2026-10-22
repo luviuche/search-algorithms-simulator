@@ -50,13 +50,23 @@
     (function () {
       const cuantas = new URLSearchParams(location.search).get('recientes');
       if (cuantas === null) return;
+      // Con `datos`, como las guarda la pantalla desde 2026-10-21: sin ellos
+      // se descartan al leer (ver `persistencia/recientes.js`).
+      const datos = (tema, modo, n, l, claves, extra = {}) => Object.assign({
+        version: 1, tema, sinClaves: false, tipoClave: 'numerica', modo, n, l, tratamiento: null, parametros: { n0: n }, claves
+      }, extra);
       const ejemplo = [
-        { temaTitulo: 'Búsqueda binaria externa', detalle: 'N = 23 · 5 bloques de 5' },
-        { temaTitulo: 'Función módulo', detalle: 'n = 12 · l = 4' },
-        { temaTitulo: 'Índices primarios, secundarios y multinivel', detalle: 'r = 500000 · B = 4096' },
-        { temaTitulo: 'Búsqueda binaria', detalle: 'n = 24 · l = 2' },
-        { temaTitulo: 'Árbol de Huffman', detalle: 'árbol de Huffman' }
-      ].slice(0, Number(cuantas)).map((item) => Object.assign({ fecha: new Date().toISOString() }, item));
+        { tema: 'binaria-externa', temaTitulo: 'Búsqueda binaria externa', detalle: 'N = 23 · 5 bloques de 5',
+          datos: datos('binaria-externa', 'ordenada', 23, 4, [1010, 1023, 1105, 1204, 1310, 2011, 2230, 3020, 3145, 3388, 4102, 4521]) },
+        { tema: 'hash-modulo', temaTitulo: 'Función módulo', detalle: 'n = 12 · l = 4',
+          datos: datos('hash-modulo', 'dispersa', 12, 4, [1234, 5678, 4321, 8765, 1111, 2222, 3333], { tratamiento: 'reasignacion' }) },
+        { tema: 'cubetas', temaTitulo: 'Otras búsquedas dinámicas', detalle: 'n = 4 · r = 3',
+          datos: datos('cubetas', 'dispersa', 4, undefined, [115, 96, 48, 79, 35, 26, 57, 81, 70],
+            { parametros: { n0: 2, r: 3, modoExpansion: 'total', umbralExpandir: 0.82, umbralReducir: 1.25 } }) },
+        { tema: 'binaria', temaTitulo: 'Búsqueda binaria', detalle: 'n = 24 · l = 2', datos: datos('binaria', 'ordenada', 24, 2, []) },
+        { tema: 'huffman', temaTitulo: 'Árbol de Huffman', detalle: 'árbol de Huffman',
+          datos: datos('huffman', 'arbol', 8, 1, 'ciencias'.split(''), { tipoClave: 'alfabetica' }) }
+      ].slice(0, Number(cuantas)).map((item, indice) => Object.assign({ id: `ejemplo-${indice}`, fecha: new Date().toISOString() }, item));
       try {
         window.localStorage.setItem('cc2:recientes', JSON.stringify(ejemplo));
       } catch (error) { /* sin almacenamiento, la captura sale sin recientes */ }

@@ -55,7 +55,9 @@
   // declarar el `efecto` que produce —colocar, retirar o eliminar— y es esta
   // pantalla la que lo aplica al llegar y lo deshace al retroceder, rehaciendo
   // desde el estado previo a la operación (ver `sincronizarEfectos`).
-  function crearPantallaTema(config, alVolver) {
+  // `reciente`, si se entra desde la tira del menú: la estructura se abre como
+  // la dejó el estudiante (ver `persistencia.recientes`).
+  function crearPantallaTema(config, alVolver, { reciente = null } = {}) {
     const estado = {
       estructura: null,
       reproductor: null,
@@ -80,7 +82,9 @@
       // `eliminar`—: una métrica puede cambiar según lo que se está haciendo
       // (cubetas, la densidad para reducir al eliminar). Se olvida al
       // invalidar la reproducción.
-      operacion: null
+      operacion: null,
+      // La reciente que esta estructura va actualizando (ver `anotarReciente`).
+      recienteId: null
     };
     const dom = { metricas: {}, etiquetasMetricas: {} };
 
@@ -931,6 +935,7 @@
       const pasos = ultimo ? pasosDelAlgoritmo.concat(pasoFinal(ultimo)) : pasosDelAlgoritmo;
       estado.pasos = pasos;
       estado.clavesBase = instantaneaDeLaEstructura();
+      anotarReciente();
       calcularSegmentosApilado();
       habilitarReproduccion(true);
       // Sin mensaje inicial cuando la operación es un solo paso que ya dice
@@ -1490,6 +1495,44 @@
       });
     }
 
+    // **La reciente se guarda como queda la estructura al terminar la
+    // operación**, desde que la operación empieza (2026-10-21): si el
+    // estudiante sale al menú a mitad de una expansión, la reciente no puede
+    // quedarse con la tabla a medio recolocar. Se aplican todos los efectos de
+    // la traza —lo mismo que hace `invalidarReproduccion` al abandonarla—, se
+    // copia, y se devuelve la estructura a como estaba en pantalla.
+    function datosDeLaReciente() {
+      const enCurso = estado.pasos && estado.clavesBase;
+      const enPantalla = enCurso ? instantaneaDeLaEstructura() : null;
+      if (enCurso) sincronizarEfectos(Infinity);
+      const estructura = estructuraAGuardar();
+      const entrada = {
+        tema: config.id,
+        temaTitulo: config.titulo,
+        detalle: resumenDeEstructura(estado.estructura),
+        datos: persistencia.archivo.serializar({
+          tema: config.id,
+          estructura,
+          titulo: config.titulo,
+          sinClaves: !!config.sinClaves
+        })
+      };
+      // Copiado ya: lo que sigue devuelve la estructura a como estaba.
+      entrada.datos = JSON.parse(JSON.stringify(entrada.datos));
+      if (enCurso) restaurarEstructura(enPantalla);
+      return entrada;
+    }
+
+    function anotarReciente() {
+      if (!estado.recienteId || !estado.estructura) return;
+      persistencia.recientes.actualizar(estado.recienteId, datosDeLaReciente());
+    }
+
+    // Una estructura nueva —creada o abierta de un archivo— entra a la lista.
+    function registrarReciente() {
+      estado.recienteId = persistencia.recientes.registrar(datosDeLaReciente());
+    }
+
     function guardarArchivo() {
       if (!requiereEstructura()) return;
       const estructura = estructuraAGuardar();
@@ -1521,6 +1564,32 @@
       });
     }
 
+    function compatibilidadCon(datos) {
+      return persistencia.archivo.compatibilidad(datos, {
+        tema: config.id,
+        modo: config.modo || dominio.estructura.MODOS.ORDENADA,
+        tipoClave: config.claveEsLetra ? 'alfabetica' : 'numerica',
+        sinClaves: !!config.sinClaves
+      });
+    }
+
+    // Una reciente se abre por el mismo camino que un archivo de su tema, con
+    // las mismas validaciones: lo que hay en el navegador pudo quedar de una
+    // versión anterior de la aplicación. Si no vale, se entra al tema como
+    // siempre y se dice por qué.
+    function abrirReciente(entrada) {
+      const validacion = persistencia.archivo.validar(entrada.datos);
+      const cruce = validacion.valido ? compatibilidadCon(validacion.datos) : null;
+      if (!cruce || !cruce.abre) {
+        entrarSinEstructura();
+        mostrarAlerta('error', `No se pudo abrir la estructura reciente: ${(cruce || validacion).mensaje}`);
+        return;
+      }
+      cargarDatos(validacion.datos, cruce, { recienteId: entrada.id });
+      // Si algo no valía y no se creó nada, el tema queda como al entrar.
+      if (!estado.estructura) entrarSinEstructura();
+    }
+
     function abrirArchivo(archivo) {
       persistencia.archivo.leer(archivo).then((lectura) => {
         if (!lectura.exito) {
@@ -1536,12 +1605,7 @@
         }
         // Un archivo de otro tema sí se abre, si sus claves valen aquí: es lo
         // que permite ver las mismas claves en secuencial y en binaria.
-        const cruce = persistencia.archivo.compatibilidad(validacion.datos, {
-          tema: config.id,
-          modo: config.modo || dominio.estructura.MODOS.ORDENADA,
-          tipoClave: config.claveEsLetra ? 'alfabetica' : 'numerica',
-          sinClaves: !!config.sinClaves
-        });
+        const cruce = compatibilidadCon(validacion.datos);
         if (!cruce.abre) {
           mostrarAlerta('error', cruce.mensaje);
           return;
@@ -1574,7 +1638,9 @@
     // Rehace la estructura y vuelve a meter las claves **en el orden en que
     // llegaron**, sin traza: abrir un archivo es preparar el escenario, no la
     // lección — el mismo criterio que el llenado automático (CLAUDE.md 6.5).
-    function cargarDatos(datos, cruce) {
+    // `recienteId`, si lo que se abre es una reciente: sigue siendo esa, y no
+    // una nueva. Un archivo abierto entra a la lista como una estructura más.
+    function cargarDatos(datos, cruce, { recienteId = null } = {}) {
       invalidarReproduccion();
 
       // **Del archivo salen las claves; lo demás depende de quién lo abra.**
@@ -1673,6 +1739,13 @@
         parametros
       });
       if (!estructura) return;
+      // Desde aquí la estructura es la nueva: lo que se anote —la derivación
+      // de índices, la construcción de Huffman— es de su reciente, no de la
+      // que había en pantalla.
+      estado.recienteId = recienteId;
+      const fijarReciente = () => (recienteId ? anotarReciente() : registrarReciente());
+      // La bitácora dice de dónde salió: una reciente no es un archivo.
+      const origen = recienteId ? 'Estructura reciente abierta' : 'Archivo abierto';
 
       // El panel de configuración refleja lo que se acaba de abrir: si siguiera
       // mostrando los valores anteriores, diría una cosa mientras el lienzo
@@ -1688,7 +1761,7 @@
       // derivación que dispara crearla.
       if (config.sinClaves) {
         vista.componentes.bitacora.vaciar(dom.bitacora);
-        registrarBitacora(`Archivo abierto: ${config.detalleReciente
+        registrarBitacora(`${origen}: ${config.detalleReciente
           ? config.detalleReciente(estructura)
           : `n = ${datos.n}`}.`);
         limpiarAlerta();
@@ -1696,6 +1769,7 @@
         if (config.alCrear) {
           reproducirOperacion(config.alCrear({ estructura }), config.mensajeDerivacion || 'Derivación iniciada.');
         }
+        fijarReciente();
         return;
       }
 
@@ -1713,14 +1787,15 @@
         estado.palabra = validacion.letras.slice();
         reproducirOperacion(
           config.insertarPalabra({ estructura: estado.estructura, letras: validacion.letras }),
-          `Archivo abierto: palabra ${validacion.valor}.`
+          `${origen}: palabra ${validacion.valor}.`
         );
         estado.reproductor.irAPaso(estado.pasos.length - 1);
         // La bitácora dice lo que pasó: se abrió el archivo, no se recorrió la
         // construcción —el primer paso se había apuntado al arrancarla—.
         vista.componentes.bitacora.vaciar(dom.bitacora);
-        registrarBitacora(`Archivo abierto: palabra ${validacion.valor}.`);
+        registrarBitacora(`${origen}: palabra ${validacion.valor}.`);
         mostrarAlerta('info', `Árbol abierto: palabra ${validacion.valor}, ya construido. Retroceda para ver cómo se formó.`);
+        fijarReciente();
         return;
       }
 
@@ -1729,7 +1804,8 @@
         if (colocarSinTraza(clave).exito) colocadas++;
       }
       vista.componentes.bitacora.vaciar(dom.bitacora);
-      registrarBitacora(`Archivo abierto: n = ${datos.n}, ${colocadas} clave(s).`);
+      registrarBitacora(`${origen}: n = ${datos.n}, ${colocadas} clave(s).`);
+      fijarReciente();
       renderizarEstructura(null);
       actualizarMetricas(null);
       limpiarAlerta();
@@ -1807,10 +1883,7 @@
       // archivo .cc2, y guardar quedó para el final del proyecto (CLAUDE.md
       // 10.3). La reciente se identifica por su tema y por los datos con que
       // se creó, que es lo que el estudiante reconoce.
-      persistencia.recientes.registrar({
-        temaTitulo: config.titulo,
-        detalle: config.detalleReciente ? config.detalleReciente(estructura) : `n = ${n} · l = ${l}`
-      });
+      registrarReciente();
       // En índices no hay ninguna operación que pedir después: los parámetros
       // ya determinan la estructura entera, y lo que queda por enseñar es la
       // cuenta que lleva hasta ella. Crear la estructura arranca su traza.
@@ -1866,6 +1939,7 @@
       registrarBitacora(typeof config.mensajeReinicio === 'function'
         ? config.mensajeReinicio(rehecha)
         : (config.mensajeReinicio || 'Estructura vaciada: sin claves.'));
+      anotarReciente();
     }
 
     // «estructura» en casi todos los temas y «árbol» en los de bits: el botón
@@ -2369,15 +2443,22 @@
 
     // Los temas sin configuración entran con su estructura ya creada: no hay
     // decisión que tomar antes de empezar a insertar.
-    if (config.sinConfiguracion) {
-      const tamano = config.tamano();
-      crearYRegistrar({ n: tamano.n, l: tamano.l, tratamiento: null, parametros: {}, alEntrar: true });
-    } else {
-      // Y los demás entran con el lienzo diciendo qué falta, en vez de con un
-      // rectángulo gris y mudo, y con las operaciones apagadas.
-      renderizarEstructura(null);
-      sincronizarOperaciones();
+    function entrarSinEstructura() {
+      if (config.sinConfiguracion) {
+        const tamano = config.tamano();
+        crearYRegistrar({ n: tamano.n, l: tamano.l, tratamiento: null, parametros: {}, alEntrar: true });
+      } else {
+        // Y los demás entran con el lienzo diciendo qué falta, en vez de con un
+        // rectángulo gris y mudo, y con las operaciones apagadas.
+        renderizarEstructura(null);
+        sincronizarOperaciones();
+      }
     }
+    // Desde la tira de recientes, la estructura entra como la dejó el
+    // estudiante; sin pasar antes por la vacía de los árboles, que habría
+    // dejado otra reciente vacía en la lista.
+    if (reciente) abrirReciente(reciente);
+    else entrarSinEstructura();
     return pantalla;
   }
 

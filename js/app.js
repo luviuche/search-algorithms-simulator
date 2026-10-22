@@ -1195,7 +1195,7 @@
   // escoger entre temas, y dentro de la pantalla para situarse en el que ya se
   // escogió, que no siempre pide las mismas palabras. La diferencia deja de
   // ser un descuido y pasa a estar declarada.
-  function mostrarTema(tema) {
+  function mostrarTema(tema, { reciente = null } = {}) {
     const config = TEMAS[tema.tema];
     if (!tema.disponible || !config) {
       mostrarAlertaMenu('info', `Tema en construcción: "${tema.titulo}" aún no está implementado.`);
@@ -1208,7 +1208,29 @@
       titulo: tema.titulo,
       descripcion: config.descripcion || tema.descripcion
     });
-    montarPantalla(vista.pantallas.temaBusqueda.crearPantallaTema(configDelTema, mostrarMenu));
+    montarPantalla(vista.pantallas.temaBusqueda.crearPantallaTema(configDelTema, mostrarMenu, { reciente }));
+  }
+
+  // El nodo del catálogo de un tema, por su clave: es lo que guarda una
+  // reciente, y con él la pantalla recibe el nombre y la descripción de hoy.
+  function nodoDelTema(clave, nodos = CATALOGO) {
+    for (const nodo of nodos) {
+      if (nodo.tema === clave) return nodo;
+      const hallado = nodo.hijos ? nodoDelTema(clave, nodo.hijos) : null;
+      if (hallado) return hallado;
+    }
+    return null;
+  }
+
+  // Una reciente entra a su tema con la estructura como la dejó el estudiante
+  // (CLAUDE.md 10.4).
+  function abrirReciente(reciente) {
+    const tema = nodoDelTema(reciente.tema);
+    if (!tema) {
+      mostrarAlertaMenu('error', `El tema de esa estructura ya no existe: "${reciente.temaTitulo}".`);
+      return;
+    }
+    mostrarTema(tema, { reciente });
   }
 
   function mostrarAlertaMenu(tipo, mensaje) {
@@ -1223,7 +1245,8 @@
     const pantalla = vista.pantallas.menu.crearPantallaMenu({
       catalogo: CATALOGO,
       recientes: persistencia.recientes.obtener(),
-      alSeleccionarTema: mostrarTema
+      alSeleccionarTema: mostrarTema,
+      alAbrirReciente: abrirReciente
     });
 
     const barra = pantalla.querySelector('.pantalla-menu__barra');
