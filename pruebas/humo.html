@@ -642,6 +642,7 @@
       panelLateralPlegado();
       archivos();
       recientesQueSeAbren();
+      floyd();
       controlDeVelocidad();
     }
 
@@ -2987,6 +2988,14 @@
       const sellos = grafos.querySelectorAll('.indice__estado');
       const visibles = [...sellos].filter((el) => el.getClientRects().length > 0);
       afirmar(visibles.length === 1, `Grafos lleva el «En desarrollo» una sola vez (se ven ${visibles.length})`);
+      // Desde Floyd (2026-10-22) Grafos tiene un tema construido: va primero,
+      // y el rótulo encima de los pendientes, no en la cabecera.
+      const temasGrafos = [...grafos.querySelectorAll('.indice__tema')];
+      afirmar(
+        temasGrafos[0].textContent.includes('Floyd') && !temasGrafos[0].classList.contains('indice__tema--pendiente')
+          && visibles[0] && visibles[0].getBoundingClientRect().top > temasGrafos[0].getBoundingClientRect().bottom,
+        'en Grafos, Floyd va primero y el «En desarrollo» encima de los pendientes'
+      );
     }
 
     function controlDeElision() {
@@ -3433,6 +3442,90 @@
       registro.push('  diálogo de guardado disponible: ' + CC2.persistencia.archivo.hayDialogoDeGuardado());
 
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Caminos mínimos — Floyd (CLAUDE.md 5.12): el grafo se escribe, se ve
+    // antes de crearlo, y la traza va un paso por pareja (j, i) con las
+    // matrices de la hoja del docente; al final, los conceptos de la figura 12.
+    function floyd() {
+      registro.push('', '── Floyd ──');
+      entrarATema('Caminos mínimos — Floyd');
+      const formulario = document.querySelector('form.panel');
+      const escribir = (tipo, aristas) => {
+        formulario.querySelector('[name="tipo"]').value = tipo;
+        const campo = formulario.querySelector('[name="aristas"]');
+        campo.value = aristas;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      const crear = () => formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      const verticesDibujados = () => document.querySelectorAll('.grafo .grafo__vertice').length;
+
+      afirmar(!!formulario.querySelector('textarea[name="aristas"]'), 'las aristas se escriben en un campo de varios renglones');
+      escribir('dirigido', '1 2\n2 3\n3 1\n3 4');
+      afirmar(verticesDibujados() === 4 && !document.querySelector('.matriz-grafo'),
+        `el grafo se ve mientras se escribe, sin matriz todavía (${verticesDibujados()} vértices)`);
+
+      escribir('dirigido', '1 2\n2 2');
+      crear();
+      afirmar(!!aviso() && aviso().textContent.includes('lazo') && !document.querySelector('.matriz-grafo'),
+        `un lazo no se acepta y dice en qué renglón (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+
+      escribir('dirigido', '1 2\n2 3\n3 1\n3 4');
+      crear();
+      afirmar(!!document.querySelector('.matriz-grafo'), 'crear el grafo arranca Floyd con su matriz');
+      for (let i = 0; i < 3; i++) control('siguiente').click();
+      for (const animacion of document.getAnimations()) animacion.finish();
+      const celda = (fila, columna) => document.querySelectorAll('.matriz-grafo tr')[fila].querySelectorAll('td')[columna - 1];
+      afirmar(
+        celda(3, 2).classList.contains('matriz-grafo__celda--cambio') && celda(3, 2).textContent.endsWith('2'),
+        `j = 1, i = 3: D32 cambia a 2, en verde y con el ∞ tachado encima (${celda(3, 2).className}: ${celda(3, 2).textContent})`
+      );
+      const activas = document.querySelectorAll('.calculo .calculo__linea--activa');
+      afirmar(activas.length === 1 && activas[0].textContent.includes('sí → 2'),
+        `el panel marca la comparación que se cumple, y solo esa (${activas.length})`);
+      const vertice = (n) => document.querySelector(`.grafo__vertice[data-vertice="${n}"]`);
+      afirmar(vertice(1).classList.contains('grafo__vertice--evaluacion') && vertice(3).classList.contains('grafo__vertice--rango'),
+        'en el grafo, el intermedio j en naranja y la fila i en azul');
+      afirmarGrafoCabe('paso de Floyd');
+
+      agotarTraza(20);
+      afirmar(!!aviso() && aviso().textContent.includes('∞'),
+        `en la hoja desde 4 no se llega a nadie: no hay conceptos, y lo dice (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmar(!document.querySelector('.matriz-grafo__concepto'), 'sin conceptos no hay columnas de conceptos');
+
+      // La figura 12, no dirigida y con pesos: llega a los conceptos.
+      control('editar-configuracion').click();
+      escribir('no-dirigido', '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5');
+      formulario.querySelector('[name="tipo"]').dispatchEvent(new Event('change', { bubbles: true }));
+      crear();
+      agotarTraza(40);
+      const metricas = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
+      const rotulos = [...document.querySelectorAll('.metrica__etiqueta')].map((el) => el.textContent);
+      afirmar(metricas.join(' ') === '5 7 {2, 3} {5}' && rotulos.join(' ') === 'Radio Diámetro Centro Mediana',
+        `figura 12: radio 5, diámetro 7, centro {2, 3}, mediana {5} (${rotulos.join(' ')}: ${metricas.join(' ')})`);
+      const distancias = [...document.querySelectorAll('.matriz-grafo tr')].slice(1)
+        .map((tr) => tr.querySelectorAll('.matriz-grafo__concepto')[0].textContent);
+      afirmar(distancias.join(' ') === '22 15 14 13 12', `la columna de distancias suma cada fila (${distancias.join(' ')})`);
+      afirmarGrafoCabe('conceptos');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // El grafo y su matriz caben en el lienzo, sin desplazarse y sin bajar
+    // de la mitad, y no quedan debajo del panel del cálculo.
+    function afirmarGrafoCabe(contexto) {
+      for (const animacion of document.getAnimations()) animacion.finish();
+      const caja = document.querySelector('.estructura-grafo');
+      const encogida = parseFloat(caja.style.zoom) || 1;
+      afirmar(caja.scrollWidth <= caja.clientWidth + 1 && caja.scrollHeight <= caja.clientHeight + 1,
+        `${contexto}: el grafo y la matriz caben sin desplazarse (${caja.scrollWidth}×${caja.scrollHeight} en ${caja.clientWidth}×${caja.clientHeight}, ${encogida.toFixed(2)}×)`);
+      afirmar(encogida >= 0.5, `${contexto}: no se encogen por debajo de 0,5× (${encogida.toFixed(2)}×)`);
+      const calculo = document.querySelector('.lienzo__escenario .calculo');
+      if (calculo && calculo.getClientRects().length && getComputedStyle(calculo).opacity !== '0') {
+        const a = caja.getBoundingClientRect();
+        const b = calculo.getBoundingClientRect();
+        const encima = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        afirmar(!encima, `${contexto}: el panel del cálculo no tapa la matriz`);
+      }
     }
 
     // Las recientes del menú se abren como las dejó el estudiante (pedido del

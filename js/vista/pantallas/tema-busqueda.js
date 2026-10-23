@@ -394,6 +394,7 @@
     const { ajustarBloques, esBloques, renderizarBloques } = dibujos.bloques({ estado, dom, config, comunes });
     const { apretarDerivacion, esIndices, renderizarIndices } = dibujos.indices({ estado, dom, config, renderizarLienzoVacio, comunes });
     const { ajustarBosque, esBosque, renderizarBosque } = dibujos.bosque({ estado, dom, config, arbol: dibujoArbol, comunes, renderizarLienzoVacio });
+    const { ajustarGrafo, esGrafo, renderizarGrafo, renderizarVistaPrevia } = dibujos.grafo({ estado, dom, config, comunes });
 
     // El apilado es el dispositivo de la búsqueda: una fila por descarte. Los
     // pasos que sacan una clave no descartan nada y además cambian la
@@ -410,7 +411,13 @@
       // el diseño, 2026-09-11). Es lo primero que se ve al entrar a cualquier
       // tema con configuración.
       if (!estado.estructura) {
-        renderizarLienzoVacio();
+        // Un grafo se ve mientras se escriben sus aristas (ver
+        // `config.vistaPrevia`), antes de crearlo.
+        const previa = config.vistaPrevia && dom.configuracion
+          ? config.vistaPrevia(new FormData(dom.configuracion))
+          : null;
+        if (previa) renderizarVistaPrevia(previa);
+        else renderizarLienzoVacio();
         return;
       }
       dibujar(paso, indicePaso, opciones);
@@ -814,6 +821,10 @@
       }
       if (esIndices()) {
         renderizarIndices(paso, opciones);
+        return;
+      }
+      if (esGrafo()) {
+        renderizarGrafo(paso);
         return;
       }
       // El paso final no apila (`aplicaA`): el apilado se va y queda la
@@ -1237,10 +1248,15 @@
         // Un parámetro con `opciones` se digita eligiendo, no escribiendo: la
         // operación del plegamiento es una de dos y no tiene por qué validarse
         // contra erratas del estudiante.
+        // Uno de `tipo: 'texto-largo'` se escribe en varios renglones: las
+        // aristas de un grafo, una por renglón.
         const control = parametro.opciones
           ? `<select name="${parametro.nombre}">
                ${parametro.opciones.map((o) => `<option value="${o.valor}">${o.etiqueta}</option>`).join('')}
              </select>`
+          : parametro.tipo === 'texto-largo'
+          ? `<textarea name="${parametro.nombre}" rows="${parametro.renglones || 6}"
+                       spellcheck="false" placeholder="${parametro.marcador || ''}"></textarea>`
           : `<input type="${parametro.tipo === 'numero' ? 'number' : 'text'}"
                     name="${parametro.nombre}"
                     placeholder="${parametro.marcador || ''}">`;
@@ -1280,12 +1296,12 @@
           <input type="number" name="l" min="1" max="${dominio.limites.L_MAXIMA}" required>
         </label>`}`;
       contenedor.innerHTML = `
-        <h2 class="panel__titulo texto-nivel-2">Configuración de la estructura</h2>
+        <h2 class="panel__titulo texto-nivel-2">${config.tituloConfiguracion || 'Configuración de la estructura'}</h2>
         ${camposTamano}
         ${camposParametros}
         ${selectorTratamiento}
         <div class="pantalla-tema__controles">
-          <button type="submit" class="boton boton--primario">Crear estructura</button>
+          <button type="submit" class="boton boton--primario">Crear ${nombreEstructura()}</button>
           <button type="button" class="boton" data-accion="cancelar-configuracion" hidden>Cancelar</button>
         </div>
       `;
@@ -1307,6 +1323,15 @@
       }
       if (selector) selector.addEventListener('change', sincronizarCamposDelTratamiento);
       sincronizarCamposDelTratamiento();
+
+      // La vista previa sigue lo que se escribe, mientras no haya estructura.
+      if (config.vistaPrevia) {
+        const alEscribir = () => {
+          if (!estado.estructura) renderizarEstructura(null);
+        };
+        contenedor.addEventListener('input', alEscribir);
+        contenedor.addEventListener('change', alEscribir);
+      }
 
       contenedor.addEventListener('submit', (evento) => {
         evento.preventDefault();
@@ -2302,6 +2327,7 @@
       : esBosque() ? 'estructura-bosque'
       : esBloques() ? 'estructura-bloques'
       : esIndices() ? 'estructura-indices'
+      : esGrafo() ? 'estructura-grafo'
       : esVertical() ? 'estructura-vertical' : 'estructura-horizontal';
 
     // El cálculo se dibuja al lado de la estructura porque lo que se enseña es
@@ -2351,6 +2377,9 @@
     // Y la matriz de las externas, que se aprieta si no cabe de alto (ver
     // `ajustarBloques`).
     if (esBloques() && window.ResizeObserver) new ResizeObserver(ajustarBloques).observe(escenario);
+    // Y el grafo con su matriz, que se acomoda en fila o apilado (ver
+    // `ajustarGrafo`).
+    if (esGrafo() && window.ResizeObserver) new ResizeObserver(ajustarGrafo).observe(escenario);
     // El pico que señala la fila (ver `alinearCalculo`). Hermano del panel y
     // no parte de él: el panel recorta lo que se le sale a los lados.
     if (config.calculoSenalaCasilla && dom.calculo) {

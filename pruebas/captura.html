@@ -437,6 +437,33 @@
       avanzar(pasosAAvanzar(10));
     }
 
+    // Floyd (CLAUDE.md 5.12): por omisión, el grafo de la hoja del docente
+    // —dirigido, sin pesos—; con `?ejemplo=figura12`, el ponderado de la
+    // figura 12, que es el que llega a los conceptos. `?aristas=` y `?tipo=`
+    // dan cualquier otro, y `?previa=1` deja el formulario escrito sin crear.
+    function prepararFloyd() {
+      const formularios = entrarATema('Caminos mínimos — Floyd');
+      const ejemplos = {
+        hoja: { tipo: 'dirigido', aristas: '1 2\n2 3\n3 1\n3 4' },
+        figura12: { tipo: 'no-dirigido', aristas: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5' }
+      };
+      const ejemplo = ejemplos[parametros.get('ejemplo') || 'hoja'];
+      const valores = {
+        tipo: parametros.get('tipo') || ejemplo.tipo,
+        aristas: parametros.get('aristas') || ejemplo.aristas
+      };
+      if (parametros.get('previa')) {
+        for (const [nombre, valor] of Object.entries(valores)) {
+          const campo = formularios[0].querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
+      enviar(formularios[0], valores);
+      avanzar(pasosAAvanzar(40));
+    }
+
     // Abrir un archivo `.cc2` de verdad: se construye el JSON, se le entrega al
     // `input type="file"` con un DataTransfer —que es la única forma de
     // simular la elección de un archivo— y se dispara el `change`. La lectura
@@ -497,6 +524,7 @@
       if (vista === 'binaria-externa') return prepararSecuencialExterna('Búsqueda binaria externa');
       if (vista === 'huffman') return prepararHuffman();
       if (vista === 'indices') return prepararIndices();
+      if (vista === 'floyd') return prepararFloyd();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

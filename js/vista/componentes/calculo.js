@@ -89,9 +89,13 @@
       // La última revelada es la que el paso acaba de producir: marcarla es
       // lo que hace legible el avance cuando la reproducción va rápido. Con
       // saltos, la última revelada es el último salto.
+      // Un paso puede decir cuáles marca (`activa` en la línea): en Floyd
+      // son las comparaciones que cumplen, que pueden ser varias o ninguna.
       const haySaltos = Boolean(saltos && saltos.lineas.length);
+      const marcadasPorElPaso = lineas.some((linea) => typeof linea.activa === 'boolean');
       lineas.forEach((linea, indice) => {
-        lista.appendChild(renglon(linea, { activa: !haySaltos && indice === lineas.length - 1 }));
+        const activa = marcadasPorElPaso ? linea.activa : !haySaltos && indice === lineas.length - 1;
+        lista.appendChild(renglon(linea, { activa }));
       });
 
       if (!saltos) return;

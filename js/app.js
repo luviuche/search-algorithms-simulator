@@ -82,6 +82,11 @@
       titulo: 'Grafos',
       descripcion: 'Vértices, aristas, y los recorridos y propiedades que se derivan de ellos',
       hijos: [
+        // El primero que se construye (2026-10-22): lo que se vio en clase,
+        // los caminos mínimos y los conceptos que se leen de ellos. El docente
+        // pone los conceptos en un tema aparte; viven aquí mientras tanto, y
+        // separarlos es mover su parte de la traza a otro tema.
+        { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y el centro, el radio y la mediana que salen de ellas', tema: 'floyd', disponible: true },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: '', tema: null, disponible: false },
@@ -1002,6 +1007,133 @@
           valor: ({ paso }) => (paso && paso.estructura ? String(paso.estructura.escalones.length) : '—')
         }
       ]
+    },
+
+    // Caminos mínimos — Floyd, con los conceptos que se leen de su matriz
+    // (CLAUDE.md 5.12). Es el primer tema de grafos, y se arma como índices:
+    // el grafo **sale de los parámetros** —el tipo y las aristas escritas—, y
+    // crearlo arranca la traza. Así guardar, abrir y las recientes funcionan
+    // sin nada propio: lo que se guarda son las aristas.
+    floyd: {
+      orientacion: 'grafo',
+      calculo: true,
+      tituloCalculo: 'Comparaciones',
+      calculoSoloEnOperacion: true,
+      sinTamano: true,
+      sinLongitud: true,
+      sinOperaciones: true,
+      sinClaves: true,
+      tamano: () => ({ n: 1, l: 1 }),
+      nombreEstructura: 'grafo',
+      tituloConfiguracion: 'Grafo',
+      // Las aristas son parámetros y se quedan: vaciar devuelve la matriz a
+      // la inicial, como antes de recorrer Floyd.
+      mensajeReinicio: 'Floyd reiniciado: la matriz vuelve a la inicial.',
+      mensajeLienzoVacio: {
+        titulo: 'Escriba las aristas del grafo para recorrer Floyd',
+        indicacion: 'Una por renglón, en el panel de la derecha'
+      },
+      mensajeDerivacion: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
+      mensajeCreacion: (estructura) => {
+        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
+        return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas, `
+          + `${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}, `
+          + `${grafo.conPesos ? 'con pesos' : 'sin pesos (cada arista vale 1)'}.`;
+      },
+      detalleReciente: (estructura) => {
+        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
+        return `${grafo.vertices.length} vértices · ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}`
+          + (grafo.conPesos ? ' · con pesos' : '');
+      },
+      alCrear: ({ estructura }) => algoritmos.floyd.recorrer(
+        dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo
+      ),
+      // La matriz y los conceptos se dibujan desde el paso: el final los
+      // hereda, con las líneas de los conceptos, pero sin resaltar nada.
+      conservarAlFinal: ['matriz', 'conceptos', 'calculo', 'tituloCalculo', 'fase', 'cambios'],
+      nombreArchivo: (estructura) => {
+        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
+        return `floyd-${grafo.vertices.length}v-${grafo.tipo}`;
+      },
+      // Lo que se dibuja mientras se escriben las aristas, antes de crear.
+      vistaPrevia: (datos) => {
+        const lectura = dominio.grafo.leerGrafo(datos.get('aristas'), String(datos.get('tipo') || dominio.grafo.TIPOS.DIRIGIDO));
+        return lectura.valido ? lectura.grafo : null;
+      },
+      parametros: [
+        {
+          nombre: 'tipo',
+          etiqueta: 'Tipo de grafo',
+          opciones: [
+            { valor: 'dirigido', etiqueta: 'Dirigido' },
+            { valor: 'no-dirigido', etiqueta: 'No dirigido' }
+          ],
+          ayuda: 'En un no dirigido, cada arista vale para los dos sentidos.',
+          validar: (entrada) => (Object.values(dominio.grafo.TIPOS).includes(entrada)
+            ? { valido: true, valor: entrada }
+            : { valido: false, mensaje: 'Elija si el grafo es dirigido o no dirigido.' })
+        },
+        {
+          nombre: 'aristas',
+          etiqueta: 'Aristas',
+          tipo: 'texto-largo',
+          renglones: 7,
+          marcador: '1 2\n2 3\n3 1 4',
+          ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices, numerados.`,
+          validar: (entrada, { parametros }) => {
+            const lectura = dominio.grafo.leerGrafo(entrada, parametros.tipo);
+            return lectura.valido
+              ? { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) }
+              : { valido: false, mensaje: lectura.mensaje };
+          }
+        }
+      ],
+      casillasRelevantes: () => [],
+      describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+      // Mientras corre Floyd, lo que cuesta; con los conceptos, sus cuatro
+      // valores (maqueta C, 2026-10-22). Son las mismas cuatro casillas con
+      // otro rótulo: el panel no cambia de tamaño al pasar de una fase a otra.
+      metricas: (() => {
+        const conConceptos = (paso) => Boolean(paso && paso.conceptos);
+        const grafoDe = (estructura) => (estructura && estructura.parametros && estructura.parametros.aristas
+          ? dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo
+          : null);
+        const conjunto = (vertices) => `{${vertices.join(', ')}}`;
+        return [
+          {
+            id: 'primera',
+            etiqueta: 'Comparaciones',
+            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Radio' : 'Comparaciones'),
+            valor: ({ paso }) => (conConceptos(paso) ? String(paso.conceptos.radio) : String(paso ? paso.comparaciones || 0 : 0))
+          },
+          {
+            id: 'segunda',
+            etiqueta: 'Cambios en D',
+            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Diámetro' : 'Cambios en D'),
+            valor: ({ paso }) => (conConceptos(paso) ? String(paso.conceptos.diametro) : String(paso ? paso.cambios || 0 : 0))
+          },
+          {
+            id: 'tercera',
+            etiqueta: 'Vértices',
+            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Centro' : 'Vértices'),
+            valor: ({ paso, estructura }) => {
+              if (conConceptos(paso)) return conjunto(paso.conceptos.centro);
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'cuarta',
+            etiqueta: 'Aristas',
+            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Mediana' : 'Aristas'),
+            valor: ({ paso, estructura }) => {
+              if (conConceptos(paso)) return conjunto(paso.conceptos.mediana);
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          }
+        ];
+      })()
     },
 
     // Otras búsquedas dinámicas (CLAUDE.md 5.x): la única estructura del

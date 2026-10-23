@@ -44,6 +44,9 @@
     boton.append(titulo, guia);
 
     if (nodo.descripcion) {
+      // En una parte angosta la descripción no se dibuja (ver `crearSeccion`):
+      // queda en el `title`, para quien pase el cursor.
+      boton.title = nodo.descripcion;
       const descripcion = document.createElement('span');
       descripcion.className = 'indice__tema-descripcion texto-nivel-5';
       descripcion.textContent = nodo.descripcion;
@@ -91,16 +94,24 @@
     //   · **Sus categorías, cada una en su columna.** Búsquedas se divide en
     //     internas y externas, y cada mitad va entera en la suya: partir
     //     internas para equilibrar alturas no convenció al usuario.
-    //   · **Una parte sin ningún tema construido va angosta**: sin
-    //     descripciones, y el «En desarrollo» una sola vez, en su cabecera, en
-    //     vez de en cada renglón. Es lo que hoy le pasa a Grafos, y lo que le
-    //     deja a Búsquedas el ancho para que sus descripciones quepan.
+    //   · **Una parte con temas sin construir va angosta**: sin
+    //     descripciones, y el «En desarrollo» una sola vez en vez de en cada
+    //     renglón. Es lo que le pasa a Grafos, y lo que le deja a Búsquedas
+    //     el ancho para que sus descripciones quepan. Sin ningún tema
+    //     construido el rótulo va en la cabecera; con alguno —Floyd, desde el
+    //     2026-10-22— va encima de los pendientes, que se juntan al final:
+    //     en la cabecera habría dicho que toda la parte está en desarrollo.
+    let pendientesAlFinal = false;
     if (profundidad === 0) {
       const categorias = (nodo.hijos || []).filter((hijo) => hijo.hijos);
       if (categorias.length > 1) seccion.classList.add('indice__parte--en-columnas');
+      const hayPendientes = (nodo.hijos || []).some((hijo) => !hijo.hijos && !hijo.disponible);
       if (!tieneTemaDisponible(nodo)) {
         seccion.classList.add('indice__parte--pendiente');
         titulo.appendChild(crearEstado());
+      } else if (hayPendientes && categorias.length === 0) {
+        seccion.classList.add('indice__parte--pendiente');
+        pendientesAlFinal = true;
       }
     }
 
@@ -108,11 +119,22 @@
     // propia sección, **respetando el orden del catálogo**: en búsquedas
     // internas, secuencial y binaria van antes que transformación de claves.
     let lista = null;
-    for (const hijo of nodo.hijos || []) {
+    const hijos = pendientesAlFinal
+      ? (nodo.hijos || []).filter((hijo) => hijo.disponible).concat((nodo.hijos || []).filter((hijo) => !hijo.disponible))
+      : (nodo.hijos || []);
+    let rotuloPuesto = false;
+    for (const hijo of hijos) {
       if (hijo.hijos) {
         lista = null;
         seccion.appendChild(crearSeccion(hijo, profundidad + 1, alSeleccionarTema));
         continue;
+      }
+      if (pendientesAlFinal && !hijo.disponible && !rotuloPuesto) {
+        rotuloPuesto = true;
+        const rotulo = crearEstado();
+        rotulo.classList.add('indice__estado--rotulo');
+        seccion.appendChild(rotulo);
+        lista = null;
       }
       if (!lista) {
         lista = document.createElement('ul');

@@ -26,6 +26,7 @@
     'dominio/externa.js',
     'dominio/huffman.js',
     'dominio/indices.js',
+    'dominio/grafo.js',
 
     'algoritmos/traza.js',
     'algoritmos/secuencial.js',
@@ -49,6 +50,7 @@
     'algoritmos/binaria-externa.js',
     'algoritmos/huffman.js',
     'algoritmos/indices.js',
+    'algoritmos/floyd.js',
 
     // Serializar y validar son cálculo puro; guardar y leer usan el navegador
     // solo cuando se llaman, no al cargarse.
@@ -74,6 +76,7 @@
     'vista/dibujos/bloques.js',
     'vista/dibujos/indices.js',
     'vista/dibujos/bosque.js',
+    'vista/dibujos/grafo.js',
     'vista/pantallas/tema-busqueda.js'
   ];
 

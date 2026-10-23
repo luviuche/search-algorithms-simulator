@@ -140,11 +140,21 @@ form label {
 }
 
 .panel input,
-form input {
+form input,
+form textarea {
   border: 1px solid var(--borde-fuerte);
   border-radius: var(--radio-control);
   background: var(--superficie);
   padding: var(--espacio-2);
+}
+
+/* Las aristas de un grafo, una por renglón (CLAUDE.md 5.12): en la letra de
+   las claves, que es como se leen los números alineados. */
+form textarea {
+  font-family: var(--fuente-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
 }
 
 .panel input[type="checkbox"],

@@ -169,7 +169,8 @@
    «En desarrollo» una vez en su cabecera. */
 .indice__parte--pendiente .indice__tema .indice__estado,
 .indice__parte--pendiente .indice__guia,
-.indice__parte--pendiente .indice__parte-descripcion {
+.indice__parte--pendiente .indice__parte-descripcion,
+.indice__parte--pendiente .indice__tema-descripcion {
   display: none;
 }
 
@@ -179,6 +180,14 @@
 
 .indice__parte-titulo > .indice__estado {
   font-weight: 400;
+}
+
+/* El rótulo encima de los temas pendientes de una parte que ya tiene alguno
+   construido (Grafos desde Floyd, 2026-10-22). */
+.indice__estado--rotulo {
+  display: block;
+  margin-top: var(--espacio-3);
+  padding-left: var(--espacio-4);
 }
 
 .indice__parte,
@@ -1907,3 +1916,197 @@ form.panel > .pantalla-tema__reproduccion {
   flex: 1 0 0;
   max-height: none;
 }
+
+
+/* ── Grafos (CLAUDE.md 5.12 y 6.10) ───────────────────────────────────────
+   Séptima orientación: el grafo, la matriz de distancias y, al final, la
+   tabla de conceptos, uno al lado del otro (maquetas B, C y D, 2026-10-22).
+   Los colores son los estados de la casilla (CLAUDE.md 8.2), aplicados al
+   vértice, a la arista y a la celda: naranja lo que el paso usa, azul la
+   fila i, verde lo que cambia o lo que el concepto elige, gris lo apagado. */
+.estructura-grafo {
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  gap: var(--espacio-6);
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.lienzo__escenario .estructura-grafo {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* En una fila no cabe: el grafo encima de la matriz (ver `ajustarGrafo`). */
+.estructura-grafo--apilada {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--espacio-4);
+}
+
+.grafo {
+  flex: none;
+  overflow: visible;
+}
+
+
+.grafo__arista {
+  fill: none;
+  stroke: var(--estado-ocupada-borde);
+  stroke-width: 1.8;
+}
+
+.grafo__punta {
+  fill: var(--estado-ocupada-borde);
+}
+
+.grafo__arista--evaluacion { stroke: var(--estado-evaluacion-borde); stroke-width: 3.5; }
+.grafo__arista--encontrada { stroke: var(--estado-encontrada-borde); stroke-width: 3.5; }
+.grafo__arista--descartada { stroke: var(--estado-descartada-borde); stroke-dasharray: 4 4; }
+.grafo__punta--evaluacion { fill: var(--estado-evaluacion-borde); }
+.grafo__punta--encontrada { fill: var(--estado-encontrada-borde); }
+.grafo__punta--descartada { fill: var(--estado-descartada-borde); }
+
+/* El peso con un halo del color del lienzo: así se lee aunque una arista le
+   pase por encima. */
+.grafo__peso {
+  font-family: var(--fuente-mono);
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--tinta);
+  paint-order: stroke;
+  stroke: var(--superficie-hundida);
+  stroke-width: 4px;
+}
+
+.grafo__peso--evaluacion { fill: var(--estado-evaluacion-borde); }
+.grafo__peso--encontrada { fill: var(--estado-encontrada-borde); }
+.grafo__peso--descartada { fill: var(--tinta-suave); }
+
+.grafo__vertice circle {
+  fill: var(--estado-ocupada-relleno);
+  stroke: var(--estado-ocupada-borde);
+  stroke-width: 1.5;
+}
+
+.grafo__vertice text {
+  font-family: var(--fuente-mono);
+  font-size: 18px;
+  fill: var(--tinta);
+}
+
+.grafo__vertice--evaluacion circle { fill: var(--estado-evaluacion-relleno); stroke: var(--estado-evaluacion-borde); stroke-width: 3; }
+.grafo__vertice--rango circle { fill: var(--estado-rango-relleno); stroke: var(--estado-rango-borde); stroke-width: 3; }
+.grafo__vertice--encontrada circle { fill: var(--estado-encontrada-relleno); stroke: var(--estado-encontrada-borde); stroke-width: 3; }
+.grafo__vertice--descartada circle { fill: var(--estado-descartada-relleno); stroke: var(--estado-descartada-borde); }
+.grafo__vertice--descartada text { fill: var(--tinta-suave); }
+
+/* j e i escritos junto al vértice: son las variables de la hoja del docente,
+   y el color solo no se lee proyectado. */
+.grafo__vertice text.grafo__papel {
+  font-family: var(--fuente-condensada);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.grafo__vertice text.grafo__papel--j { fill: var(--estado-evaluacion-borde); }
+.grafo__vertice text.grafo__papel--i { fill: var(--estado-rango-borde); }
+
+/* Antes de crear el grafo, la vista previa: lo mismo, sin matriz. */
+.estructura-grafo--previa .grafo {
+  opacity: .9;
+}
+
+/* La matriz de distancias: celdas como casillas —el mismo borde, la misma
+   letra—, y la cabecera de la fila i y la columna j en el color de su papel. */
+.matriz-grafo {
+  flex: none;
+  border-collapse: separate;
+  border-spacing: var(--espacio-1);
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.matriz-grafo__titulo {
+  font-family: var(--fuente-texto);
+  font-size: 13px;
+  color: var(--tinta-suave);
+  text-align: left;
+  padding: 0 0 var(--espacio-2) var(--espacio-1);
+}
+
+.matriz-grafo th {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tinta-suave);
+  padding: 0 var(--espacio-1);
+}
+
+.matriz-grafo th.matriz-grafo__cabecera--evaluacion { color: var(--estado-evaluacion-borde); font-weight: 700; }
+.matriz-grafo th.matriz-grafo__cabecera--rango { color: var(--estado-rango-borde); font-weight: 700; }
+
+.matriz-grafo__celda {
+  width: 52px;
+  height: var(--alto-casilla);
+  text-align: center;
+  font-size: 17px;
+  color: var(--tinta);
+  background: var(--estado-ocupada-relleno);
+  border: 1px solid var(--estado-ocupada-borde);
+  border-radius: var(--radio-casilla);
+  line-height: 1.1;
+}
+
+.matriz-grafo__celda--diagonal {
+  color: var(--tinta-suave);
+  background: var(--estado-vacia-relleno);
+  border-color: var(--estado-vacia-borde);
+}
+
+.matriz-grafo__celda--infinita { color: var(--tinta-suave); }
+.matriz-grafo__celda--fila { background: var(--estado-rango-relleno); border-color: var(--estado-rango-borde); }
+.matriz-grafo__celda--operando,
+.matriz-grafo__celda--evaluacion { background: var(--estado-evaluacion-relleno); border: 2px solid var(--estado-evaluacion-borde); }
+.matriz-grafo__celda--cambio,
+.matriz-grafo__celda--encontrada { background: var(--estado-encontrada-relleno); border: 2px solid var(--estado-encontrada-borde); font-weight: 600; }
+
+/* El valor de antes, tachado encima del nuevo: como lo corrige el docente. */
+.matriz-grafo__antes {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--tinta-suave);
+  text-decoration: line-through;
+}
+
+/* Los conceptos por vértice, al final de cada fila: sin borde de casilla
+   —no son distancias—, separados por un filete, y la fila que el concepto
+   elige en su color. */
+.matriz-grafo th.matriz-grafo__cabecera--concepto {
+  font-family: var(--fuente-texto);
+  font-size: 12px;
+  padding: 0 var(--espacio-2);
+  line-height: 1.2;
+}
+
+.matriz-grafo th.matriz-grafo__cabecera--concepto span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.matriz-grafo__concepto {
+  min-width: 52px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tinta);
+  border-left: 2px solid var(--borde-fuerte);
+  border-radius: var(--radio-casilla);
+}
+
+.matriz-grafo__concepto--encontrada { background: var(--estado-encontrada-relleno); color: var(--estado-encontrada-borde); }
+.matriz-grafo__concepto--evaluacion { background: var(--estado-evaluacion-relleno); color: var(--estado-evaluacion-borde); }
+
