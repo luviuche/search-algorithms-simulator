@@ -80,6 +80,28 @@
         // vale la arista, y el primer tramo del camino que se prueba.
         aristas = (a) => (unen(a, vi, vj, grafo) ? 'evaluacion' : undefined);
       }
+      // Representación matricial: la fila que se llena en azul —un vértice o
+      // una arista— y lo que lleva 1 o −1 en ella en naranja, igual que en la
+      // matriz. En la adyacencia de vértices se resaltan también las aristas
+      // que los unen, que son las que ponen esos unos.
+      if (paso.representacion && paso.filaActual !== undefined) {
+        const r = paso.representacion;
+        const fila = r.filas[paso.filaActual];
+        const valores = r.valores[paso.filaActual];
+        const relacionados = new Set(r.columnas.filter((_, k) => valores[k] !== 0).map((c) => c.clave));
+        if (fila.clase === 'vertice') {
+          vertices.set(fila.clave, 'rango');
+          if (r.columnas[0] && r.columnas[0].clase === 'vertice') {
+            for (const otro of relacionados) vertices.set(otro, 'evaluacion');
+            aristas = (a) => ((a.origen === fila.clave && relacionados.has(a.destino))
+              || (a.destino === fila.clave && relacionados.has(a.origen)) ? 'evaluacion' : undefined);
+          } else {
+            aristas = (a) => (relacionados.has(a.nombre) ? 'evaluacion' : undefined);
+          }
+        } else {
+          aristas = (a) => (a.nombre === fila.clave ? 'rango' : relacionados.has(a.nombre) ? 'evaluacion' : undefined);
+        }
+      }
       if (paso.resaltar) {
         const { tipo, vertices: elegidos } = paso.resaltar;
         const estadoElegido = tipo === 'diametro' ? 'evaluacion' : 'encontrada';
@@ -117,7 +139,7 @@
 
       // Una punta por estado: el color de la punta no se hereda de la línea.
       const defs = svg('defs', {}, dibujo);
-      for (const estadoPunta of ['normal', 'evaluacion', 'encontrada', 'descartada']) {
+      for (const estadoPunta of ['normal', 'evaluacion', 'encontrada', 'descartada', 'rango']) {
         const marcador = svg('marker', {
           id: `grafo-punta-${estadoPunta}`,
           viewBox: '0 0 10 10', refX: 10, refY: 5,
@@ -159,16 +181,19 @@
           class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : ''),
           'marker-end': dirigido ? `url(#grafo-punta-${estadoArista || 'normal'})` : ''
         }, aristas);
-        if (grafo.conPesos) {
-          // El peso, al lado de la mitad y hacia afuera de la curva.
+        // Al lado de la mitad y hacia afuera de la curva: el peso, o en la
+        // representación matricial el nombre de la arista, que es el rótulo
+        // de su columna.
+        const conNombre = config.nombresDeAristas;
+        if (conNombre || grafo.conPesos) {
           const px = mx - uy * 13;
           const py = my + ux * 13;
           const texto = svg('text', {
             x: px, y: py,
-            class: 'grafo__peso' + (estadoArista ? ` grafo__peso--${estadoArista}` : ''),
+            class: (conNombre ? 'grafo__nombre' : 'grafo__peso') + (estadoArista ? ` grafo__peso--${estadoArista}` : ''),
             'text-anchor': 'middle', 'dominant-baseline': 'central'
           }, pesos);
-          texto.textContent = arista.peso;
+          texto.textContent = conNombre ? arista.nombre : arista.peso;
         }
       }
 
@@ -307,12 +332,108 @@
       return filas;
     }
 
+    // ── Representación matricial (CLAUDE.md 5.13) ──────────────────────────
+    // La matriz y, debajo, su estructura de adyacencia, llenándose una fila
+    // por paso (maqueta A, elegida por el usuario el 2026-10-23): son la
+    // misma información escrita de dos formas, y se ve al llenarse juntas.
+    const valorConSigno = (v) => (v < 0 ? `−${-v}` : String(v));
+
+    function crearMatrizRepresentacion(r, paso) {
+      const llenas = paso ? paso.filasLlenas : 0;
+      const actual = paso && paso.filaActual !== undefined ? paso.filaActual : null;
+      const tabla = document.createElement('table');
+      tabla.className = 'matriz-grafo matriz-grafo--representacion';
+      const titulo = document.createElement('caption');
+      titulo.className = 'matriz-grafo__titulo';
+      titulo.textContent = config.tituloRepresentacion ? config.tituloRepresentacion(r) : '';
+      tabla.appendChild(titulo);
+      const cabecera = document.createElement('tr');
+      cabecera.appendChild(document.createElement('th'));
+      r.columnas.forEach((columna, k) => {
+        const th = document.createElement('th');
+        th.scope = 'col';
+        th.textContent = columna.etiqueta;
+        if (actual !== null && r.valores[actual][k] !== 0) th.className = 'matriz-grafo__cabecera--evaluacion';
+        cabecera.appendChild(th);
+      });
+      tabla.appendChild(cabecera);
+      r.filas.forEach((fila, i) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = fila.etiqueta;
+        if (i === actual) th.className = 'matriz-grafo__cabecera--rango';
+        tr.appendChild(th);
+        r.valores[i].forEach((v) => {
+          const td = document.createElement('td');
+          const clases = ['matriz-grafo__celda'];
+          if (i >= llenas) {
+            clases.push('matriz-grafo__celda--pendiente');
+          } else {
+            if (i === actual) clases.push(v !== 0 ? 'matriz-grafo__celda--operando' : 'matriz-grafo__celda--fila');
+            td.textContent = valorConSigno(v);
+          }
+          td.className = clases.join(' ');
+          tr.appendChild(td);
+        });
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
+    // La estructura de adyacencia: un arreglo principal —las filas— y de cada
+    // una, enlazados, los que llevan 1 o −1 en su fila (el −1 con su signo).
+    function crearEstructuraDeAdyacencia(r, paso) {
+      const llenas = paso ? paso.filasLlenas : 0;
+      const actual = paso && paso.filaActual !== undefined ? paso.filaActual : null;
+      const tabla = document.createElement('table');
+      tabla.className = 'adyacencia-grafo';
+      const titulo = document.createElement('caption');
+      titulo.className = 'matriz-grafo__titulo';
+      titulo.textContent = 'Estructura de adyacencia';
+      tabla.appendChild(titulo);
+      r.filas.forEach((fila, i) => {
+        const tr = document.createElement('tr');
+        if (i === actual) tr.className = 'adyacencia-grafo__fila--actual';
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = fila.etiqueta;
+        tr.appendChild(th);
+        const td = document.createElement('td');
+        if (i < llenas) {
+          r.valores[i].forEach((v, k) => {
+            if (v === 0) return;
+            const nodo = document.createElement('span');
+            nodo.className = 'adyacencia-grafo__nodo' + (v < 0 ? ' adyacencia-grafo__nodo--negativo' : '');
+            const caja = document.createElement('span');
+            caja.className = 'adyacencia-grafo__caja';
+            caja.textContent = (v < 0 ? '−' : '') + r.columnas[k].etiqueta;
+            nodo.appendChild(caja);
+            td.appendChild(nodo);
+          });
+        }
+        tr.appendChild(td);
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
     function renderizarGrafo(paso) {
       const grafo = grafoDeLaEstructura();
       dom.estructuraEl.className = 'estructura-grafo';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       if (!grafo) return;
+      if (config.representacionDe) {
+        const r = paso && paso.representacion ? paso.representacion : config.representacionDe(estado.estructura, grafo);
+        dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        const columna = document.createElement('div');
+        columna.className = 'estructura-grafo__columna';
+        columna.append(crearMatrizRepresentacion(r, paso), crearEstructuraDeAdyacencia(r, paso));
+        dom.estructuraEl.appendChild(columna);
+        ajustarGrafo();
+        return;
+      }
       const matriz = paso && paso.matriz ? paso.matriz : dominio.grafo.matrizInicial(grafo);
       dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
       dom.estructuraEl.appendChild(crearMatriz(grafo, paso, matriz));
@@ -325,27 +446,56 @@
     // matriz y el grafo encima, se queda la disposición que deja la letra más
     // grande, y se encoge lo justo, nunca por debajo de `ENCOGIMIENTO_MINIMO`.
     const ENCOGIMIENTO_MINIMO = 0.5;
+    // **El panel del cálculo se puede soltar donde el tema lo declara**
+    // (`calculoPrescindible`, la representación matricial): ahí repite lo
+    // que ya dice el aviso, y en una ventana chica —un proyector XGA— se
+    // llevaba la mitad del ancho y la matriz no cabía ni a la mitad. Si con
+    // él la estructura quedaría por debajo de `ENCOGIMIENTO_SIN_CALCULO`, se
+    // oculta. En Floyd no: su panel tiene las comparaciones.
+    const ENCOGIMIENTO_SIN_CALCULO = 0.8;
     function ajustarGrafo() {
       const caja = dom.estructuraEl;
       if (!caja.isConnected || !caja.firstChild) return;
+      if (dom.escenario) dom.escenario.classList.remove('lienzo__escenario--sin-calculo');
+      const factor = encajar(caja);
+      if (config.calculoPrescindible && dom.escenario && factor < ENCOGIMIENTO_SIN_CALCULO) {
+        dom.escenario.classList.add('lienzo__escenario--sin-calculo');
+        encajar(caja);
+      }
+    }
+
+    function encajar(caja) {
       caja.style.zoom = '';
       const cabe = () => Math.min(1, caja.clientWidth / caja.scrollWidth, caja.clientHeight / caja.scrollHeight);
-      caja.classList.remove('estructura-grafo--apilada');
-      const enFila = cabe();
-      caja.classList.add('estructura-grafo--apilada');
-      const apilada = cabe();
-      if (enFila >= apilada) caja.classList.remove('estructura-grafo--apilada');
-      let factor = Math.max(ENCOGIMIENTO_MINIMO, Math.max(enFila, apilada));
+      // Las disposiciones que se prueban. La representación suma una: la
+      // matriz y su estructura una al lado de la otra, en vez de una encima
+      // de la otra —con la adyacencia de aristas son doce filas de alto, y en
+      // un proyector XGA no cabían ni a la mitad—.
+      const disposiciones = ['', 'estructura-grafo--apilada']
+        .concat(config.representacionDe ? ['estructura-grafo--extendida'] : []);
+      const quitarTodas = () => disposiciones.forEach((clase) => clase && caja.classList.remove(clase));
+      let mejor = { clase: '', cabe: -1 };
+      for (const clase of disposiciones) {
+        quitarTodas();
+        if (clase) caja.classList.add(clase);
+        const medida = cabe();
+        if (medida > mejor.cabe + 0.001) mejor = { clase, cabe: medida };
+      }
+      quitarTodas();
+      if (mejor.clase) caja.classList.add(mejor.clase);
+      let factor = Math.max(ENCOGIMIENTO_MINIMO, mejor.cabe);
       if (factor < 1) caja.style.zoom = String(factor);
       // Encogida, deja sitio que el panel del cálculo —flexible como ella—
       // toma, y lo que le queda vuelve a ser menos: se mide otra vez y se
-      // achica lo que falte, como el árbol (`ajustarArbol`).
-      for (let intento = 0; intento < 3 && factor > ENCOGIMIENTO_MINIMO; intento++) {
+      // achica lo que falte, como el árbol (`ajustarArbol`). Con un margen,
+      // porque el zoom redondea y dejaba 2 o 3 px de sobra.
+      for (let intento = 0; intento < 5 && factor > ENCOGIMIENTO_MINIMO; intento++) {
+        if (caja.scrollWidth <= caja.clientWidth + 1 && caja.scrollHeight <= caja.clientHeight + 1) break;
         const sobra = Math.min(caja.clientWidth / caja.scrollWidth, caja.clientHeight / caja.scrollHeight);
-        if (sobra >= 0.999) break;
-        factor = Math.max(ENCOGIMIENTO_MINIMO, factor * sobra * 0.995);
+        factor = Math.max(ENCOGIMIENTO_MINIMO, factor * sobra * 0.98);
         caja.style.zoom = String(factor);
       }
+      return factor;
     }
 
     // **El grafo se ve mientras se escribe** (maqueta D, 2026-10-22): antes de

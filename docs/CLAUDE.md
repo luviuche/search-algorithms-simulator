@@ -890,6 +890,26 @@ La opción B —apilar al lado los pasos de dentro, como en binaria interna— s
 
 **Lo que el material dejó abierto** (para la representación matricial, no para este tema): errores en la adyacencia de vértices del docente (al 4 le falta el 1; en el caso dirigido 2, la fila 4 columna 3 debería ser −1), su lista de circuitos tiene 9 de los 12 del grafo, su matriz de conjuntos de corte tiene 10 filas —una no mínima— de 12, y sus «fundamentales» no son los del árbol que elige sino las caras del dibujo y los cortes que aíslan cada vértice. Preguntar antes de construir esa parte. Tampoco hay material de Dijkstra ni de Bellman.
 
+### 5.13 Representación matricial (2026-10-23)
+
+**Segundo tema de grafos**, con la parte del material del docente que está clara: matriz de incidencia, de adyacencia de vértices y de adyacencia de aristas, en grafos dirigidos y no dirigidos, cada una con su **estructura de adyacencia** (la lista enlazada que el docente dibuja con flechas). Circuitos, circuitos fundamentales, conjuntos de corte y cortes fundamentales **quedan fuera** hasta que el docente aclare cómo los elige (ver §5.12, «Lo que el material dejó abierto»); se agregan al mismo tema como representaciones nuevas.
+
+**Los valores, como en los ejemplos resueltos del docente** (`dominio/grafo.js`, `representar`), que son las pruebas (`pruebas/representacion.test.js`): el grafo verde no dirigido (vértices 1 a 5, aristas a a h) y el morado dirigido (a 1→2, b 2→5, c 5→4, d 2→4, e 3→4, f 3→1).
+
+- **Incidencia**: filas los vértices, columnas las aristas; 1 si la arista toca al vértice. En un dirigido, 1 si sale de él y −1 si llega.
+- **Adyacencia de vértices**: 1 si hay arista entre los dos (en un dirigido, de la fila a la columna). **Caso 2** de un dirigido: además −1 si la arista llega a la fila.
+- **Adyacencia de aristas**: 1 si comparten un vértice. Caso 2: en el vértice común, 1 si una llega y la otra sale, −1 si las dos llegan o las dos salen.
+- El caso solo cambia las adyacencias de un dirigido; la incidencia dirigida lleva siempre 1 y −1, como la escribe el docente.
+- **Dos tablas del docente tienen errores, y la aplicación calcula bien**: en la adyacencia de vértices del verde falta el 1 entre 4 y 1 (la arista h) en la fila 4 —la matriz no le quedaba simétrica—, y en el caso 2 del morado la fila 4, columna 3 dice 1 cuando la arista e llega a 4 (−1). Están comentados en la prueba.
+
+**Las aristas tienen nombre**, que es el rótulo de su columna: se escribe delante —«a 1 2»— o lo pone el orden, la primera sin nombre es la a, la siguiente la b, saltando los escritos (pedido del usuario: «¿se pueden ambas opciones?»). Floyd lee el mismo formato. El grafo los dibuja en cursiva junto a cada arista (`config.nombresDeAristas`).
+
+**Una fila por paso, con la matriz y la estructura juntas** (maqueta A, elegida por el usuario sobre la B, «una u otra a elección»): la fila de la matriz y su renglón de la lista se llenan en el mismo paso, una debajo de la otra, porque son la misma información escrita de dos formas. Las filas que faltan se ven punteadas. La fila que se llena va en azul —el vértice o la arista, también en el grafo— y lo que lleva 1 o −1 en naranja, en la matriz, en la lista y en el grafo (en la adyacencia de vértices, también las aristas que ponen esos unos). El aviso narra la fila —«Fila del vértice 2: inciden a, c, e y f, así que llevan 1; las demás, 0. Grado de 2: 4.»— y el último paso dice la propiedad que se lee de la matriz completa: dos unos por columna y la suma de los grados igual al doble de las aristas, la simetría, la antisimetría del caso 2.
+
+**El panel del cálculo se suelta cuando no cabe** (`calculoPrescindible`): repite lo que dice el aviso, y en un proyector XGA se llevaba la mitad del ancho. Si con él la estructura quedaría por debajo de 0,8×, se oculta. En Floyd no, porque su panel tiene las comparaciones.
+
+Se arma como Floyd (§5.12): el grafo y la representación salen de los parámetros —tipo, representación, caso y aristas— y crearlo arranca el llenado.
+
 ## 6. Visualización
 
 ### 6.1 Orientación
@@ -1188,7 +1208,7 @@ Los colores son los estados de la casilla y nada más (§8.2): naranja lo que el
 
 **Los conceptos por vértice van como columnas al final de cada fila de la matriz** (distancia: «suma»; excentricidad: «mayor»), y no en una tabla aparte como en la maqueta C: con la tabla aparte, a 1280 × 633 el grafo, la matriz, la tabla y el panel no cabían. Escritas al lado de su fila además se lee de dónde salen.
 
-**Cabe en el lienzo sin desplazarse** (`ajustarGrafo`): se prueba el grafo al lado de la matriz y encima de ella, se queda la disposición que deja la letra más grande y se encoge lo justo, nunca por debajo de 0,5×; encogida, el panel del cálculo toma el sitio que deja, así que se mide otra vez y se achica lo que falte. Se vuelve a ajustar al cambiar la ventana. A 1920 × 950 va a tamaño completo; a 1024 × 650 queda cerca de la mitad. El humo lo afirma en los ocho tamaños (`afirmarGrafoCabe`).
+**Cabe en el lienzo sin desplazarse** (`ajustarGrafo`; `align-items: safe center` en los dos ejes, porque centrado lo que se salía por arriba no contaba en `scrollHeight` y la columna se medía 160 px más baja). En la representación matricial se prueba además la matriz al lado de su estructura en vez de encima (`--extendida`), que es lo que entra a 1024 × 650. Se prueba el grafo al lado de la matriz y encima de ella, se queda la disposición que deja la letra más grande y se encoge lo justo, nunca por debajo de 0,5×; encogida, el panel del cálculo toma el sitio que deja, así que se mide otra vez y se achica lo que falte. Se vuelve a ajustar al cambiar la ventana. A 1920 × 950 va a tamaño completo; a 1024 × 650 queda cerca de la mitad. El humo lo afirma en los ocho tamaños (`afirmarGrafoCabe`).
 
 ## 7. Animación
 
@@ -1521,7 +1541,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos**, construidos el 2026-10-22 (§5.12). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22) **y la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

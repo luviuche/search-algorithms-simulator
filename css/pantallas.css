@@ -1926,7 +1926,10 @@ form.panel > .pantalla-tema__reproduccion {
    fila i, verde lo que cambia o lo que el concepto elige, gris lo apagado. */
 .estructura-grafo {
   display: flex;
-  align-items: center;
+  /* `safe` en los dos ejes: centrado, lo que no cabe se salía también por
+     arriba, y `scrollHeight` no lo cuenta —`ajustarGrafo` medía la columna
+     de la representación 160 px más baja de lo que es—. */
+  align-items: safe center;
   justify-content: safe center;
   gap: var(--espacio-6);
   max-width: 100%;
@@ -2109,4 +2112,115 @@ form.panel > .pantalla-tema__reproduccion {
 
 .matriz-grafo__concepto--encontrada { background: var(--estado-encontrada-relleno); color: var(--estado-encontrada-borde); }
 .matriz-grafo__concepto--evaluacion { background: var(--estado-evaluacion-relleno); color: var(--estado-evaluacion-borde); }
+
+/* ── Representación matricial (CLAUDE.md 5.13) ─────────────────────────── */
+.grafo__arista--rango { stroke: var(--estado-rango-borde); stroke-width: 3.5; }
+.grafo__punta--rango { fill: var(--estado-rango-borde); }
+.grafo__peso--rango { fill: var(--estado-rango-borde); }
+
+/* El nombre de la arista, en cursiva como lo escribe el docente, con el
+   mismo halo que el peso. */
+.grafo__nombre {
+  font-family: var(--fuente-mono);
+  font-size: 15px;
+  font-style: italic;
+  fill: var(--tinta-suave);
+  paint-order: stroke;
+  stroke: var(--superficie-hundida);
+  stroke-width: 4px;
+}
+
+.grafo__nombre.grafo__peso--evaluacion,
+.grafo__nombre.grafo__peso--rango { font-weight: 700; }
+
+.estructura-grafo__columna {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+
+/* Bajo de alto: la matriz y su estructura una al lado de la otra (ver
+   `ajustarGrafo`). */
+.estructura-grafo--extendida .estructura-grafo__columna {
+  flex-direction: row;
+  gap: var(--espacio-6);
+}
+
+.matriz-grafo--representacion .matriz-grafo__celda {
+  width: 44px;
+}
+
+/* Una fila que todavía no se llena: el hueco punteado de una casilla vacía. */
+.matriz-grafo__celda--pendiente {
+  background: var(--estado-vacia-relleno);
+  border: 1px dashed var(--estado-vacia-borde);
+}
+
+/* La estructura de adyacencia: el arreglo principal y, enlazados con una
+   flecha, los de su fila. */
+.adyacencia-grafo {
+  border-collapse: separate;
+  border-spacing: var(--espacio-1);
+  font-family: var(--fuente-mono);
+  font-size: 17px;
+}
+
+.adyacencia-grafo th {
+  width: 44px;
+  height: var(--alto-casilla);
+  font-weight: 500;
+  color: var(--tinta);
+  background: var(--superficie-hundida);
+  border: 1px solid var(--estado-ocupada-borde);
+  border-radius: var(--radio-casilla);
+}
+
+.adyacencia-grafo td {
+  white-space: nowrap;
+  padding-left: var(--espacio-1);
+}
+
+.adyacencia-grafo__nodo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.adyacencia-grafo__nodo::before {
+  content: "→";
+  color: var(--tinta-suave);
+  padding: 0 var(--espacio-1);
+}
+
+/* El nodo enlazado, como una casilla chica. */
+.adyacencia-grafo__caja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 34px;
+  padding: 0 var(--espacio-1);
+  background: var(--estado-ocupada-relleno);
+  border: 1px solid var(--estado-ocupada-borde);
+  border-radius: var(--radio-casilla);
+  font-variant-numeric: tabular-nums;
+}
+
+.adyacencia-grafo__fila--actual th {
+  background: var(--estado-rango-relleno);
+  border: 2px solid var(--estado-rango-borde);
+}
+
+.adyacencia-grafo__fila--actual .adyacencia-grafo__caja {
+  background: var(--estado-evaluacion-relleno);
+  border: 2px solid var(--estado-evaluacion-borde);
+  font-weight: 600;
+}
+
+/* En una ventana chica, el panel del cálculo de la representación se suelta:
+   repite lo que dice el aviso (ver `ajustarGrafo`). */
+.lienzo__escenario--sin-calculo .calculo {
+  display: none;
+}
 

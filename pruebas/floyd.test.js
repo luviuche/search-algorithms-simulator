@@ -94,7 +94,7 @@ test('la figura 12 da las distancias y excentricidades de las tablas del docente
   assert.deepEqual(c.parDiametro, [1, 4]);
   assert.deepEqual(c.centro, [2, 3]);
   assert.deepEqual(c.mediana, [5]);
-  assert.deepEqual(grafos.aristasInducidas(FIGURA_12, c.centro), [{ origen: 2, destino: 3, peso: 10 }]);
+  assert.deepEqual(grafos.aristasInducidas(FIGURA_12, c.centro).map((a) => [a.origen, a.destino, a.peso]), [[2, 3, 10]]);
 });
 
 test('los conceptos van uno por paso, y el último deja el resumen', () => {

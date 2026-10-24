@@ -92,7 +92,7 @@
         { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-expansion', titulo: 'Árboles de expansión — Prim y Kruskal', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: '', tema: null, disponible: false },
+        { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: '', tema: null, disponible: false }
       ]
@@ -391,6 +391,48 @@
   // Configuración de cada tema sobre la pantalla común de búsqueda. Lo único
   // propio de un algoritmo es cómo se lee su traza: qué casillas son relevantes
   // para la elisión y en qué estado queda cada una en el paso actual.
+  // ── Lo que comparten los temas de grafos (CLAUDE.md 5.12 y 5.13) ─────────
+  // El grafo sale de dos parámetros —su tipo y sus aristas escritas—, y se
+  // lee de ellos cada vez que hace falta.
+  function grafoDeLaEstructura(estructura) {
+    const p = estructura && estructura.parametros;
+    return p && p.aristas ? dominio.grafo.leerGrafo(p.aristas, p.tipo).grafo : null;
+  }
+  const describirGrafo = (grafo) => `${grafo.vertices.length} vértices · ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}`
+    + (grafo.conPesos ? ' · con pesos' : '');
+  const PARAMETRO_TIPO_DE_GRAFO = {
+    nombre: 'tipo',
+    etiqueta: 'Tipo de grafo',
+    opciones: [
+      { valor: 'dirigido', etiqueta: 'Dirigido' },
+      { valor: 'no-dirigido', etiqueta: 'No dirigido' }
+    ],
+    ayuda: 'En un no dirigido, cada arista vale para los dos sentidos.',
+    validar: (entrada) => (Object.values(dominio.grafo.TIPOS).includes(entrada)
+      ? { valido: true, valor: entrada }
+      : { valido: false, mensaje: 'Elija si el grafo es dirigido o no dirigido.' })
+  };
+  const PARAMETRO_ARISTAS = {
+    nombre: 'aristas',
+    etiqueta: 'Aristas',
+    tipo: 'texto-largo',
+    renglones: 7,
+    marcador: '1 2\n2 3\n3 1 4',
+    ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Para nombrarla, la letra delante («a 1 2»); sin ella toma la siguiente en orden. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices, numerados.`,
+    // Va después del tipo: un no dirigido no admite «2 1» si ya está «1 2».
+    validar: (entrada, { parametros }) => {
+      const lectura = dominio.grafo.leerGrafo(entrada, parametros.tipo);
+      return lectura.valido
+        ? { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) }
+        : { valido: false, mensaje: lectura.mensaje };
+    }
+  };
+  // Lo que se dibuja mientras se escriben las aristas, antes de crear.
+  const vistaPreviaDeGrafo = (datos) => {
+    const lectura = dominio.grafo.leerGrafo(datos.get('aristas'), String(datos.get('tipo') || dominio.grafo.TIPOS.DIRIGIDO));
+    return lectura.valido ? lectura.grafo : null;
+  };
+
   const TEMAS = {
     secuencial: {
       buscar: ({ estructura, objetivo }) => algoritmos.secuencial.buscarSecuencial(estructura.claves, objetivo),
@@ -1035,59 +1077,22 @@
       },
       mensajeDerivacion: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
       mensajeCreacion: (estructura) => {
-        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
+        const grafo = grafoDeLaEstructura(estructura);
         return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas, `
           + `${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}, `
           + `${grafo.conPesos ? 'con pesos' : 'sin pesos (cada arista vale 1)'}.`;
       },
-      detalleReciente: (estructura) => {
-        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
-        return `${grafo.vertices.length} vértices · ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}`
-          + (grafo.conPesos ? ' · con pesos' : '');
-      },
-      alCrear: ({ estructura }) => algoritmos.floyd.recorrer(
-        dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo
-      ),
+      detalleReciente: (estructura) => describirGrafo(grafoDeLaEstructura(estructura)),
+      alCrear: ({ estructura }) => algoritmos.floyd.recorrer(grafoDeLaEstructura(estructura)),
       // La matriz y los conceptos se dibujan desde el paso: el final los
       // hereda, con las líneas de los conceptos, pero sin resaltar nada.
       conservarAlFinal: ['matriz', 'conceptos', 'calculo', 'tituloCalculo', 'fase', 'cambios'],
       nombreArchivo: (estructura) => {
-        const grafo = dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo;
+        const grafo = grafoDeLaEstructura(estructura);
         return `floyd-${grafo.vertices.length}v-${grafo.tipo}`;
       },
-      // Lo que se dibuja mientras se escriben las aristas, antes de crear.
-      vistaPrevia: (datos) => {
-        const lectura = dominio.grafo.leerGrafo(datos.get('aristas'), String(datos.get('tipo') || dominio.grafo.TIPOS.DIRIGIDO));
-        return lectura.valido ? lectura.grafo : null;
-      },
-      parametros: [
-        {
-          nombre: 'tipo',
-          etiqueta: 'Tipo de grafo',
-          opciones: [
-            { valor: 'dirigido', etiqueta: 'Dirigido' },
-            { valor: 'no-dirigido', etiqueta: 'No dirigido' }
-          ],
-          ayuda: 'En un no dirigido, cada arista vale para los dos sentidos.',
-          validar: (entrada) => (Object.values(dominio.grafo.TIPOS).includes(entrada)
-            ? { valido: true, valor: entrada }
-            : { valido: false, mensaje: 'Elija si el grafo es dirigido o no dirigido.' })
-        },
-        {
-          nombre: 'aristas',
-          etiqueta: 'Aristas',
-          tipo: 'texto-largo',
-          renglones: 7,
-          marcador: '1 2\n2 3\n3 1 4',
-          ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices, numerados.`,
-          validar: (entrada, { parametros }) => {
-            const lectura = dominio.grafo.leerGrafo(entrada, parametros.tipo);
-            return lectura.valido
-              ? { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) }
-              : { valido: false, mensaje: lectura.mensaje };
-          }
-        }
-      ],
+      vistaPrevia: vistaPreviaDeGrafo,
+      parametros: [PARAMETRO_TIPO_DE_GRAFO, PARAMETRO_ARISTAS],
       casillasRelevantes: () => [],
       describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
       // Mientras corre Floyd, lo que cuesta; con los conceptos, sus cuatro
@@ -1095,9 +1100,6 @@
       // otro rótulo: el panel no cambia de tamaño al pasar de una fase a otra.
       metricas: (() => {
         const conConceptos = (paso) => Boolean(paso && paso.conceptos);
-        const grafoDe = (estructura) => (estructura && estructura.parametros && estructura.parametros.aristas
-          ? dominio.grafo.leerGrafo(estructura.parametros.aristas, estructura.parametros.tipo).grafo
-          : null);
         const conjunto = (vertices) => `{${vertices.join(', ')}}`;
         return [
           {
@@ -1118,7 +1120,7 @@
             etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Centro' : 'Vértices'),
             valor: ({ paso, estructura }) => {
               if (conConceptos(paso)) return conjunto(paso.conceptos.centro);
-              const grafo = grafoDe(estructura);
+              const grafo = grafoDeLaEstructura(estructura);
               return grafo ? String(grafo.vertices.length) : '—';
             }
           },
@@ -1128,12 +1130,132 @@
             etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Mediana' : 'Aristas'),
             valor: ({ paso, estructura }) => {
               if (conConceptos(paso)) return conjunto(paso.conceptos.mediana);
-              const grafo = grafoDe(estructura);
+              const grafo = grafoDeLaEstructura(estructura);
               return grafo ? String(grafo.aristas.length) : '—';
             }
           }
         ];
       })()
+    },
+
+    // Representación matricial (CLAUDE.md 5.13): la matriz de incidencia, de
+    // adyacencia de vértices o de adyacencia de aristas, con su estructura de
+    // adyacencia al lado, llenándose una fila por paso. Se arma como Floyd: el
+    // grafo sale de los parámetros, y crearlo arranca el llenado. Circuitos y
+    // conjuntos de corte quedan fuera hasta que el docente aclare cómo elige
+    // los fundamentales (ver §5.12, «Lo que el material dejó abierto»).
+    representacion: {
+      orientacion: 'grafo',
+      nombresDeAristas: true,
+      calculo: true,
+      // Repite lo que dice el aviso: en una ventana chica se suelta para que
+      // quepa la matriz (ver `ajustarGrafo`).
+      calculoPrescindible: true,
+      tituloCalculo: 'Fila',
+      calculoSoloEnOperacion: true,
+      sinTamano: true,
+      sinLongitud: true,
+      sinOperaciones: true,
+      sinClaves: true,
+      tamano: () => ({ n: 1, l: 1 }),
+      nombreEstructura: 'grafo',
+      tituloConfiguracion: 'Grafo',
+      mensajeReinicio: 'Matriz vaciada: sus filas vuelven a estar sin llenar.',
+      mensajeLienzoVacio: {
+        titulo: 'Escriba las aristas del grafo para ver sus matrices',
+        indicacion: 'Una por renglón, en el panel de la derecha'
+      },
+      mensajeDerivacion: 'Llenado iniciado: una fila por paso.',
+      mensajeCreacion: (estructura) => {
+        const grafo = grafoDeLaEstructura(estructura);
+        return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas `
+          + `(${grafo.aristas.map((a) => a.nombre).join(', ')}), ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}.`;
+      },
+      detalleReciente: (estructura) => {
+        const p = estructura.parametros;
+        return `${describirGrafo(grafoDeLaEstructura(estructura))} · ${algoritmos.representacion.TITULOS[p.representacion].replace('Matriz de ', '')}`;
+      },
+      alCrear: ({ estructura }) => algoritmos.representacion.recorrer(grafoDeLaEstructura(estructura), {
+        representacion: estructura.parametros.representacion,
+        caso: estructura.parametros.caso
+      }),
+      // Antes de llenarse —recién vaciada— se dibuja con todas sus filas
+      // sin llenar.
+      representacionDe: (estructura, grafo) => dominio.grafo.representar(grafo, {
+        representacion: estructura.parametros.representacion,
+        caso: estructura.parametros.caso
+      }),
+      tituloRepresentacion: (r) => algoritmos.representacion.TITULOS[r.representacion]
+        + (r.dirigido && r.representacion !== dominio.grafo.REPRESENTACIONES.INCIDENCIA ? ` · caso ${r.caso}` : ''),
+      conservarAlFinal: ['representacion', 'filasLlenas', 'distintos', 'calculo', 'tituloCalculo'],
+      nombreArchivo: (estructura) => {
+        const grafo = grafoDeLaEstructura(estructura);
+        return `${estructura.parametros.representacion}-${grafo.vertices.length}v-${grafo.tipo}`;
+      },
+      vistaPrevia: vistaPreviaDeGrafo,
+      parametros: [
+        PARAMETRO_TIPO_DE_GRAFO,
+        {
+          nombre: 'representacion',
+          etiqueta: 'Representación',
+          opciones: [
+            { valor: 'incidencia', etiqueta: 'Matriz de incidencia' },
+            { valor: 'adyacencia-vertices', etiqueta: 'Adyacencia de vértices' },
+            { valor: 'adyacencia-aristas', etiqueta: 'Adyacencia de aristas' }
+          ],
+          ayuda: 'Cada una con su estructura de adyacencia al lado.',
+          validar: (entrada) => (Object.values(dominio.grafo.REPRESENTACIONES).includes(entrada)
+            ? { valido: true, valor: entrada }
+            : { valido: false, mensaje: 'Elija una representación.' })
+        },
+        {
+          nombre: 'caso',
+          etiqueta: 'Valores en un dirigido',
+          opciones: [
+            { valor: '1', etiqueta: 'Caso 1: 1 y 0' },
+            { valor: '2', etiqueta: 'Caso 2: 1, −1 y 0' }
+          ],
+          ayuda: 'Para la adyacencia de un grafo dirigido, como en los ejemplos del docente. La incidencia dirigida lleva siempre 1 donde la arista sale y −1 donde llega.',
+          validar: (entrada) => (entrada === '1' || entrada === '2'
+            ? { valido: true, valor: Number(entrada) }
+            : { valido: false, mensaje: 'Elija el caso 1 o el caso 2.' })
+        },
+        PARAMETRO_ARISTAS
+      ],
+      casillasRelevantes: () => [],
+      describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+      metricas: [
+        {
+          id: 'vertices',
+          etiqueta: 'Vértices',
+          valor: ({ estructura }) => {
+            const grafo = grafoDeLaEstructura(estructura);
+            return grafo ? String(grafo.vertices.length) : '—';
+          }
+        },
+        {
+          id: 'aristas',
+          etiqueta: 'Aristas',
+          valor: ({ estructura }) => {
+            const grafo = grafoDeLaEstructura(estructura);
+            return grafo ? String(grafo.aristas.length) : '—';
+          }
+        },
+        {
+          id: 'filas',
+          etiqueta: 'Filas llenas',
+          // «2 de 5» es largo: en dos columnas se partía en tres renglones.
+          ancha: true,
+          valor: ({ paso }) => (paso && paso.representacion
+            ? `${paso.filasLlenas} de ${paso.representacion.filas.length}`
+            : '—')
+        },
+        {
+          id: 'distintos',
+          etiqueta: 'Distintos de 0',
+          valor: ({ paso }) => (paso && paso.distintos !== undefined ? String(paso.distintos) : '0')
+        }
+      ]
     },
 
     // Otras búsquedas dinámicas (CLAUDE.md 5.x): la única estructura del

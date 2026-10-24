@@ -18,6 +18,12 @@
 
   // Los vértices aislados no se pueden escribir como aristas: un grafo con
   // un vértice suelto se escribe con ese vértice solo en su renglón.
+  //
+  // **Cada arista tiene nombre**, como en los ejemplos del docente (a, b, c…):
+  // es el rótulo de su columna en la matriz de incidencia. Se puede escribir
+  // delante —«a 1 2»— o dejar que lo ponga el orden: la primera sin nombre
+  // es la a, la siguiente la b, saltando los que ya se escribieron (pedido
+  // del usuario, 2026-10-23: «¿se pueden ambas opciones?»).
   function leerGrafo(texto, tipo = TIPOS.DIRIGIDO) {
     const renglones = String(texto || '').split(/\r?\n|;/).map((r) => r.trim()).filter(Boolean);
     if (renglones.length === 0) {
@@ -26,10 +32,22 @@
     const vertices = new Set();
     const aristas = [];
     const vistas = new Map();
+    const nombres = new Map();
     let conPesos = false;
     for (const [indice, renglon] of renglones.entries()) {
       const partes = renglon.split(/[\s,\-–>]+/).filter(Boolean);
       const donde = `Renglón ${indice + 1} («${renglon}»)`;
+      let nombre = null;
+      if (partes.length > 1 && /^[a-zA-Z]/.test(partes[0])) {
+        if (!NOMBRE.test(partes[0])) {
+          return { valido: false, mensaje: `${donde}: el nombre de una arista es una letra, o una letra y hasta dos cifras más (a, b, x1).` };
+        }
+        nombre = partes.shift();
+        if (nombres.has(nombre)) {
+          return { valido: false, mensaje: `${donde}: ya hay una arista ${nombre}, en el renglón ${nombres.get(nombre) + 1}.` };
+        }
+        nombres.set(nombre, indice);
+      }
       if (partes.length === 1) {
         const vertice = leerVertice(partes[0]);
         if (vertice === null) return { valido: false, mensaje: `${donde}: un vértice es un número entero de 1 a ${VERTICE_MAXIMO}.` };
@@ -66,7 +84,14 @@
       vistas.set(clave, indice);
       vertices.add(origen);
       vertices.add(destino);
-      aristas.push({ origen, destino, peso });
+      aristas.push({ origen, destino, peso, nombre, nombreEscrito: nombre !== null });
+    }
+    // Las que no traen nombre lo toman en orden, saltando los escritos.
+    let siguiente = 0;
+    for (const arista of aristas) {
+      if (arista.nombre) continue;
+      while (nombres.has(nombreEnOrden(siguiente))) siguiente++;
+      arista.nombre = nombreEnOrden(siguiente++);
     }
     if (vertices.size > VERTICES_MAXIMOS) {
       return { valido: false, mensaje: `El grafo tiene ${vertices.size} vértices; caben hasta ${VERTICES_MAXIMOS}.` };
@@ -80,6 +105,14 @@
     };
   }
 
+  const NOMBRE = /^[a-zA-Z][0-9]{0,2}$/;
+
+  // a, b, … z, y después aa, ab… (con 8 vértices caben hasta 56 aristas).
+  function nombreEnOrden(indice) {
+    const letra = (i) => String.fromCharCode(97 + i);
+    return indice < 26 ? letra(indice) : letra(Math.floor(indice / 26) - 1) + letra(indice % 26);
+  }
+
   function leerVertice(texto) {
     const valor = Number(texto);
     return /^\d+$/.test(texto) && valor >= 1 && valor <= VERTICE_MAXIMO ? valor : null;
@@ -90,7 +123,8 @@
   function comoTexto(grafo) {
     const aislados = grafo.vertices.filter((v) => !grafo.aristas.some((a) => a.origen === v || a.destino === v));
     return grafo.aristas
-      .map((a) => (grafo.conPesos ? `${a.origen} ${a.destino} ${a.peso}` : `${a.origen} ${a.destino}`))
+      .map((a) => (a.nombreEscrito ? `${a.nombre} ` : '')
+        + (grafo.conPesos ? `${a.origen} ${a.destino} ${a.peso}` : `${a.origen} ${a.destino}`))
       .concat(aislados.map(String))
       .join('\n');
   }
@@ -150,9 +184,84 @@
     return grafo.aristas.filter((a) => dentro.has(a.origen) && dentro.has(a.destino));
   }
 
+  // Representación matricial (CLAUDE.md 5.13), con los criterios de los
+  // ejemplos resueltos del docente —el grafo verde no dirigido y el morado
+  // dirigido del documento de apoyo—:
+  //
+  //   incidencia            filas los vértices, columnas las aristas. 1 si
+  //                         la arista toca al vértice; en un dirigido, 1 si
+  //                         sale de él y −1 si llega.
+  //   adyacencia de vértices filas y columnas los vértices. 1 si hay arista
+  //                         entre los dos (en un dirigido, de la fila a la
+  //                         columna). En el caso 2 de un dirigido, además −1
+  //                         si la arista llega a la fila.
+  //   adyacencia de aristas filas y columnas las aristas. 1 si comparten un
+  //                         vértice. En el caso 2 de un dirigido, en el
+  //                         vértice común: 1 si una llega y la otra sale, −1
+  //                         si las dos llegan o las dos salen.
+  //
+  // El caso 2 solo cambia los dirigidos, y la incidencia dirigida lleva
+  // siempre el 1 y el −1: así la escribe el docente.
+  const REPRESENTACIONES = Object.freeze({
+    INCIDENCIA: 'incidencia',
+    ADYACENCIA_VERTICES: 'adyacencia-vertices',
+    ADYACENCIA_ARISTAS: 'adyacencia-aristas'
+  });
+
+  function representar(grafo, { representacion, caso = 1 }) {
+    const dirigido = grafo.tipo === TIPOS.DIRIGIDO;
+    const conSigno = dirigido && caso === 2;
+    const vertices = grafo.vertices.map((v) => ({ clase: 'vertice', clave: v, etiqueta: String(v) }));
+    const aristas = grafo.aristas.map((a) => ({ clase: 'arista', clave: a.nombre, etiqueta: a.nombre, arista: a }));
+    let filas;
+    let columnas;
+    let valor;
+    if (representacion === REPRESENTACIONES.INCIDENCIA) {
+      filas = vertices;
+      columnas = aristas;
+      valor = (v, { arista: a }) => {
+        if (a.origen !== v.clave && a.destino !== v.clave) return 0;
+        if (!dirigido) return 1;
+        return a.origen === v.clave ? 1 : -1;
+      };
+    } else if (representacion === REPRESENTACIONES.ADYACENCIA_VERTICES) {
+      filas = vertices;
+      columnas = vertices;
+      valor = (fila, columna) => {
+        if (fila.clave === columna.clave) return 0;
+        const sale = grafo.aristas.some((a) => a.origen === fila.clave && a.destino === columna.clave);
+        const llega = grafo.aristas.some((a) => a.origen === columna.clave && a.destino === fila.clave);
+        if (!dirigido) return sale || llega ? 1 : 0;
+        if (sale) return 1;
+        return conSigno && llega ? -1 : 0;
+      };
+    } else {
+      filas = aristas;
+      columnas = aristas;
+      valor = ({ arista: x }, { arista: y }) => {
+        if (x === y) return 0;
+        const comun = [x.origen, x.destino].find((v) => v === y.origen || v === y.destino);
+        if (comun === undefined) return 0;
+        if (!conSigno) return 1;
+        // En el vértice común: ¿cada una sale de él o llega a él?
+        const xSale = x.origen === comun;
+        const ySale = y.origen === comun;
+        return xSale === ySale ? -1 : 1;
+      };
+    }
+    return {
+      representacion,
+      caso: dirigido ? caso : 1,
+      dirigido,
+      filas,
+      columnas,
+      valores: filas.map((fila) => columnas.map((columna) => valor(fila, columna)))
+    };
+  }
+
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
   window.CC2.dominio.grafo = {
-    TIPOS, VERTICES_MAXIMOS, leerGrafo, comoTexto, matrizInicial, conceptos, aristasInducidas
+    TIPOS, REPRESENTACIONES, VERTICES_MAXIMOS, leerGrafo, comoTexto, matrizInicial, conceptos, aristasInducidas, representar
   };
 })();

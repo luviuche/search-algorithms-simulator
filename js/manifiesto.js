@@ -51,6 +51,7 @@
     'algoritmos/huffman.js',
     'algoritmos/indices.js',
     'algoritmos/floyd.js',
+    'algoritmos/representacion.js',
 
     // Serializar y validar son cálculo puro; guardar y leer usan el navegador
     // solo cuando se llaman, no al cargarse.

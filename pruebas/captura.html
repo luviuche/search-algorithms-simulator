@@ -464,6 +464,25 @@
       avanzar(pasosAAvanzar(40));
     }
 
+    // Representación matricial (CLAUDE.md 5.13): por omisión, la incidencia
+    // del grafo verde del docente; `?ejemplo=morado` da su dirigido, y
+    // `?representacion=` y `?caso=` eligen la matriz.
+    function prepararRepresentacion() {
+      const formularios = entrarATema('Representación matricial');
+      const ejemplos = {
+        verde: { tipo: 'no-dirigido', aristas: '1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4' },
+        morado: { tipo: 'dirigido', aristas: 'a 1 2\nb 2 5\nc 5 4\nd 2 4\ne 3 4\nf 3 1' }
+      };
+      const ejemplo = ejemplos[parametros.get('ejemplo') || 'verde'];
+      enviar(formularios[0], {
+        tipo: ejemplo.tipo,
+        representacion: parametros.get('representacion') || 'incidencia',
+        caso: parametros.get('caso') || '1',
+        aristas: ejemplo.aristas
+      });
+      avanzar(pasosAAvanzar(20));
+    }
+
     // Abrir un archivo `.cc2` de verdad: se construye el JSON, se le entrega al
     // `input type="file"` con un DataTransfer —que es la única forma de
     // simular la elección de un archivo— y se dispara el `change`. La lectura
@@ -525,6 +544,7 @@
       if (vista === 'huffman') return prepararHuffman();
       if (vista === 'indices') return prepararIndices();
       if (vista === 'floyd') return prepararFloyd();
+      if (vista === 'representacion') return prepararRepresentacion();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

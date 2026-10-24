@@ -643,6 +643,7 @@
       archivos();
       recientesQueSeAbren();
       floyd();
+      representacionMatricial();
       controlDeVelocidad();
     }
 
@@ -3507,6 +3508,49 @@
         .map((tr) => tr.querySelectorAll('.matriz-grafo__concepto')[0].textContent);
       afirmar(distancias.join(' ') === '22 15 14 13 12', `la columna de distancias suma cada fila (${distancias.join(' ')})`);
       afirmarGrafoCabe('conceptos');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Representación matricial (CLAUDE.md 5.13): la matriz y su estructura
+    // de adyacencia se llenan una fila por paso, con los valores de las
+    // tablas del docente.
+    function representacionMatricial() {
+      registro.push('', '── Representación matricial ──');
+      entrarATema('Representación matricial');
+      const formulario = document.querySelector('form.panel');
+      const crear = (valores) => {
+        for (const [nombre, valor] of Object.entries(valores)) {
+          const campo = formulario.querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const fila = (n) => [...document.querySelectorAll('.matriz-grafo tr')[n].querySelectorAll('td')].map((td) => td.textContent);
+
+      crear({ tipo: 'no-dirigido', representacion: 'incidencia', caso: '1', aristas: '1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4' });
+      const cabeceras = [...document.querySelectorAll('.matriz-grafo tr')[0].querySelectorAll('th')].map((th) => th.textContent).join('');
+      afirmar(cabeceras === 'abcdefgh', `las columnas son las aristas, nombradas en el orden escrito (${cabeceras})`);
+      afirmar([...document.querySelectorAll('.grafo__nombre')].length === 8, 'el grafo lleva el nombre de cada arista');
+      for (let i = 0; i < 2; i++) control('siguiente').click();
+      afirmar(fila(2).join(' ') === '1 0 1 0 1 1 0 0' && fila(3).every((v) => v === ''),
+        `fila del vértice 2 llena, las siguientes sin llenar (${fila(2).join(' ')})`);
+      const enCurso = document.querySelectorAll('.adyacencia-grafo__fila--actual .adyacencia-grafo__caja');
+      afirmar([...enCurso].map((el) => el.textContent).join(' ') === 'a c e f',
+        `la estructura de adyacencia llena la misma fila (${[...enCurso].map((el) => el.textContent).join(' ')})`);
+      afirmar(document.querySelector('.grafo__vertice[data-vertice="2"]').classList.contains('grafo__vertice--rango'),
+        'en el grafo, el vértice de la fila en azul');
+      afirmarGrafoCabe('representación, una fila');
+      agotarTraza(10);
+      afirmar(!!aviso() && aviso().textContent.includes('suma de los grados es 16'),
+        `al terminar, la propiedad de la matriz (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+
+      control('editar-configuracion').click();
+      crear({ tipo: 'dirigido', representacion: 'adyacencia-aristas', caso: '2', aristas: 'a 1 2\nb 2 5\nc 5 4\nd 2 4\ne 3 4\nf 3 1' });
+      agotarTraza(10);
+      afirmar(fila(4).join(' ') === '1 −1 −1 0 −1 0',
+        `adyacencia de aristas, caso 2: la fila de d como la tabla del docente (${fila(4).join(' ')})`);
+      afirmarGrafoCabe('representación, completa');
       document.querySelector('.pantalla-tema__volver').click();
     }
 
