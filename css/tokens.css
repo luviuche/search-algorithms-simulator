@@ -38,6 +38,20 @@
   --estado-eliminada-borde: #A8324A;
   --estado-eliminada-relleno: #F3D6DC;
 
+  /* Colores del coloreado de grafos (CLAUDE.md 5.14): **son datos, no
+     estados** —el color que el algoritmo le da a un vértice—, y por eso
+     tokens aparte. Los cuatro del docente (R, N, A, V) y cuatro más para
+     los grafos que necesitan más de cuatro. Con letra blanca encima, todos
+     pasan de 4,5:1, salvo el ocre, que lleva la letra en tinta. */
+  --coloreo-R: #C2362B;
+  --coloreo-N: #1E2329;
+  --coloreo-A: #2A5FB0;
+  --coloreo-V: #2D7F3E;
+  --coloreo-M: #8344A8;
+  --coloreo-C: #7A4E24;
+  --coloreo-G: #5F6B76;
+  --coloreo-O: #D1A63A;
+
   /* Alertas: deliberadamente distintas de los colores de estado del algoritmo (CLAUDE.md 8.1) */
   --alerta-info-borde: #35507A;
   --alerta-advertencia-borde: #8A5A12;

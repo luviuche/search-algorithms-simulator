@@ -2224,3 +2224,138 @@ form.panel > .pantalla-tema__reproduccion {
   display: none;
 }
 
+/* ── Coloreado (CLAUDE.md 5.14) ──────────────────────────────────────────
+   Opción B de las maquetas (2026-10-24): el vértice o la arista se pintan
+   de su color real y llevan su letra al lado, como la escribe el docente.
+   Lo del paso, con un anillo naranja —el relleno naranja de «en evaluación»
+   taparía el color—, y los vecinos con uno azul. */
+.grafo__color--R { --color-dato: var(--coloreo-R); --tinta-dato: #fff; }
+.grafo__color--N { --color-dato: var(--coloreo-N); --tinta-dato: #fff; }
+.grafo__color--A { --color-dato: var(--coloreo-A); --tinta-dato: #fff; }
+.grafo__color--V { --color-dato: var(--coloreo-V); --tinta-dato: #fff; }
+.grafo__color--M { --color-dato: var(--coloreo-M); --tinta-dato: #fff; }
+.grafo__color--C { --color-dato: var(--coloreo-C); --tinta-dato: #fff; }
+.grafo__color--G { --color-dato: var(--coloreo-G); --tinta-dato: #fff; }
+.grafo__color--O { --color-dato: var(--coloreo-O); --tinta-dato: var(--tinta); }
+
+.grafo__vertice--color circle {
+  fill: var(--color-dato);
+  stroke: var(--color-dato);
+  stroke-width: 2;
+}
+
+.grafo__vertice--color text:not(.grafo__letra) {
+  fill: var(--tinta-dato);
+  font-weight: 600;
+}
+
+.grafo__vertice--vecino circle {
+  stroke: var(--estado-rango-borde);
+  stroke-width: 3;
+}
+
+.grafo__vertice--color.grafo__vertice--vecino circle {
+  stroke: var(--estado-rango-borde);
+  stroke-width: 4;
+}
+
+.grafo__vertice--actual circle {
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 5;
+}
+
+.grafo__vertice text.grafo__letra {
+  font-family: var(--fuente-mono);
+  font-size: 20px;
+  font-weight: 700;
+  fill: var(--color-dato);
+}
+
+.grafo__arista--color {
+  stroke: var(--color-dato);
+  stroke-width: 5;
+}
+
+.grafo__arista-halo {
+  fill: none;
+  stroke: var(--estado-evaluacion-borde);
+  stroke-opacity: .45;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.grafo__nombre.grafo__nombre--color {
+  fill: var(--color-dato);
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* La tabla en orden y la del polinomio. */
+.coloreo-tabla {
+  border-collapse: collapse;
+  font-size: 15px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+
+.coloreo-tabla th {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--tinta-suave);
+  text-align: left;
+  padding: var(--espacio-2) var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.coloreo-tabla td {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+  padding: var(--espacio-2) var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+  white-space: nowrap;
+  height: 24px;
+}
+
+.coloreo-tabla__fila--actual td {
+  background: var(--estado-evaluacion-relleno);
+}
+
+.coloreo-tabla__color {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.coloreo-pastilla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--color-dato);
+  color: var(--tinta-dato);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.coloreo-formula {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+  font-family: var(--fuente-mono);
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.coloreo-formula p {
+  margin: 0;
+}
+
+.coloreo-formula__resultado {
+  color: var(--estado-encontrada-borde);
+  font-weight: 700;
+}
+

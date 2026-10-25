@@ -27,6 +27,7 @@
     'dominio/huffman.js',
     'dominio/indices.js',
     'dominio/grafo.js',
+    'dominio/coloreado.js',
 
     'algoritmos/traza.js',
     'algoritmos/secuencial.js',
@@ -52,6 +53,7 @@
     'algoritmos/indices.js',
     'algoritmos/floyd.js',
     'algoritmos/representacion.js',
+    'algoritmos/coloreado.js',
 
     // Serializar y validar son cálculo puro; guardar y leer usan el navegador
     // solo cuando se llaman, no al cargarse.

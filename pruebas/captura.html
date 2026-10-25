@@ -483,6 +483,18 @@
       avanzar(pasosAAvanzar(20));
     }
 
+    // Coloreado (CLAUDE.md 5.14): el grafo de la hoja 1 de los apuntes;
+    // `?modo=vertices|aristas|polinomio`, `?lambda=` y `?aristas=`.
+    function prepararColoreado() {
+      const formularios = entrarATema('Coloreado y particionamiento');
+      enviar(formularios[0], {
+        modo: parametros.get('modo') || 'vertices',
+        lambda: parametros.get('lambda') || '3',
+        aristas: parametros.get('aristas') || 'a 1 3\nb 1 2\nc 2 3\nd 2 4\ne 3 4'
+      });
+      avanzar(pasosAAvanzar(20));
+    }
+
     // Abrir un archivo `.cc2` de verdad: se construye el JSON, se le entrega al
     // `input type="file"` con un DataTransfer —que es la única forma de
     // simular la elección de un archivo— y se dispara el `change`. La lectura
@@ -545,6 +557,7 @@
       if (vista === 'indices') return prepararIndices();
       if (vista === 'floyd') return prepararFloyd();
       if (vista === 'representacion') return prepararRepresentacion();
+      if (vista === 'coloreado') return prepararColoreado();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

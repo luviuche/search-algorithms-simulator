@@ -32,18 +32,30 @@
       const p = (estado.estructura && estado.estructura.parametros) || {};
       if (!p.aristas) return null;
       if (leido.texto !== p.aristas || leido.tipo !== p.tipo) {
-        const lectura = dominio.grafo.leerGrafo(p.aristas, p.tipo);
+        // Sin tipo —el coloreado no lo pide— es no dirigido, como en app.js.
+        const lectura = dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO);
         leido = { texto: p.aristas, tipo: p.tipo, grafo: lectura.valido ? lectura.grafo : null };
       }
       return leido.grafo;
     }
 
-    // **Los vértices van en círculo, el 1 arriba a la izquierda** y los demás
-    // en el sentido del reloj. Con 4 queda el cuadrado de la hoja de Floyd.
-    // El docente acomoda cada grafo a mano; calcar su dibujo exacto queda
+    // **Con 4 y 5 vértices, el cuadrado del docente**: 1 y 2 arriba, 3 y 4
+    // abajo, y el 5 a la derecha, a media altura. Así dibuja la hoja de Floyd,
+    // el grafo verde de la representación y la hoja 1 del coloreado; en
+    // círculo, el 3 caía abajo a la derecha y sus diagonales se cruzaban
+    // (2026-10-24). **Con los demás, en círculo**, el 1 arriba a la izquierda
+    // y los demás en el sentido del reloj. Calcar cada dibujo exacto queda
     // para cuando se puedan arrastrar los vértices.
+    const CUADRADO = { 0: [0, 0], 1: [1, 0], 2: [0, 1], 3: [1, 1], 4: [1.6, 0.5] };
     function posiciones(vertices) {
       const n = vertices.length;
+      if (n === 4 || n === 5) {
+        const lado = 190;
+        const ancho = (n === 5 ? 1.6 : 1) * lado + 2 * MARGEN;
+        const alto = lado + 2 * MARGEN;
+        const mapa = new Map(vertices.map((v, i) => [v, { x: MARGEN + CUADRADO[i][0] * lado, y: MARGEN + CUADRADO[i][1] * lado }]));
+        return { mapa, ancho, alto, centro: { x: ancho / 2, y: alto / 2 } };
+      }
       const radio = n <= 2 ? 80 : 50 + n * 12;
       const inicio = -Math.PI / 2 - Math.PI / n;
       const centro = radio + MARGEN;
@@ -52,7 +64,7 @@
         const angulo = inicio + (2 * Math.PI * i) / n;
         mapa.set(v, { x: centro + radio * Math.cos(angulo), y: centro + radio * Math.sin(angulo) });
       });
-      return { mapa, lado: 2 * centro, centro };
+      return { mapa, ancho: 2 * centro, alto: 2 * centro, centro: { x: centro, y: centro } };
     }
 
     function svg(etiqueta, atributos, padre) {
@@ -125,12 +137,12 @@
     }
 
     function crearGrafo(grafo, paso) {
-      const { mapa, lado, centro: medio } = posiciones(grafo.vertices);
+      const { mapa, ancho, alto, centro: medio } = posiciones(grafo.vertices);
       const dibujo = svg('svg', {
         class: 'grafo',
-        width: lado,
-        height: lado,
-        viewBox: `0 0 ${lado} ${lado}`,
+        width: ancho,
+        height: alto,
+        viewBox: `0 0 ${ancho} ${alto}`,
         role: 'img',
         'aria-label': `Grafo ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'} de ${grafo.vertices.length} vértices`
       });
@@ -176,9 +188,17 @@
         const p1 = hacia(a, curva ? control : b, RADIO);
         const p2 = hacia(b, curva ? control : a, RADIO + (dirigido ? 1 : 0));
         const estadoArista = resaltado.aristas(arista) || (resaltado.apagarResto ? 'descartada' : null);
+        const trazo = curva ? `M${p1.x},${p1.y} Q${control.x},${control.y} ${p2.x},${p2.y}` : `M${p1.x},${p1.y} L${p2.x},${p2.y}`;
+        // En el coloreado de aristas, la del paso lleva un halo naranja
+        // debajo: el naranja de «en evaluación» encima taparía su color.
+        const colorArista = colorDe(paso, arista.nombre, MODOS_COLOREADO.ARISTAS);
+        if (paso && paso.modo === MODOS_COLOREADO.ARISTAS && paso.actual === arista.nombre) {
+          svg('path', { d: trazo, class: 'grafo__arista-halo' }, aristas);
+        }
         svg('path', {
-          d: curva ? `M${p1.x},${p1.y} Q${control.x},${control.y} ${p2.x},${p2.y}` : `M${p1.x},${p1.y} L${p2.x},${p2.y}`,
-          class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : ''),
+          d: trazo,
+          class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '')
+            + (colorArista ? ` grafo__arista--color grafo__color--${colorArista}` : ''),
           'marker-end': dirigido ? `url(#grafo-punta-${estadoArista || 'normal'})` : ''
         }, aristas);
         // Al lado de la mitad y hacia afuera de la curva: el peso, o en la
@@ -193,7 +213,8 @@
             class: (conNombre ? 'grafo__nombre' : 'grafo__peso') + (estadoArista ? ` grafo__peso--${estadoArista}` : ''),
             'text-anchor': 'middle', 'dominant-baseline': 'central'
           }, pesos);
-          texto.textContent = conNombre ? arista.nombre : arista.peso;
+          texto.textContent = conNombre ? arista.nombre + (colorArista ? ` ${colorArista}` : '') : arista.peso;
+          if (colorArista) texto.classList.add('grafo__nombre--color', `grafo__color--${colorArista}`);
         }
       }
 
@@ -201,8 +222,16 @@
       for (const vertice of grafo.vertices) {
         const { x, y } = mapa.get(vertice);
         const estadoVertice = resaltado.vertices.get(vertice) || (resaltado.apagarResto ? 'descartada' : null);
+        // **Coloreado: el vértice pintado de su color, con su letra al lado**
+        // (opción B de las maquetas, elegida por el usuario el 2026-10-24); el
+        // del paso, con un anillo naranja, y sus vecinos con uno azul.
+        const colorVertice = paso && paso.modo !== MODOS_COLOREADO.ARISTAS ? colorDe(paso, vertice) : null;
+        const enColoreo = paso && paso.modo && paso.modo !== MODOS_COLOREADO.ARISTAS;
+        const papelEnColoreo = enColoreo && paso.actual === vertice ? ' grafo__vertice--actual'
+          : enColoreo && (paso.vecinos || []).includes(vertice) && paso.actual !== undefined ? ' grafo__vertice--vecino' : '';
         const grupo = svg('g', {
-          class: 'grafo__vertice' + (estadoVertice ? ` grafo__vertice--${estadoVertice}` : ''),
+          class: 'grafo__vertice' + (estadoVertice ? ` grafo__vertice--${estadoVertice}` : '')
+            + (colorVertice ? ` grafo__vertice--color grafo__color--${colorVertice}` : '') + papelEnColoreo,
           'data-vertice': vertice
         }, nodos);
         svg('circle', { cx: x, cy: y, r: RADIO }, grupo);
@@ -216,8 +245,8 @@
         // Hacia afuera del grafo, en la dirección del vértice: por dentro es
         // donde llegan las aristas.
         if (papel) {
-          const dx = x - medio;
-          const dy = y - medio;
+          const dx = x - medio.x;
+          const dy = y - medio.y;
           const largo = Math.hypot(dx, dy) || 1;
           const rotulo = svg('text', {
             x: x + (dx / largo) * (RADIO + 13), y: y + (dy / largo) * (RADIO + 13),
@@ -225,8 +254,26 @@
           }, grupo);
           rotulo.textContent = papel;
         }
+        if (colorVertice) {
+          const dx = x - medio.x;
+          const dy = y - medio.y;
+          const largo = Math.hypot(dx, dy) || 1;
+          const letraEl = svg('text', {
+            x: x + (dx / largo) * (RADIO + 15), y: y + (dy / largo) * (RADIO + 15),
+            class: `grafo__letra grafo__color--${colorVertice}`, 'text-anchor': 'middle', 'dominant-baseline': 'central'
+          }, grupo);
+          letraEl.textContent = colorVertice;
+        }
       }
       return dibujo;
+    }
+
+    // La letra del color de un vértice o una arista en el paso, o nada.
+    const MODOS_COLOREADO = dominio.coloreado.MODOS;
+    function colorDe(paso, clave, modo) {
+      if (!paso || !paso.colores || (modo && paso.modo !== modo)) return null;
+      const indice = paso.colores[clave];
+      return indice === undefined ? null : dominio.coloreado.COLORES[indice].letra;
     }
 
     const valor = (numero) => (Number.isFinite(numero) ? String(numero) : '∞');
@@ -418,12 +465,87 @@
       return tabla;
     }
 
+    // ── Coloreado (CLAUDE.md 5.14) ─────────────────────────────────────────
+    // La tabla en orden, como la lista del docente: «V3 → color Azul → es
+    // adyacente con V1 y V2». Las filas que faltan se ven vacías.
+    function pastilla(indice) {
+      const color = dominio.coloreado.COLORES[indice];
+      const el = document.createElement('span');
+      el.className = 'coloreo-tabla__color';
+      el.innerHTML = `<span class="coloreo-pastilla grafo__color--${color.letra}">${color.letra}</span> ${color.nombre}`;
+      return el;
+    }
+
+    function crearTablaDeColoreo(paso) {
+      const deAristas = paso.modo === MODOS_COLOREADO.ARISTAS;
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla';
+      tabla.innerHTML = `<caption class="matriz-grafo__titulo">Coloreado en orden (R, N, A, V)</caption>
+        <tr><th scope="col">${deAristas ? 'Arista' : 'Vértice'}</th><th scope="col">${deAristas ? 'Vecinas ya coloreadas' : 'Vecinos ya coloreados'}</th><th scope="col">Color</th></tr>`;
+      paso.tabla.forEach((fila, i) => {
+        const tr = document.createElement('tr');
+        if (paso.actual === fila.clave) tr.className = 'coloreo-tabla__fila--actual';
+        const llena = i < paso.filasLlenas;
+        tr.innerHTML = `<td>${fila.clave}</td><td>${llena ? fila.vecinos : ''}</td><td></td>`;
+        // Con el coloreado de χ colores, la columna dice el de ese coloreado.
+        if (llena) tr.lastElementChild.appendChild(pastilla(paso.optimo ? paso.colores[fila.clave] : fila.color));
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
+    // El polinomio: la tabla de cᵢ y, al sumar, la fórmula.
+    function crearTablaDelPolinomio(paso) {
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla';
+      tabla.innerHTML = `<caption class="matriz-grafo__titulo">Formas de colorear con exactamente i colores</caption>
+        <tr><th scope="col">i</th><th scope="col">cᵢ</th><th scope="col">C(λ, i)</th><th scope="col">cᵢ · C(λ, i)</th></tr>`;
+      const caida = (i) => Array.from({ length: i }, (_, k) => (k === 0 ? 'λ' : `(λ−${k})`)).join('');
+      paso.tabla.forEach((fila, k) => {
+        const tr = document.createElement('tr');
+        if (k === paso.filasLlenas - 1 && !paso.polinomio) tr.className = 'coloreo-tabla__fila--actual';
+        const llena = k < paso.filasLlenas;
+        const termino = fila.ci === 0 ? '0' : `${fila.mi === 1 ? '' : `${fila.mi} · `}${caida(fila.i)}`;
+        tr.innerHTML = `<td>${fila.i}</td><td>${llena ? fila.ci : ''}</td><td>${caida(fila.i)}${fila.i > 1 ? `/${fila.i}!` : ''}</td><td>${llena ? termino : ''}</td>`;
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
+    function crearFormula(polinomio) {
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'coloreo-formula';
+      for (const linea of [polinomio.suma, polinomio.factorizado, polinomio.expandido, polinomio.evaluado].filter(Boolean)) {
+        const p = document.createElement('p');
+        p.textContent = linea;
+        if (linea === polinomio.evaluado) p.className = 'coloreo-formula__resultado';
+        tarjeta.appendChild(p);
+      }
+      return tarjeta;
+    }
+
     function renderizarGrafo(paso) {
       const grafo = grafoDeLaEstructura();
       dom.estructuraEl.className = 'estructura-grafo';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       if (!grafo) return;
+      if (config.coloreado) {
+        dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        if (paso && paso.tabla) {
+          const columna = document.createElement('div');
+          columna.className = 'estructura-grafo__columna';
+          if (paso.modo === MODOS_COLOREADO.POLINOMIO) {
+            columna.appendChild(crearTablaDelPolinomio(paso));
+            if (paso.polinomio) columna.appendChild(crearFormula(paso.polinomio));
+          } else {
+            columna.appendChild(crearTablaDeColoreo(paso));
+          }
+          dom.estructuraEl.appendChild(columna);
+        }
+        ajustarGrafo();
+        return;
+      }
       if (config.representacionDe) {
         const r = paso && paso.representacion ? paso.representacion : config.representacionDe(estado.estructura, grafo);
         dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
@@ -472,7 +594,7 @@
       // de la otra —con la adyacencia de aristas son doce filas de alto, y en
       // un proyector XGA no cabían ni a la mitad—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe ? ['estructura-grafo--extendida'] : []);
+        .concat(config.representacionDe || config.coloreado ? ['estructura-grafo--extendida'] : []);
       const quitarTodas = () => disposiciones.forEach((clase) => clase && caja.classList.remove(clase));
       let mejor = { clase: '', cabe: -1 };
       for (const clase of disposiciones) {

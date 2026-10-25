@@ -644,6 +644,7 @@
       recientesQueSeAbren();
       floyd();
       representacionMatricial();
+      coloreadoDeGrafos();
       controlDeVelocidad();
     }
 
@@ -3551,6 +3552,55 @@
       afirmar(fila(4).join(' ') === '1 −1 −1 0 −1 0',
         `adyacencia de aristas, caso 2: la fila de d como la tabla del docente (${fila(4).join(' ')})`);
       afirmarGrafoCabe('representación, completa');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Coloreado (CLAUDE.md 5.14): en orden, el primer color libre de R, N, A,
+    // V, con el grafo de la hoja 1 de los apuntes; y el polinomio cromático.
+    function coloreadoDeGrafos() {
+      registro.push('', '── Coloreado ──');
+      entrarATema('Coloreado y particionamiento');
+      const formulario = document.querySelector('form.panel');
+      afirmar(!formulario.querySelector('[name="tipo"]'), 'no pide si el grafo es dirigido: el coloreado no depende de la dirección');
+      const crear = (modo) => {
+        formulario.querySelector('[name="modo"]').value = modo;
+        formulario.querySelector('[name="lambda"]').value = '3';
+        formulario.querySelector('[name="aristas"]').value = 'a 1 3\nb 1 2\nc 2 3\nd 2 4\ne 3 4';
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const colorDe = (v) => {
+        const g = document.querySelector(`.grafo__vertice[data-vertice="${v}"]`);
+        const clase = [...g.classList].find((c) => c.startsWith('grafo__color--'));
+        return clase ? clase.slice(-1) : '';
+      };
+
+      crear('vertices');
+      afirmar([...document.querySelectorAll('.grafo__arista')].every((arista) => !arista.getAttribute('marker-end')),
+        'el grafo se dibuja sin flechas');
+      for (let i = 0; i < 3; i++) control('siguiente').click();
+      afirmar([1, 2, 3, 4].map(colorDe).join('') === 'RNA',
+        `vértice 3: 1 R, 2 N, 3 A, y el 4 todavía sin color (${[1, 2, 3, 4].map(colorDe).join(' ')})`);
+      afirmar(document.querySelector('.grafo__vertice[data-vertice="3"]').classList.contains('grafo__vertice--actual'),
+        'el vértice del paso lleva su anillo');
+      afirmarGrafoCabe('coloreado, un vértice');
+      agotarTraza(10);
+      afirmar([1, 2, 3, 4].map(colorDe).join('') === 'RNAR', `al terminar, R N A R como la hoja 1 (${[1, 2, 3, 4].map(colorDe).join(' ')})`);
+      afirmar(!!aviso() && aviso().textContent.includes('χ(G) = 3'), `y dice χ(G) = 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+
+      control('editar-configuracion').click();
+      crear('aristas');
+      agotarTraza(10);
+      afirmar(!!aviso() && aviso().textContent.includes('χ′(G) = 3'), `aristas: χ′(G) = 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmar(document.querySelectorAll('.grafo__arista--color').length === 5, 'las cinco aristas quedan pintadas');
+
+      control('editar-configuracion').click();
+      crear('polinomio');
+      agotarTraza(10);
+      const metricas = [...document.querySelectorAll('.metrica__valor')].map((el) => el.textContent);
+      afirmar(metricas.slice(2).join(' ') === '3 6', `polinomio: χ(G) = 3 y P(3) = 6 (${metricas.join(' ')})`);
+      const formula = document.querySelector('.coloreo-formula');
+      afirmar(!!formula && formula.textContent.includes('λ(λ−1)(λ−2)²'), `la fórmula factorizada (${formula ? formula.textContent : 'nada'})`);
+      afirmarGrafoCabe('polinomio');
       document.querySelector('.pantalla-tema__volver').click();
     }
 

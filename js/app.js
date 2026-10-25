@@ -93,7 +93,7 @@
         { id: 'grafos-expansion', titulo: 'Árboles de expansión — Prim y Kruskal', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia', tema: 'representacion', disponible: true },
-        { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: '', tema: null, disponible: false },
+        { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Vértices y aristas con el primer color libre, y el polinomio cromático', tema: 'coloreado', disponible: true },
         { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: '', tema: null, disponible: false }
       ]
     }
@@ -396,7 +396,9 @@
   // lee de ellos cada vez que hace falta.
   function grafoDeLaEstructura(estructura) {
     const p = estructura && estructura.parametros;
-    return p && p.aristas ? dominio.grafo.leerGrafo(p.aristas, p.tipo).grafo : null;
+    // Sin tipo —el coloreado no lo pide, no depende de la dirección— es no
+    // dirigido.
+    return p && p.aristas ? dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO).grafo : null;
   }
   const describirGrafo = (grafo) => `${grafo.vertices.length} vértices · ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}`
     + (grafo.conPesos ? ' · con pesos' : '');
@@ -421,7 +423,7 @@
     ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Para nombrarla, la letra delante («a 1 2»); sin ella toma la siguiente en orden. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices, numerados.`,
     // Va después del tipo: un no dirigido no admite «2 1» si ya está «1 2».
     validar: (entrada, { parametros }) => {
-      const lectura = dominio.grafo.leerGrafo(entrada, parametros.tipo);
+      const lectura = dominio.grafo.leerGrafo(entrada, parametros.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO);
       return lectura.valido
         ? { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) }
         : { valido: false, mensaje: lectura.mensaje };
@@ -429,7 +431,7 @@
   };
   // Lo que se dibuja mientras se escriben las aristas, antes de crear.
   const vistaPreviaDeGrafo = (datos) => {
-    const lectura = dominio.grafo.leerGrafo(datos.get('aristas'), String(datos.get('tipo') || dominio.grafo.TIPOS.DIRIGIDO));
+    const lectura = dominio.grafo.leerGrafo(datos.get('aristas'), String(datos.get('tipo') || dominio.grafo.TIPOS.NO_DIRIGIDO));
     return lectura.valido ? lectura.grafo : null;
   };
 
@@ -1256,6 +1258,133 @@
           valor: ({ paso }) => (paso && paso.distintos !== undefined ? String(paso.distintos) : '0')
         }
       ]
+    },
+
+    // Coloreado y particionamiento (CLAUDE.md 5.14): colorear los vértices o
+    // las aristas en orden con el primer color libre de R, N, A, V, o armar
+    // el polinomio cromático con la fórmula general. Se arma como los otros
+    // temas de grafos; no pide si el grafo es dirigido, porque el coloreado
+    // no depende de la dirección.
+    coloreado: {
+      orientacion: 'grafo',
+      coloreado: true,
+      nombresDeAristas: true,
+      calculo: true,
+      // Repite la tabla y el aviso: en una ventana chica se suelta para que
+      // quepan (ver `ajustarGrafo`).
+      calculoPrescindible: true,
+      tituloCalculo: 'Coloreado',
+      calculoSoloEnOperacion: true,
+      sinTamano: true,
+      sinLongitud: true,
+      sinOperaciones: true,
+      sinClaves: true,
+      tamano: () => ({ n: 1, l: 1 }),
+      nombreEstructura: 'grafo',
+      tituloConfiguracion: 'Grafo',
+      mensajeReinicio: 'Coloreado borrado: el grafo vuelve a estar sin colores.',
+      mensajeLienzoVacio: {
+        titulo: 'Escriba las aristas del grafo para colorearlo',
+        indicacion: 'Una por renglón, en el panel de la derecha'
+      },
+      mensajeDerivacion: 'Coloreado iniciado.',
+      mensajeCreacion: (estructura) => {
+        const grafo = grafoDeLaEstructura(estructura);
+        return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas (${grafo.aristas.map((a) => a.nombre).join(', ')}).`;
+      },
+      detalleReciente: (estructura) => {
+        const grafo = grafoDeLaEstructura(estructura);
+        const que = { vertices: 'vértices', aristas: 'aristas', polinomio: 'polinomio cromático' }[estructura.parametros.modo];
+        return `${grafo.vertices.length} vértices · ${que}`;
+      },
+      alCrear: ({ estructura }) => algoritmos.coloreado.recorrer(grafoDeLaEstructura(estructura), {
+        modo: estructura.parametros.modo,
+        lambda: estructura.parametros.lambda
+      }),
+      conservarAlFinal: ['modo', 'tabla', 'colores', 'filasLlenas', 'usados', 'delta', 'minimo', 'optimo',
+        'polinomio', 'valor', 'lambda', 'calculo', 'tituloCalculo'],
+      nombreArchivo: (estructura) => `coloreado-${estructura.parametros.modo}-${grafoDeLaEstructura(estructura).vertices.length}v`,
+      vistaPrevia: vistaPreviaDeGrafo,
+      parametros: [
+        {
+          nombre: 'modo',
+          etiqueta: 'Qué colorear',
+          opciones: [
+            { valor: 'vertices', etiqueta: 'Vértices' },
+            { valor: 'aristas', etiqueta: 'Aristas' },
+            { valor: 'polinomio', etiqueta: 'Polinomio cromático' }
+          ],
+          ayuda: 'En orden, cada uno con el primer color libre de R, N, A, V.',
+          validar: (entrada) => (Object.values(dominio.coloreado.MODOS).includes(entrada)
+            ? { valido: true, valor: entrada }
+            : { valido: false, mensaje: 'Elija qué colorear.' })
+        },
+        {
+          nombre: 'lambda',
+          etiqueta: 'Colores disponibles (λ)',
+          tipo: 'numero',
+          marcador: '3',
+          ayuda: 'Para evaluar el polinomio: P(λ) cuenta las formas de colorear con λ colores.',
+          validar: (entrada) => {
+            if (entrada.trim() === '') return { valido: true, valor: 3 };
+            const valor = Number(entrada);
+            return Number.isInteger(valor) && valor >= 1 && valor <= dominio.grafo.VERTICES_MAXIMOS
+              ? { valido: true, valor }
+              : { valido: false, mensaje: `Los colores disponibles (λ) son un entero de 1 a ${dominio.grafo.VERTICES_MAXIMOS}.` };
+          }
+        },
+        PARAMETRO_ARISTAS
+      ],
+      casillasRelevantes: () => [],
+      describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+      metricas: (() => {
+        const esPolinomio = (paso) => Boolean(paso && paso.modo === dominio.coloreado.MODOS.POLINOMIO);
+        const esAristas = (paso) => Boolean(paso && paso.modo === dominio.coloreado.MODOS.ARISTAS);
+        const alTerminar = (paso) => Boolean(paso && paso.minimo !== undefined);
+        return [
+          {
+            id: 'vertices',
+            etiqueta: 'Vértices',
+            valor: ({ estructura }) => {
+              const grafo = grafoDeLaEstructura(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'aristas',
+            etiqueta: 'Aristas',
+            valor: ({ estructura }) => {
+              const grafo = grafoDeLaEstructura(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          },
+          {
+            id: 'colores',
+            etiqueta: 'Colores usados',
+            etiquetaSegun: ({ paso }) => (esPolinomio(paso) ? 'χ(G)' : 'Colores usados'),
+            valor: ({ paso }) => {
+              if (esPolinomio(paso)) return alTerminar(paso) ? String(paso.minimo) : '—';
+              return paso && paso.usados !== undefined ? String(paso.usados) : '0';
+            }
+          },
+          {
+            id: 'cuarta',
+            etiqueta: 'Coloreados',
+            etiquetaSegun: ({ paso }) => {
+              if (esPolinomio(paso)) return `P(${paso.lambda})`;
+              if (esAristas(paso)) return alTerminar(paso) ? 'χ′(G)' : 'Grado máximo Δ';
+              return alTerminar(paso) ? 'χ(G)' : 'Coloreados';
+            },
+            valor: ({ paso }) => {
+              if (!paso || !paso.tabla) return '—';
+              if (esPolinomio(paso)) return paso.valor !== undefined ? String(paso.valor) : '—';
+              if (alTerminar(paso)) return String(paso.minimo);
+              if (esAristas(paso)) return String(paso.delta);
+              return `${paso.filasLlenas} de ${paso.tabla.length}`;
+            }
+          }
+        ];
+      })()
     },
 
     // Otras búsquedas dinámicas (CLAUDE.md 5.x): la única estructura del

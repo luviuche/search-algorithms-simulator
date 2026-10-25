@@ -910,6 +910,20 @@ La opción B —apilar al lado los pasos de dentro, como en binaria interna— s
 
 Se arma como Floyd (§5.12): el grafo y la representación salen de los parámetros —tipo, representación, caso y aristas— y crearlo arranca el llenado.
 
+### 5.14 Coloreado y particionamiento (2026-10-24)
+
+**Tercer tema de grafos.** En clase se vio coloreado de vértices, de aristas y el polinomio cromático —sin caras—, con los colores **R, N, A, V** (rojo, negro, azul, verde), y sin ejercicio resuelto (dicho por el usuario, 2026-10-24). El único material son los apuntes manuscritos de 2021-I en `docs/Coloreado de Grafos/`; el usuario pidió definir el método a partir de ellos.
+
+**El método** (`dominio/coloreado.js`, `algoritmos/coloreado.js`):
+
+- **En orden, el primer color libre.** Cada vértice —o cada arista—, en el orden en que se escribió, toma el primer color de R, N, A, V que no tenga ninguno de sus vecinos ya coloreados. Es lo que hace la hoja 1 de los apuntes: V1 R, V2 N, V3 A, V4 R. Dos aristas son vecinas si comparten un vértice. El coloreado no depende de la dirección: el tema no pide si el grafo es dirigido.
+- **Al terminar, el mínimo exacto**: χ(G) —o χ′(G), junto al grado máximo Δ, porque las propiedades de los apuntes los comparan—, buscado con vuelta atrás. El porqué de que no alcance con menos se dice con lo que se ve en el dibujo: los vértices todos vecinos entre sí, o las aristas que se tocan en el vértice de grado máximo. **Si el orden usó más colores que el mínimo, se dice y se muestra un coloreado con χ colores** (el camino 1–3–4–2 escrito en ese orden usa 3 y alcanza con 2).
+- **El polinomio cromático con la fórmula general** de los apuntes, P(λ) = Σ cᵢ · C(λ, i), con cᵢ las formas de colorear usando exactamente i colores (elegida por el usuario sobre las fórmulas de casos especiales). Cada cᵢ se cuenta como **particionamiento** —las formas de repartir los vértices en i grupos sin vecinos dentro, mᵢ, por las i! formas de darle un color a cada grupo—, y así se explica en cada paso; el grafo muestra un coloreado con exactamente i colores. Al sumar se escribe P(λ) factorizado y desarrollado, y al final se evalúa en λ, que pide el formulario.
+- **Las fórmulas de los cíclicos de la hoja Pc2 están mal en general**: con 5 vértices y 3 colores la hoja da 24 y son 30; con 6 vértices y 3 colores daría 96 y son 66 (su ejemplo de 6 con 2 colores da bien por casualidad). La correcta es (λ−1)ⁿ + (−1)ⁿ(λ−1), y es la que sale de la fórmula general. Las de árbol, lineal, nulo, completo y el «grafo simple» sí dan bien, y son pruebas (`pruebas/coloreado.test.js`). Pendiente de comentar con el docente.
+- **Colores**: los cuatro del docente y, si un grafo pide más —un completo de 5—, M (morado), C (café), G (gris) y O (ocre).
+
+**Cómo se dibuja** (opción B de las maquetas, elegida por el usuario sobre la A, «la letra sola, como los apuntes»): el vértice se pinta de su color real con su letra al lado, hacia afuera del grafo; la arista, con un trazo grueso de su color y la letra junto a su nombre. **Los colores del coloreado son datos, no estados** (§8.1): tienen tokens propios (`--coloreo-R` … `--coloreo-O`). Lo del paso no se pinta de naranja, que taparía su color: el vértice lleva un anillo naranja y sus vecinos uno azul; la arista, un halo naranja debajo. Al lado, la tabla en orden como la lista del docente —«V3 → color Azul → es adyacente con V1 y V2»—, que se llena con los pasos; en el polinomio, la tabla de cᵢ y la tarjeta con la fórmula. El panel del cálculo repite la tabla y el aviso, así que en una ventana chica se suelta (`calculoPrescindible`, como en §5.13).
+
 ## 6. Visualización
 
 ### 6.1 Orientación
@@ -1208,7 +1222,7 @@ Los colores son los estados de la casilla y nada más (§8.2): naranja lo que el
 
 **Los conceptos por vértice van como columnas al final de cada fila de la matriz** (distancia: «suma»; excentricidad: «mayor»), y no en una tabla aparte como en la maqueta C: con la tabla aparte, a 1280 × 633 el grafo, la matriz, la tabla y el panel no cabían. Escritas al lado de su fila además se lee de dónde salen.
 
-**Cabe en el lienzo sin desplazarse** (`ajustarGrafo`; `align-items: safe center` en los dos ejes, porque centrado lo que se salía por arriba no contaba en `scrollHeight` y la columna se medía 160 px más baja). En la representación matricial se prueba además la matriz al lado de su estructura en vez de encima (`--extendida`), que es lo que entra a 1024 × 650. Se prueba el grafo al lado de la matriz y encima de ella, se queda la disposición que deja la letra más grande y se encoge lo justo, nunca por debajo de 0,5×; encogida, el panel del cálculo toma el sitio que deja, así que se mide otra vez y se achica lo que falte. Se vuelve a ajustar al cambiar la ventana. A 1920 × 950 va a tamaño completo; a 1024 × 650 queda cerca de la mitad. El humo lo afirma en los ocho tamaños (`afirmarGrafoCabe`).
+**Cabe en el lienzo sin desplazarse** (`ajustarGrafo`; `align-items: safe center` en los dos ejes, porque centrado lo que se salía por arriba no contaba en `scrollHeight` y la columna se medía 160 px más baja). En la representación matricial se prueba además la matriz al lado de su estructura en vez de encima (`--extendida`), que es lo que entra a 1024 × 650. **Con 4 y 5 vértices, el cuadrado del docente** (2026-10-24): 1 y 2 arriba, 3 y 4 abajo, y el 5 a la derecha a media altura, que es como están dibujados la hoja de Floyd, el grafo verde y la hoja 1 del coloreado; en círculo, el 3 caía abajo a la derecha y sus diagonales se cruzaban. Con los demás, en círculo. Se prueba el grafo al lado de la matriz y encima de ella, se queda la disposición que deja la letra más grande y se encoge lo justo, nunca por debajo de 0,5×; encogida, el panel del cálculo toma el sitio que deja, así que se mide otra vez y se achica lo que falte. Se vuelve a ajustar al cambiar la ventana. A 1920 × 950 va a tamaño completo; a 1024 × 650 queda cerca de la mitad. El humo lo afirma en los ocho tamaños (`afirmarGrafoCabe`).
 
 ## 7. Animación
 
@@ -1541,7 +1555,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22) **y la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **y el coloreado** (§5.14, 2026-10-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 
