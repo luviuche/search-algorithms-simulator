@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
-> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit has started: Floyd's shortest paths, with the graph concepts that come out of them, is built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's algorithm, matrix representation and graph coloring are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -52,7 +52,10 @@ The user interface is in **Spanish**, the language of the course.
 | Topic | Status |
 |---|---|
 | Shortest paths with Floyd's algorithm, one step per (j, i) pair as in the professor's worked example, followed by each vertex's distance and eccentricity and the graph's radius, diameter, center and median | ✅ |
-| Definitions, traversals, Euler and Hamilton circuits, graph operations, spanning trees (Prim, Kruskal), cut sets, matrix representation, coloring, matchings | 🚧 Planned |
+| Matrix representation: incidence, vertex adjacency and edge adjacency, directed or not, each filled one row per step next to its adjacency list | ✅ |
+| Graph coloring: vertices and edges colored in order with the first free color, the chromatic number and index, and the chromatic polynomial from the general formula | ✅ |
+| Circuits and cut sets in matrix form | 🚧 Planned |
+| Definitions, traversals, Euler and Hamilton circuits, graph operations, spanning trees (Prim, Kruskal), matchings | 🚧 Planned |
 
 ## Running it
 
