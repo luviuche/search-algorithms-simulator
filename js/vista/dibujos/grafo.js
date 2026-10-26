@@ -524,7 +524,211 @@
       return tarjeta;
     }
 
+    // ── Operaciones entre grafos (CLAUDE.md 5.15) ─────────────────────────
+    // Los dos operandos chicos a la izquierda, con el símbolo entre ellos, y
+    // el resultado en una cuadrícula: una fila por vértice de G₁ y una
+    // columna por vértice de G₂ (maquetas aprobadas el 2026-10-26). G₁ va en
+    // vertical y G₂ en horizontal, como las filas y las columnas.
+    const operaciones = dominio.operaciones;
+    function operandosDeLaEstructura() {
+      const p = (estado.estructura && estado.estructura.parametros) || {};
+      const g1 = operaciones.leerOperando(p.aristas1, 'G₁');
+      const g2 = operaciones.leerOperando(p.aristas2, 'G₂');
+      return g1.valido && g2.valido ? { g1: g1.grafo, g2: g2.grafo, operacion: p.operacion } : null;
+    }
+
+    // Una arista recta, salvo que pase por encima de otro vértice: entonces
+    // se curva hacia afuera de la figura, más cuanto más larga —en la misma
+    // columna, la de 1 a 3 y la de 1 a 4 no quedan encimadas—, y nunca hasta
+    // meterse en la columna de al lado. Devuelve el trazo y el punto más
+    // salido de la curva, que el dibujo tiene que abarcar.
+    const CURVA_MAXIMA = 44;
+    function trazoEntre(a, b, otros, medio) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const largo = Math.hypot(dx, dy);
+      const tapa = otros.some((o) => {
+        if (o === a || o === b) return false;
+        const t = ((o.x - a.x) * dx + (o.y - a.y) * dy) / (largo * largo);
+        if (t <= 0 || t >= 1) return false;
+        return Math.hypot(a.x + t * dx - o.x, a.y + t * dy - o.y) < 22;
+      });
+      if (!tapa) return { d: `M${a.x},${a.y} L${b.x},${b.y}`, pico: null };
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      let nx = -dy / largo;
+      let ny = dx / largo;
+      if ((mx - medio.x) * nx + (my - medio.y) * ny < 0) { nx = -nx; ny = -ny; }
+      const curva = Math.min(CURVA_MAXIMA, 10 + largo * 0.12);
+      return {
+        d: `M${a.x},${a.y} Q${mx + nx * curva * 2},${my + ny * curva * 2} ${b.x},${b.y}`,
+        pico: { x: mx + nx * curva, y: my + ny * curva }
+      };
+    }
+
+    // El dibujo crece lo que salgan las curvas: dibujadas fuera de su caja,
+    // `ajustarGrafo` no las medía y quedaban recortadas.
+    function abarcarCurvas(dibujo, ancho, alto, picos) {
+      const holgura = 6;
+      const x0 = Math.min(0, ...picos.map((p) => p.x - holgura));
+      const y0 = Math.min(0, ...picos.map((p) => p.y - holgura));
+      const x1 = Math.max(ancho, ...picos.map((p) => p.x + holgura));
+      const y1 = Math.max(alto, ...picos.map((p) => p.y + holgura));
+      dibujo.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
+      dibujo.setAttribute('width', x1 - x0);
+      dibujo.setAttribute('height', y1 - y0);
+    }
+
+    const juntas = (lista, a, b) => lista.some(([p, q]) => (p === a && q === b) || (p === b && q === a));
+
+    // Un operando: G₁ hacia abajo, G₂ hacia la derecha. Lo que el paso usa
+    // de él, resaltado: el vértice que se fija en azul, las aristas en naranja.
+    function crearOperando(grafo, titulo, horizontal, usa) {
+      const PASO_OPERANDO = 78;
+      const n = grafo.vertices.length;
+      const ancho = horizontal ? 2 * MARGEN + (n - 1) * PASO_OPERANDO : 2 * MARGEN + 20;
+      const alto = horizontal ? 2 * MARGEN + 20 : 2 * MARGEN + 20 + (n - 1) * PASO_OPERANDO;
+      const posicion = (i) => (horizontal
+        ? { x: MARGEN + i * PASO_OPERANDO, y: MARGEN + 20 }
+        : { x: MARGEN + 10, y: MARGEN + 20 + i * PASO_OPERANDO });
+      const mapa = new Map(grafo.vertices.map((v, i) => [v, posicion(i)]));
+      const medio = { x: ancho / 2, y: alto / 2 + (horizontal ? -40 : 0) };
+      const dibujo = svg('svg', {
+        class: 'grafo grafo--operando', width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`,
+        role: 'img', 'aria-label': `${titulo}: ${n} vértices, ${grafo.aristas.length} aristas`
+      });
+      svg('text', { x: 4, y: 16, class: 'grafo__titulo' }, dibujo).textContent = titulo;
+      const lineas = svg('g', { class: 'grafo__aristas' }, dibujo);
+      const picos = [];
+      for (const [p, q] of grafo.aristas) {
+        const usada = usa && juntas(usa.aristas, p, q);
+        const { d, pico } = trazoEntre(mapa.get(p), mapa.get(q), [...mapa.values()], medio);
+        if (pico) picos.push(pico);
+        svg('path', { d, class: 'grafo__arista' + (usada ? ' grafo__arista--evaluacion' : '') }, lineas);
+      }
+      abarcarCurvas(dibujo, ancho, alto, picos);
+      const nodos = svg('g', { class: 'grafo__vertices' }, dibujo);
+      for (const v of grafo.vertices) {
+        const { x, y } = mapa.get(v);
+        const fijo = usa && usa.vertices.includes(v);
+        const grupo = svg('g', { class: 'grafo__vertice' + (fijo ? ' grafo__vertice--rango' : ''), 'data-vertice': v }, nodos);
+        svg('circle', { cx: x, cy: y, r: 20 }, grupo);
+        svg('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, grupo).textContent = v;
+      }
+      return dibujo;
+    }
+
+    function crearOperandos({ g1, g2, operacion }, usa) {
+      const caja = document.createElement('div');
+      caja.className = 'operacion-grafos__operandos';
+      const simbolo = document.createElement('span');
+      simbolo.className = 'operacion-grafos__simbolo'
+        + (operacion === operaciones.OPERACIONES.COMPOSICION ? ' operacion-grafos__simbolo--largo' : '');
+      simbolo.textContent = { cartesiano: '⊕', tensorial: '⊗', composicion: 'G₁[G₂]' }[operacion] || '';
+      if (g1) caja.appendChild(crearOperando(g1, 'G₁', false, usa && usa.g1));
+      caja.appendChild(simbolo);
+      if (g2) caja.appendChild(crearOperando(g2, 'G₂', true, usa && usa.g2));
+      return caja;
+    }
+
+    // El resultado: los pares en pastillas, las aristas hechas, en naranja
+    // las de este paso y punteadas las que faltan. Las filas y las columnas
+    // llevan su vértice escrito al borde, que es como las nombra el aviso.
+    function crearResultado(paso) {
+      const { g1, g2 } = paso;
+      const etiqueta = ([u, v]) => operaciones.par(u, v);
+      const anchoPastilla = Math.max(...paso.resultado.vertices.map((p) => 18 + 9.5 * etiqueta(p).length));
+      const columna = anchoPastilla + 64;
+      const fila = 96;
+      const izquierda = MARGEN + 24 + anchoPastilla / 2;
+      const arriba = MARGEN + 44;
+      const ancho = izquierda + (g2.vertices.length - 1) * columna + anchoPastilla / 2 + MARGEN;
+      const alto = arriba + (g1.vertices.length - 1) * fila + 18 + MARGEN;
+      const posicion = ([u, v]) => ({ x: izquierda + g2.vertices.indexOf(v) * columna, y: arriba + g1.vertices.indexOf(u) * fila });
+      const mapa = new Map(paso.resultado.vertices.map((p) => [etiqueta(p), posicion(p)]));
+      const medio = { x: (izquierda + ancho - MARGEN) / 2, y: (arriba + alto - MARGEN) / 2 };
+      const simbolo = window.CC2.algoritmos.operaciones.SIMBOLOS[paso.operacion];
+      const dibujo = svg('svg', {
+        class: 'grafo grafo--resultado', width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`,
+        role: 'img', 'aria-label': `${simbolo}: ${mapa.size} vértices, ${paso.hechas} aristas`
+      });
+      svg('text', { x: 4, y: 16, class: 'grafo__titulo' }, dibujo).textContent = simbolo;
+      g2.vertices.forEach((v, k) => {
+        svg('text', { x: izquierda + k * columna, y: arriba - 34, class: 'grafo__rotulo', 'text-anchor': 'middle' }, dibujo).textContent = v;
+      });
+      g1.vertices.forEach((u, k) => {
+        svg('text', { x: 12, y: arriba + k * fila, class: 'grafo__rotulo', 'dominant-baseline': 'central' }, dibujo).textContent = u;
+      });
+      const otros = [...mapa.values()];
+      const lineas = svg('g', { class: 'grafo__aristas' }, dibujo);
+      // Primero las que faltan, debajo de todo; las nuevas, encima.
+      const orden = paso.resultado.aristas.map((a, i) => ({ a, i }))
+        .sort((x, y) => rango(x.i) - rango(y.i));
+      function rango(i) {
+        return i >= paso.hechas ? 0 : i >= paso.nuevasDesde ? 2 : 1;
+      }
+      const picos = [];
+      for (const { a: [p, q], i } of orden) {
+        const estadoArista = i >= paso.hechas ? 'pendiente' : i >= paso.nuevasDesde ? 'evaluacion' : null;
+        const { d, pico } = trazoEntre(mapa.get(etiqueta(p)), mapa.get(etiqueta(q)), otros, medio);
+        if (pico) picos.push(pico);
+        svg('path', { d, class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '') }, lineas);
+      }
+      abarcarCurvas(dibujo, ancho, alto, picos);
+      const resaltados = new Set((paso.paresResaltados || []).map(etiqueta));
+      const nodos = svg('g', { class: 'grafo__vertices' }, dibujo);
+      for (const [texto, { x, y }] of mapa) {
+        const grupo = svg('g', {
+          class: 'operacion-grafos__par' + (resaltados.has(texto) ? ' operacion-grafos__par--evaluacion' : ''),
+          'data-par': texto
+        }, nodos);
+        svg('rect', { x: x - anchoPastilla / 2, y: y - 18, width: anchoPastilla, height: 36, rx: 18 }, grupo);
+        svg('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, grupo).textContent = texto;
+      }
+      return dibujo;
+    }
+
+    // Al terminar, la cuenta: |V| y |A| con su fórmula y sus números.
+    function crearCuenta(paso) {
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'coloreo-formula';
+      const n1 = paso.g1.vertices.length;
+      const n2 = paso.g2.vertices.length;
+      const c = paso.cuenta;
+      for (const [texto, clase] of [
+        [`|V| = |V₁| · |V₂| = ${n1} · ${n2} = ${n1 * n2}`, ''],
+        [`|A| = ${c.formula} = ${c.numeros} = ${c.valor}`, 'coloreo-formula__resultado']
+      ]) {
+        const p = document.createElement('p');
+        p.textContent = texto;
+        if (clase) p.className = clase;
+        tarjeta.appendChild(p);
+      }
+      return tarjeta;
+    }
+
+    function renderizarOperacion(paso) {
+      dom.estructuraEl.className = 'estructura-grafo';
+      dom.estructuraEl.removeAttribute('style');
+      dom.estructuraEl.innerHTML = '';
+      const operandos = paso && paso.resultado ? paso : operandosDeLaEstructura();
+      if (!operandos) return;
+      dom.estructuraEl.appendChild(crearOperandos(operandos, paso && paso.usa));
+      if (paso && paso.resultado) {
+        const columna = document.createElement('div');
+        columna.className = 'estructura-grafo__columna';
+        columna.appendChild(crearResultado(paso));
+        if (paso.cuenta) columna.appendChild(crearCuenta(paso));
+        dom.estructuraEl.appendChild(columna);
+      }
+      ajustarGrafo();
+    }
+
     function renderizarGrafo(paso) {
+      if (config.operaciones) {
+        renderizarOperacion(paso);
+        return;
+      }
       const grafo = grafoDeLaEstructura();
       dom.estructuraEl.className = 'estructura-grafo';
       dom.estructuraEl.removeAttribute('style');
@@ -594,7 +798,7 @@
       // de la otra —con la adyacencia de aristas son doce filas de alto, y en
       // un proyector XGA no cabían ni a la mitad—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado ? ['estructura-grafo--extendida'] : []);
+        .concat(config.representacionDe || config.coloreado || config.operaciones ? ['estructura-grafo--extendida'] : []);
       const quitarTodas = () => disposiciones.forEach((clase) => clase && caja.classList.remove(clase));
       let mejor = { clase: '', cabe: -1 };
       for (const clase of disposiciones) {
@@ -626,7 +830,8 @@
       dom.estructuraEl.className = 'estructura-grafo estructura-grafo--previa';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
-      dom.estructuraEl.appendChild(crearGrafo(grafo, null));
+      // En las operaciones, la vista previa son los dos operandos.
+      dom.estructuraEl.appendChild(config.operaciones ? crearOperandos(grafo, null) : crearGrafo(grafo, null));
       ajustarGrafo();
     }
 

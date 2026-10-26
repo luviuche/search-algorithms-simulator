@@ -495,6 +495,28 @@
       avanzar(pasosAAvanzar(20));
     }
 
+    // Operaciones entre grafos: ?vista=operaciones&operacion=…&g1=…&g2=…,
+    // por omisión el camino 1–2–3 y la arista a–b de las maquetas. Con
+    // `&previa=1`, el formulario escrito sin crear.
+    function prepararOperaciones() {
+      const formularios = entrarATema('Operaciones entre grafos');
+      const valores = {
+        operacion: parametros.get('operacion') || 'cartesiano',
+        aristas1: parametros.get('g1') || '1 2\n2 3',
+        aristas2: parametros.get('g2') || 'a b'
+      };
+      if (parametros.get('previa')) {
+        for (const [nombre, valor] of Object.entries(valores)) {
+          const campo = formularios[0].querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
+      enviar(formularios[0], valores);
+      avanzar(pasosAAvanzar(40));
+    }
+
     // Abrir un archivo `.cc2` de verdad: se construye el JSON, se le entrega al
     // `input type="file"` con un DataTransfer —que es la única forma de
     // simular la elección de un archivo— y se dispara el `change`. La lectura
@@ -558,6 +580,7 @@
       if (vista === 'floyd') return prepararFloyd();
       if (vista === 'representacion') return prepararRepresentacion();
       if (vista === 'coloreado') return prepararColoreado();
+      if (vista === 'operaciones') return prepararOperaciones();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

@@ -924,6 +924,22 @@ Se arma como Floyd (§5.12): el grafo y la representación salen de los parámet
 
 **Cómo se dibuja** (opción B de las maquetas, elegida por el usuario sobre la A, «la letra sola, como los apuntes»): el vértice se pinta de su color real con su letra al lado, hacia afuera del grafo; la arista, con un trazo grueso de su color y la letra junto a su nombre. **Los colores del coloreado son datos, no estados** (§8.1): tienen tokens propios (`--coloreo-R` … `--coloreo-O`). Lo del paso no se pinta de naranja, que taparía su color: el vértice lleva un anillo naranja y sus vecinos uno azul; la arista, un halo naranja debajo. Al lado, la tabla en orden como la lista del docente —«V3 → color Azul → es adyacente con V1 y V2»—, que se llena con los pasos; en el polinomio, la tabla de cᵢ y la tarjeta con la fórmula. El panel del cálculo repite la tabla y el aviso, así que en una ventana chica se suelta (`calculoPrescindible`, como en §5.13).
 
+### 5.15 Operaciones entre grafos (2026-10-26)
+
+**Cuarto tema de grafos.** El usuario pidió empezar por tres operaciones entre dos grafos, con la notación de cada una, y dejó el paso a paso a esta aplicación: **producto cartesiano G₁ ⊕ G₂** —el + en círculo es el símbolo del docente—, **producto tensorial G₁ ⊗ G₂** y **composición G₁[G₂]** (las dos últimas, confirmadas por el usuario sobre las maquetas). No hay material del docente: las pruebas se anclan al ejemplo de las maquetas —el camino 1–2–3 y la arista a–b, que dan 7, 4 y 11 aristas— y a comparar cada resultado contra su regla en todos los pares (`pruebas/operaciones.test.js`).
+
+**Los operandos** (`dominio/operaciones.js`, `leerOperando`): grafos simples y no dirigidos, una arista por renglón con sus dos vértices, y un vértice solo en su renglón si está aislado. **Los vértices pueden ser números o letras, en cualquiera de los dos** (pedido del usuario): por eso aquí no hay nombre de arista delante, como en los otros temas de grafos, y no se usa `leerGrafo`. Hasta 4 vértices cada uno, porque el resultado tiene el producto: con 4 y 4 son 16.
+
+**Las reglas** (~ es «adyacente a»), con los vértices del resultado los pares (u, v):
+
+- G₁ ⊕ G₂: (u, v) ~ (u′, v′) si u = u′ y v ~ v′ en G₂, o v = v′ y u ~ u′ en G₁. |A| = |V₁|·|A₂| + |V₂|·|A₁|.
+- G₁ ⊗ G₂: (u, v) ~ (u′, v′) si u ~ u′ en G₁ y v ~ v′ en G₂. |A| = 2·|A₁|·|A₂|.
+- G₁[G₂]: (u, v) ~ (u′, v′) si u ~ u′ en G₁, o u = u′ y v ~ v′ en G₂. |A| = |V₁|·|A₂| + |V₂|²·|A₁|.
+
+**El paso a paso** (`algoritmos/operaciones.js`; aprobado por el usuario el 2026-10-26): primero un paso con los vértices, V₁ × V₂. Después, por grupos que siguen la regla: en el cartesiano, una copia de G₂ por cada vértice de G₁ (su fila) y una de G₁ por cada vértice de G₂ (su columna); en el tensorial, una arista de G₁ por paso, cruzada con todas las de G₂ —cada par da dos, en cruz—; en la composición, una copia de G₂ en cada fila y después una arista de G₁ por paso, que une todos los de una fila con todos los de la otra. Al final, |V| y |A| con su fórmula y sus números. Un operando sin aristas deja su paso, dicho.
+
+**Cómo se dibuja**: los dos operandos chicos a la izquierda con el símbolo entre ellos —G₁ en vertical y G₂ en horizontal, como las filas y las columnas del resultado— y el resultado en cuadrícula, los pares en pastillas y cada fila y columna con su vértice escrito al borde. En el operando se resalta lo que el paso usa (el vértice fijo en azul, las aristas en naranja); en el resultado, en naranja las aristas nuevas y sus pares, y punteadas las que faltan. Una arista que pasaría por encima de otro vértice se curva hacia afuera, más cuanto más larga y nunca más de 44 px, y el dibujo crece lo que salgan las curvas para que `ajustarGrafo` las mida. Antes de crear, la vista previa son los dos operandos. El panel del cálculo lleva la regla escrita, y en una ventana chica se suelta (`calculoPrescindible`).
+
 ## 6. Visualización
 
 ### 6.1 Orientación
@@ -1555,7 +1571,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **y el coloreado** (§5.14, 2026-10-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24) **y las operaciones entre grafos** —cartesiano, tensorial y composición— (§5.15, 2026-10-26). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

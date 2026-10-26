@@ -89,7 +89,7 @@
         { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y el centro, el radio y la mediana que salen de ellas', tema: 'floyd', disponible: true },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: '', tema: null, disponible: false },
+        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Producto cartesiano, producto tensorial y composición de dos grafos', tema: 'operaciones', disponible: true },
         { id: 'grafos-expansion', titulo: 'Árboles de expansión — Prim y Kruskal', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia', tema: 'representacion', disponible: true },
@@ -1386,6 +1386,136 @@
         ];
       })()
     },
+
+    // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ ⊕ G₂,
+    // producto tensorial G₁ ⊗ G₂ y composición G₁[G₂]. Dos grafos simples y
+    // no dirigidos, de hasta 4 vértices cada uno, con números o letras.
+    operaciones: (() => {
+      const { OPERACIONES } = dominio.operaciones;
+      const operandos = (estructura) => {
+        const p = estructura && estructura.parametros;
+        if (!p) return null;
+        const g1 = dominio.operaciones.leerOperando(p.aristas1, 'G₁');
+        const g2 = dominio.operaciones.leerOperando(p.aristas2, 'G₂');
+        return g1.valido && g2.valido ? { g1: g1.grafo, g2: g2.grafo, operacion: p.operacion } : null;
+      };
+      const tamano = (g) => `${g.vertices.length} v · ${g.aristas.length} a`;
+      const operando = (nombre, numero, marcador) => ({
+        nombre: `aristas${numero}`,
+        etiqueta: `Aristas de ${nombre}`,
+        tipo: 'texto-largo',
+        renglones: 4,
+        marcador,
+        ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${dominio.operaciones.VERTICES_MAXIMOS} vértices.`,
+        validar: (entrada) => {
+          const lectura = dominio.operaciones.leerOperando(entrada, nombre);
+          return lectura.valido
+            ? { valido: true, valor: dominio.operaciones.comoTexto(lectura.grafo) }
+            : { valido: false, mensaje: lectura.mensaje };
+        }
+      });
+      return {
+        orientacion: 'grafo',
+        operaciones: true,
+        calculo: true,
+        // El aviso dice lo mismo: en una ventana chica se suelta para que
+        // quepa el resultado (ver `ajustarGrafo`).
+        calculoPrescindible: true,
+        tituloCalculo: 'Operación',
+        calculoSoloEnOperacion: true,
+        sinTamano: true,
+        sinLongitud: true,
+        sinOperaciones: true,
+        sinClaves: true,
+        tamano: () => ({ n: 1, l: 1 }),
+        nombreEstructura: 'operación',
+        tituloConfiguracion: 'Grafos',
+        mensajeReinicio: 'Operación borrada: quedan los dos grafos, sin resultado.',
+        mensajeLienzoVacio: {
+          titulo: 'Escriba las aristas de G₁ y de G₂ para operarlos',
+          indicacion: 'Una por renglón, en el panel de la derecha'
+        },
+        mensajeDerivacion: 'Operación iniciada.',
+        mensajeCreacion: (estructura) => {
+          const { g1, g2, operacion } = operandos(estructura);
+          return `${algoritmos.operaciones.TITULOS[operacion]} ${algoritmos.operaciones.SIMBOLOS[operacion]}: G₁ con ${tamano(g1)}, G₂ con ${tamano(g2)}.`;
+        },
+        detalleReciente: (estructura) => {
+          const { g1, g2, operacion } = operandos(estructura);
+          return `${algoritmos.operaciones.SIMBOLOS[operacion]} · ${g1.vertices.length} y ${g2.vertices.length} vértices`;
+        },
+        alCrear: ({ estructura }) => {
+          const { g1, g2, operacion } = operandos(estructura);
+          return algoritmos.operaciones.recorrer(g1, g2, operacion);
+        },
+        conservarAlFinal: ['operacion', 'g1', 'g2', 'resultado', 'hechas', 'nuevasDesde', 'usa', 'paresResaltados',
+          'cuenta', 'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => {
+          const { g1, g2, operacion } = operandos(estructura);
+          return `operacion-${operacion}-${g1.vertices.length}x${g2.vertices.length}`;
+        },
+        vistaPrevia: (datos) => {
+          const g1 = dominio.operaciones.leerOperando(datos.get('aristas1'), 'G₁');
+          const g2 = dominio.operaciones.leerOperando(datos.get('aristas2'), 'G₂');
+          if (!g1.valido && !g2.valido) return null;
+          return { g1: g1.valido ? g1.grafo : null, g2: g2.valido ? g2.grafo : null, operacion: String(datos.get('operacion')) };
+        },
+        parametros: [
+          {
+            nombre: 'operacion',
+            etiqueta: 'Operación',
+            opciones: [
+              { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ ⊕ G₂' },
+              { valor: OPERACIONES.TENSORIAL, etiqueta: 'Producto tensorial  G₁ ⊗ G₂' },
+              { valor: OPERACIONES.COMPOSICION, etiqueta: 'Composición  G₁[G₂]' }
+            ],
+            ayuda: 'El resultado tiene un vértice por cada par (u, v), u de G₁ y v de G₂.',
+            validar: (entrada) => (Object.values(OPERACIONES).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija la operación.' })
+          },
+          operando('G₁', 1, '1 2\n2 3'),
+          operando('G₂', 2, 'a b')
+        ],
+        casillasRelevantes: () => [],
+        describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+        metricas: [
+          {
+            id: 'g1',
+            etiqueta: 'G₁',
+            valor: ({ estructura }) => {
+              const o = operandos(estructura);
+              return o ? tamano(o.g1) : '—';
+            }
+          },
+          {
+            id: 'g2',
+            etiqueta: 'G₂',
+            valor: ({ estructura }) => {
+              const o = operandos(estructura);
+              return o ? tamano(o.g2) : '—';
+            }
+          },
+          {
+            id: 'vertices',
+            etiqueta: 'Vértices',
+            valor: ({ estructura }) => {
+              const o = operandos(estructura);
+              return o ? String(o.g1.vertices.length * o.g2.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'aristas',
+            etiqueta: 'Aristas',
+            valor: ({ paso }) => {
+              if (!paso || !paso.resultado) return '—';
+              const total = paso.resultado.aristas.length;
+              return paso.hechas === total && paso.cuenta ? String(total) : `${paso.hechas} de ${total}`;
+            }
+          }
+        ]
+      };
+    })(),
 
     // Otras búsquedas dinámicas (CLAUDE.md 5.x): la única estructura del
     // catálogo donde `n` no lo fija el estudiante para toda la vida, sino que

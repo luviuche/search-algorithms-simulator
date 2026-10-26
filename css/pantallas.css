@@ -2359,3 +2359,67 @@ form.panel > .pantalla-tema__reproduccion {
   font-weight: 700;
 }
 
+
+/* ── Operaciones entre grafos (CLAUDE.md 5.15) ─────────────────────────────
+   Los dos operandos con el símbolo entre ellos, y el resultado en
+   cuadrícula: los pares en pastillas, en naranja lo que el paso agrega y
+   punteado lo que falta (maquetas aprobadas el 2026-10-26). */
+.operacion-grafos__operandos {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.estructura-grafo--apilada .operacion-grafos__operandos {
+  flex-direction: row;
+}
+
+.operacion-grafos__simbolo {
+  font-family: var(--fuente-texto);
+  font-size: 36px;
+  line-height: 1;
+  color: var(--tinta);
+}
+
+.operacion-grafos__simbolo--largo {
+  font-size: 22px;
+}
+
+.grafo__titulo {
+  font-family: var(--fuente-texto);
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--tinta-suave);
+}
+
+.grafo__rotulo {
+  font-family: var(--fuente-mono);
+  font-size: 14px;
+  fill: var(--tinta-suave);
+}
+
+.grafo__arista--pendiente {
+  stroke: var(--borde);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+}
+
+.operacion-grafos__par rect {
+  fill: var(--estado-ocupada-relleno);
+  stroke: var(--estado-ocupada-borde);
+  stroke-width: 1.5;
+}
+
+.operacion-grafos__par text {
+  font-family: var(--fuente-mono);
+  font-size: 15px;
+  fill: var(--tinta);
+}
+
+.operacion-grafos__par--evaluacion rect {
+  fill: var(--estado-evaluacion-relleno);
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 3;
+}

@@ -645,6 +645,7 @@
       floyd();
       representacionMatricial();
       coloreadoDeGrafos();
+      operacionesEntreGrafos();
       controlDeVelocidad();
     }
 
@@ -3602,6 +3603,69 @@
       afirmar(!!formula && formula.textContent.includes('λ(λ−1)(λ−2)²'), `la fórmula factorizada (${formula ? formula.textContent : 'nada'})`);
       afirmarGrafoCabe('polinomio');
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Operaciones entre grafos (CLAUDE.md 5.15): el camino 1–2–3 y la arista
+    // a–b de las maquetas, y uno de 4 × 4 con letras en G₁ y números en G₂,
+    // que es el resultado más grande que se puede pedir.
+    function operacionesEntreGrafos() {
+      registro.push('', '── Operaciones entre grafos ──');
+      entrarATema('Operaciones entre grafos');
+      const formulario = document.querySelector('form.panel');
+      const escribir = (operacion, g1, g2) => {
+        formulario.querySelector('[name="operacion"]').value = operacion;
+        for (const [nombre, valor] of [['aristas1', g1], ['aristas2', g2]]) {
+          const campo = formulario.querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      };
+      const crear = (...datos) => {
+        escribir(...datos);
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const resaltados = () => [...document.querySelectorAll('.operacion-grafos__par--evaluacion')].map((g) => g.dataset.par);
+
+      escribir('cartesiano', '1 2\n2 3', 'a b');
+      afirmar(document.querySelectorAll('.grafo--operando').length === 2 && !document.querySelector('.grafo--resultado'),
+        'mientras se escribe, se ven los dos operandos y todavía no el resultado');
+      afirmar(document.querySelector('.operacion-grafos__simbolo').textContent === '⊕', 'el producto cartesiano lleva ⊕');
+
+      crear('cartesiano', '1 2\n2 3', 'a b');
+      afirmar(document.querySelectorAll('.operacion-grafos__par').length === 6, 'G₁ ⊕ G₂: seis pares, uno por (u, v)');
+      for (let i = 0; i < 2; i++) control('siguiente').click();
+      afirmar(resaltados().join(' ') === '(2, a) (2, b)', `vértice 2 de G₁: se resalta la fila 2 (${resaltados().join(' ')})`);
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista--evaluacion').length === 1,
+        'y su arista nueva va en naranja');
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista--pendiente').length === 5,
+        'las cinco que faltan, punteadas');
+      afirmarGrafoCabe('producto cartesiano, una fila');
+      agotarTraza(10);
+      const cuenta = document.querySelector('.coloreo-formula');
+      afirmar(!!cuenta && cuenta.textContent.includes('= 3 · 1 + 2 · 2 = 7'), `al terminar, |A| = 7 con su fórmula (${cuenta ? cuenta.textContent : 'nada'})`);
+      afirmar(!document.querySelector('.grafo__arista--pendiente'), 'y no queda ninguna punteada');
+
+      control('editar-configuracion').click();
+      crear('tensorial', '1 2\n2 3', 'a b');
+      agotarTraza(10);
+      afirmar(!!aviso() && aviso().textContent.includes('4 aristas'), `G₁ ⊗ G₂: 4 aristas (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+
+      control('editar-configuracion').click();
+      crear('composicion', 'a b\nb c\nc d\nd a', '1 2\n2 3\n1 3\n4');
+      agotarTraza(20);
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista').length === 76,
+        `G₁[G₂] de 4 × 4: 4 · 3 + 4² · 4 = 76 aristas (${document.querySelectorAll('.grafo--resultado .grafo__arista').length})`);
+      afirmarGrafoCabe('composición de 4 × 4');
+
+      // Se abre desde las recientes con el resultado dibujado.
+      document.querySelector('.pantalla-tema__volver').click();
+      const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Operaciones'));
+      afirmar(!!pastilla && pastilla.textContent.includes('G₁[G₂]'), `la reciente dice la operación (${pastilla ? pastilla.textContent : 'ninguna'})`);
+      if (pastilla) {
+        pastilla.click();
+        afirmar(document.querySelectorAll('.operacion-grafos__par').length === 16, 'y al abrirla vuelve el resultado de 16 vértices');
+        document.querySelector('.pantalla-tema__volver').click();
+      }
     }
 
     // El grafo y su matriz caben en el lienzo, sin desplazarse y sin bajar
