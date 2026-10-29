@@ -50,17 +50,44 @@
   color: var(--tinta-suave);
 }
 
+/* **Se desplaza en horizontal** (pedido del usuario, 2026-10-28): con la
+   rueda —con o sin Shift— sobre la tira, o pasando el foco con el
+   tabulador. Antes era `overflow: hidden` y lo que no cabía quedaba bajo el
+   desvanecido, sin forma de llegar a ello. Sin barra: el desvanecido dice
+   que hay más, y va del lado donde lo hay (`--corte-izquierda`,
+   `--corte-derecha`, que pone menu.js al desplazar). */
 .tira-recientes__lista {
   list-style: none;
   margin: 0;
-  padding: 0;
+  /* El aire de arriba y abajo es para el contorno del foco, que el
+     desplazamiento recortaría. */
+  padding: 3px 0;
   display: flex;
   gap: var(--espacio-2);
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   white-space: nowrap;
+}
+
+.tira-recientes__lista::-webkit-scrollbar {
+  display: none;
+}
+
+.tira-recientes__lista--corte-derecha {
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__lista--corte-izquierda {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__lista--corte-izquierda.tira-recientes__lista--corte-derecha {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
 }
 
 .tira-recientes__lista > li {

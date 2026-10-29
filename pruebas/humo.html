@@ -658,6 +658,7 @@
       archivos();
       recientesQueSeAbren();
       recienteDeUnaFuncionHashVieja();
+      tiraDeRecientesQueSeDesplaza();
       floyd();
       representacionMatricial();
       coloreadoDeGrafos();
@@ -3787,6 +3788,39 @@
         const encima = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         afirmar(!encima, `${contexto}: el panel del cálculo no tapa la matriz`);
       }
+    }
+
+    // La tira de recientes se desplaza en horizontal con la rueda (pedido del
+    // usuario, 2026-10-28), y el desvanecido va del lado donde queda algo.
+    // Shift + rueda lo hace el navegador y un evento sintético no lo imita:
+    // aquí se prueba la rueda sola, que es lo que agrega menu.js.
+    function tiraDeRecientesQueSeDesplaza() {
+      registro.push('', '── Tira de recientes ──');
+      const una = (i) => ({
+        id: `r${i}`, fecha: new Date().toISOString(), tema: 'secuencial', temaTitulo: 'Búsqueda secuencial',
+        detalle: `n = ${10 + i} · l = 2`,
+        datos: { version: 1, tema: 'secuencial', tipoClave: 'numerica', modo: 'ordenada', n: 10 + i, l: 2, tratamiento: null, parametros: {}, claves: [10, 20, 30] }
+      });
+      try { window.localStorage.setItem('cc2:recientes', JSON.stringify([0, 1, 2, 3, 4].map(una))); } catch (error) { return; }
+      entrarATema('Búsqueda secuencial');
+      document.querySelector('.pantalla-tema__volver').click();
+      const lista = document.querySelector('.tira-recientes__lista');
+      if (lista.scrollWidth <= lista.clientWidth + 1) {
+        registro.push(`  las cinco caben a ${window.innerWidth} px: no hay nada que desplazar`);
+      } else {
+        // El desvanecido inicial se marca en el cuadro siguiente, antes de
+        // pintar; la prueba corre antes, así que lo pide como un desplazamiento.
+        lista.dispatchEvent(new Event('scroll'));
+        afirmar(lista.classList.contains('tira-recientes__lista--corte-derecha')
+          && !lista.classList.contains('tira-recientes__lista--corte-izquierda'),
+          'al empezar, el desvanecido va solo a la derecha');
+        lista.dispatchEvent(new WheelEvent('wheel', { deltaY: 400, bubbles: true, cancelable: true }));
+        lista.dispatchEvent(new Event('scroll'));
+        afirmar(lista.scrollLeft > 0, `la rueda mueve la tira hacia la derecha (${Math.round(lista.scrollLeft)} px)`);
+        afirmar(lista.classList.contains('tira-recientes__lista--corte-izquierda'),
+          'ya movida, también se desvanece a la izquierda');
+      }
+      try { window.localStorage.removeItem('cc2:recientes'); } catch (error) { /* sin almacenamiento */ }
     }
 
     // Una reciente guardada cuando las cinco funciones hash eran cinco temas

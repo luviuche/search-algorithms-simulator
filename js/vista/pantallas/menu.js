@@ -190,7 +190,32 @@
       lista.appendChild(li);
     }
     tira.append(titulo, lista);
+    hacerDesplazable(lista);
     return tira;
+  }
+
+  // **La tira se desplaza en horizontal** (pedido del usuario, 2026-10-28).
+  // Shift + rueda ya lo hace el navegador en un contenedor que se desplaza;
+  // la rueda sola, encima de la tira, también la mueve de lado, porque el
+  // menú cabe en la ventana y no hay nada que desplazar hacia abajo. Solo se
+  // toma la rueda cuando la tira de verdad se mueve: en un extremo, o si
+  // cabe entera, sigue siendo de la página. El desvanecido se pone del lado
+  // donde queda algo por ver.
+  function hacerDesplazable(lista) {
+    const marcarCortes = () => {
+      const resto = lista.scrollWidth - lista.clientWidth - lista.scrollLeft;
+      lista.classList.toggle('tira-recientes__lista--corte-izquierda', lista.scrollLeft > 1);
+      lista.classList.toggle('tira-recientes__lista--corte-derecha', resto > 1);
+    };
+    lista.addEventListener('wheel', (evento) => {
+      if (evento.shiftKey || Math.abs(evento.deltaX) > Math.abs(evento.deltaY)) return;
+      const antes = lista.scrollLeft;
+      lista.scrollLeft += evento.deltaY;
+      if (lista.scrollLeft !== antes) evento.preventDefault();
+    }, { passive: false });
+    lista.addEventListener('scroll', marcarCortes, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(marcarCortes).observe(lista);
+    requestAnimationFrame(marcarCortes);
   }
 
   // **El menú crece con la pantalla** (opción A de la maqueta, 2026-09-27:
