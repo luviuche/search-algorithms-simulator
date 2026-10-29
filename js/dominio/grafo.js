@@ -24,7 +24,11 @@
   // delante —«a 1 2»— o dejar que lo ponga el orden: la primera sin nombre
   // es la a, la siguiente la b, saltando los que ya se escribieron (pedido
   // del usuario, 2026-10-23: «¿se pueden ambas opciones?»).
-  function leerGrafo(texto, tipo = TIPOS.DIRIGIDO) {
+  //
+  // Un tema puede admitir más vértices (`verticesMaximos`): los conjuntos
+  // independientes y dominantes no tienen matriz al lado, y los ejemplos del
+  // docente llegan a 12.
+  function leerGrafo(texto, tipo = TIPOS.DIRIGIDO, { verticesMaximos = VERTICES_MAXIMOS } = {}) {
     const renglones = String(texto || '').split(/\r?\n|;/).map((r) => r.trim()).filter(Boolean);
     if (renglones.length === 0) {
       return { valido: false, mensaje: 'Escriba al menos una arista: origen y destino, por ejemplo «1 2».' };
@@ -93,8 +97,8 @@
       while (nombres.has(nombreEnOrden(siguiente))) siguiente++;
       arista.nombre = nombreEnOrden(siguiente++);
     }
-    if (vertices.size > VERTICES_MAXIMOS) {
-      return { valido: false, mensaje: `El grafo tiene ${vertices.size} vértices; caben hasta ${VERTICES_MAXIMOS}.` };
+    if (vertices.size > verticesMaximos) {
+      return { valido: false, mensaje: `El grafo tiene ${vertices.size} vértices; caben hasta ${verticesMaximos}.` };
     }
     if (aristas.length === 0) {
       return { valido: false, mensaje: 'Escriba al menos una arista: origen y destino, por ejemplo «1 2».' };

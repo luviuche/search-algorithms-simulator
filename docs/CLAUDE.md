@@ -940,6 +940,27 @@ Se arma como Floyd (§5.12): el grafo y la representación salen de los parámet
 
 **Cómo se dibuja**: los dos operandos chicos a la izquierda con el símbolo entre ellos —G₁ en vertical y G₂ en horizontal, como las filas y las columnas del resultado— y el resultado en cuadrícula, los pares en pastillas y cada fila y columna con su vértice escrito al borde. En el operando se resalta lo que el paso usa (el vértice fijo en azul, las aristas en naranja); en el resultado, en naranja las aristas nuevas y sus pares, y punteadas las que faltan. Una arista que pasaría por encima de otro vértice se curva hacia afuera, más cuanto más larga y nunca más de 44 px, y el dibujo crece lo que salgan las curvas para que `ajustarGrafo` las mida. Antes de crear, la vista previa son los dos operandos. El panel del cálculo lleva la regla escrita, y en una ventana chica se suelta (`calculoPrescindible`).
 
+### 5.16 Conjuntos independientes y dominantes (2026-10-28)
+
+**Quinto tema de grafos**, visto en clase con las hojas manuscritas de `docs/C. indep y dominante/` (3 de independientes y 6 de dominantes; el docente cita a Grimaldi, *Matemáticas discretas*). No estaba en el catálogo: entrada nueva. **Un solo tema** (decisión del usuario): un independiente es maximal justo cuando además domina, y la comprobación es la misma.
+
+**Los conceptos** (`dominio/conjuntos.js`), con S′ un conjunto de vértices de un grafo no dirigido: independiente (ningún par de S′ es adyacente), maximal (independiente y no le cabe ningún vértice más), máximo (el independiente más grande, β(G)); dominante (todo vértice de fuera tiene un vecino en S′), minimal (sin cualquiera de sus vértices deja de dominar), mínimo (el más chico, γ(G)), total (todo vértice, también los de S′, tiene vecino en S′, γt), conexo (S′ forma un subgrafo conexo, γc), dominante independiente (i(G)) y el minimal más grande (Γ(G)).
+
+**El método de la hoja** (`algoritmos/conjuntos.js`): S′ en verde; un paso por vértice de S′ con sus vecinos dentro de S′ —ninguno, si es independiente—; un paso por vértice de S′ con a quién domina, escrito como él, «2 – {1, 4}», y marcando esos vértices en rosa en la lista S = {1, …, n}, que es como los tacha él; y al final la conclusión, propiedad por propiedad. **El formulario hace las dos cosas** (decisión del usuario): comprobar el S′ que escribe el estudiante —y compararlo con γ(G) y β(G)— o buscar el óptimo de cada clase y comprobarlo con los mismos pasos. La búsqueda prueba los conjuntos por tamaño, del más chico al más grande (o al revés para β y Γ), y el primero que cumple es el que se muestra; el porqué de que sea el óptimo se dice con la cuenta: «ninguno de los 45 conjuntos de menos de 3 vértices sirve». Sin dominante total si hay un vértice aislado, ni conexo si el grafo está partido, y se dice.
+
+**Hasta 12 vértices** (decisión del usuario): el grafo más grande de las hojas tiene 12. `leerGrafo` recibe el tope del tema (`verticesMaximos`); los demás siguen con 8. Probar todos los subconjuntos son 4096. Con más de 8 el círculo del dibujo se cierra un poco.
+
+**Lo que las hojas dicen mal o dejan abierto**, y que las pruebas fijan (`pruebas/conjuntos.test.js`):
+
+- Ejemplo 3: dice «número de dominación igual a 4» y es 3 ({2, 5, 7} o {3, 6, 8}).
+- El grafo de 12 vértices: {2, 4, 6, 9, 10} es maximal pero no máximo; β = 6, por ejemplo {1, 3, 5, 8, 9, 12} (si sus aristas se leyeron bien: es el dibujo más difícil).
+- El {5} marcado «REVISAR» es independiente pero no maximal: le cabe el 1.
+- «El dominante mínimo también se conoce como minimal» es falso: el ciclo de 8 tiene uno minimal de 4 y el mínimo de 3.
+- «¿Un independiente es necesariamente dominante?»: no, solo el maximal.
+- Escribe γ(G) para el tamaño de cualquier conjunto (el total, el conexo, el minimal más grande); la aplicación usa γt, γc y Γ. El número de independencia es β en una hoja y α en la otra; la aplicación usa β.
+
+**Cómo se dibuja**: el grafo con S′ en verde (el estado «encontrada») y lo dominado en rosa —su resaltador, tokens `--dominado-…`, que son un dato y no un estado—; el vértice del paso con el anillo naranja del coloreado y sus aristas a lo que la fase mira en naranja. Al lado, la lista S marcada igual, la tabla «vértice de S′ · vecinos en S′ · domina a», que se llena con los pasos, y al final las propiedades con sí, no o «—» (no aplica) y el óptimo. Las métricas dicen el número con su nombre («Núm. de dominación»), no con su símbolo: en versalitas γ(G) se leería Γ(G). Bajas de alto, la tabla y las propiedades van una al lado de la otra; los conjuntos suman además una disposición con el grafo encima. **El caso extremo no cabe**: 12 vértices con un S′ de 6 en un proyector XGA (1024 × 650) baja a 0,5× y se desplaza; desde 1280 × 633 cabe. El panel del cálculo lleva el óptimo, y se suelta en ventana chica (`calculoPrescindible`).
+
 ## 6. Visualización
 
 ### 6.1 Orientación
@@ -1571,7 +1592,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24) **y las operaciones entre grafos** —cartesiano, tensorial y composición— (§5.15, 2026-10-26). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —cartesiano, tensorial y composición— (§5.15, 2026-10-26) **y los conjuntos independientes y dominantes** (§5.16, 2026-10-28). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

@@ -495,6 +495,34 @@
       avanzar(pasosAAvanzar(20));
     }
 
+    // Conjuntos independientes y dominantes: ?vista=conjuntos&ejemplo=…&modo=…
+    // &conjunto=…, con los grafos de las hojas del docente. Con `&previa=1`,
+    // el formulario escrito sin crear.
+    function prepararConjuntos() {
+      const formularios = entrarATema('Conjuntos independientes y dominantes');
+      const ejemplos = {
+        ejemplo2: '1 2\n1 4\n2 4\n2 3\n3 6\n3 5\n4 5',
+        siete: '1 2\n1 3\n1 4\n2 4\n3 4\n4 5\n4 7\n5 6\n5 7\n6 7',
+        ejemplo3: '1 2\n2 3\n3 4\n4 5\n5 6\n6 1\n6 7\n7 8\n8 9\n9 5',
+        doce: '11 12\n12 10\n11 10\n11 1\n1 10\n1 2\n2 3\n3 4\n4 5\n5 6\n4 7\n4 8\n7 8\n7 9'
+      };
+      const valores = {
+        modo: parametros.get('modo') || 'comprobar',
+        aristas: parametros.get('aristas') || ejemplos[parametros.get('ejemplo') || 'ejemplo2'],
+        conjunto: parametros.get('conjunto') || '1 5 6'
+      };
+      if (parametros.get('previa')) {
+        for (const [nombre, valor] of Object.entries(valores)) {
+          const campo = formularios[0].querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
+      enviar(formularios[0], valores);
+      avanzar(pasosAAvanzar(40));
+    }
+
     // Operaciones entre grafos: ?vista=operaciones&operacion=…&g1=…&g2=…,
     // por omisión el camino 1–2–3 y la arista a–b de las maquetas. Con
     // `&previa=1`, el formulario escrito sin crear.
@@ -581,6 +609,7 @@
       if (vista === 'representacion') return prepararRepresentacion();
       if (vista === 'coloreado') return prepararColoreado();
       if (vista === 'operaciones') return prepararOperaciones();
+      if (vista === 'conjuntos') return prepararConjuntos();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

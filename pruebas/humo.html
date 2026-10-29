@@ -646,6 +646,7 @@
       representacionMatricial();
       coloreadoDeGrafos();
       operacionesEntreGrafos();
+      conjuntosIndependientesYDominantes();
       controlDeVelocidad();
     }
 
@@ -3666,6 +3667,47 @@
         afirmar(document.querySelectorAll('.operacion-grafos__par').length === 16, 'y al abrirla vuelve el resultado de 16 vértices');
         document.querySelector('.pantalla-tema__volver').click();
       }
+    }
+
+    // Conjuntos independientes y dominantes (CLAUDE.md 5.16): el ejemplo 2
+    // del docente con su conjunto a, y la búsqueda en el grafo de 12
+    // vértices, el más grande de sus hojas.
+    function conjuntosIndependientesYDominantes() {
+      registro.push('', '── Conjuntos independientes y dominantes ──');
+      entrarATema('Conjuntos independientes y dominantes');
+      const formulario = document.querySelector('form.panel');
+      const crear = (modo, aristas, conjunto = '') => {
+        formulario.querySelector('[name="modo"]').value = modo;
+        formulario.querySelector('[name="aristas"]').value = aristas;
+        formulario.querySelector('[name="conjunto"]').value = conjunto;
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const conClase = (clase) => [...document.querySelectorAll(`.grafo__vertice.${clase}`)].map((g) => g.dataset.vertice).join(' ');
+
+      crear('comprobar', '1 2\n1 4\n2 4\n2 3\n3 6\n3 5\n4 5', '1 5 6');
+      afirmar(conClase('grafo__vertice--elegido') === '1 5 6', `S′ en verde (${conClase('grafo__vertice--elegido')})`);
+      for (let i = 0; i < 5; i++) control('siguiente').click();
+      afirmar(conClase('grafo__vertice--dominado') === '2 3 4', `tras 5 – {3, 4}, dominados 2, 3 y 4 en rosa (${conClase('grafo__vertice--dominado')})`);
+      afirmar(document.querySelector('.grafo__vertice[data-vertice="5"]').classList.contains('grafo__vertice--actual'),
+        'el vértice del paso lleva su anillo');
+      afirmar(document.querySelectorAll('.conjunto-s__vertice--dominado').length === 3, 'la lista S marca los mismos');
+      afirmarGrafoCabe('conjuntos, dominación');
+      agotarTraza(10);
+      const filas = [...document.querySelectorAll('.conjunto-propiedades tr')].map((tr) => tr.textContent);
+      afirmar(filas.some((f) => f.startsWith('Dominantesí')) && filas.some((f) => f.startsWith('Independientesí')),
+        `al terminar: dominante e independiente (${filas.slice(0, 2).join(' | ')})`);
+      afirmar(!!aviso() && aviso().textContent.includes('γ(G) = 2'), `y compara con γ(G) = 2 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+
+      control('editar-configuracion').click();
+      crear('independiente-maximo', '11 12\n12 10\n11 10\n11 1\n1 10\n1 2\n2 3\n3 4\n4 5\n5 6\n4 7\n4 8\n7 8\n7 9');
+      agotarTraza(20);
+      afirmar(document.querySelectorAll('.grafo__vertice').length === 12, 'el grafo de 12 vértices se dibuja');
+      afirmar(!!aviso() && aviso().textContent.includes('β(G) = 6'), `β(G) = 6, no los 5 de la hoja (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      // En un proyector XGA no cabe ni a la mitad: con el aviso, al dibujo le
+      // quedan unos 560 × 210 px. Ahí baja a 0,5× y se desplaza (CLAUDE.md 5.16).
+      if (window.innerWidth >= 1200) afirmarGrafoCabe('conjuntos, 12 vértices');
+      else registro.push(`  12 vértices a ${window.innerWidth} px: se desplaza, como está decidido`);
+      document.querySelector('.pantalla-tema__volver').click();
     }
 
     // El grafo y su matriz caben en el lienzo, sin desplazarse y sin bajar

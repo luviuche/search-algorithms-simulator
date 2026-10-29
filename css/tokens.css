@@ -52,6 +52,12 @@
   --coloreo-G: #5F6B76;
   --coloreo-O: #D1A63A;
 
+  /* Conjuntos dominantes (CLAUDE.md 5.16): el rosa con que el docente marca
+     en la lista S los vértices ya dominados. Es su resaltador, no un estado:
+     S′ va en el verde de «encontrada», que sí lo es. */
+  --dominado-relleno: #F7D4E6;
+  --dominado-borde: #B0306F;
+
   /* Alertas: deliberadamente distintas de los colores de estado del algoritmo (CLAUDE.md 8.1) */
   --alerta-info-borde: #35507A;
   --alerta-advertencia-borde: #8A5A12;

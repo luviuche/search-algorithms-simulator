@@ -94,6 +94,7 @@
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Vértices y aristas con el primer color libre, y el polinomio cromático', tema: 'coloreado', disponible: true },
+        { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Comprobar un conjunto como en la hoja, o buscar el máximo independiente y los dominantes mínimos', tema: 'conjuntos', disponible: true },
         { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: '', tema: null, disponible: false }
       ]
     }
@@ -1511,6 +1512,151 @@
               if (!paso || !paso.resultado) return '—';
               const total = paso.resultado.aristas.length;
               return paso.hechas === total && paso.cuenta ? String(total) : `${paso.hechas} de ${total}`;
+            }
+          }
+        ]
+      };
+    })(),
+
+    // Conjuntos independientes y dominantes (CLAUDE.md 5.16): comprobar un
+    // conjunto S′ como en las hojas del docente, o buscar el óptimo de cada
+    // clase y comprobarlo igual (un solo tema y las dos cosas, decisión del
+    // usuario, 2026-10-28). Grafo no dirigido, hasta 12 vértices.
+    conjuntos: (() => {
+      const { MODOS, BUSQUEDAS, VERTICES_MAXIMOS } = dominio.conjuntos;
+      const leer = (texto) => dominio.grafo.leerGrafo(texto, dominio.grafo.TIPOS.NO_DIRIGIDO, { verticesMaximos: VERTICES_MAXIMOS });
+      const grafoDe = (estructura) => {
+        const p = estructura && estructura.parametros;
+        return p && p.aristas ? leer(p.aristas).grafo : null;
+      };
+      const conjuntoDe = (estructura, grafo) => dominio.conjuntos.leerConjunto(estructura.parametros.conjunto, grafo).conjunto;
+      const NOMBRES = {
+        [MODOS.COMPROBAR]: 'comprobar S′',
+        [MODOS.INDEPENDIENTE_MAXIMO]: 'independiente máximo',
+        [MODOS.DOMINANTE_MINIMO]: 'dominante mínimo',
+        [MODOS.DOMINANTE_INDEPENDIENTE]: 'dominante independiente',
+        [MODOS.DOMINANTE_TOTAL]: 'dominante total',
+        [MODOS.DOMINANTE_CONEXO]: 'dominante conexo',
+        [MODOS.DOMINANTE_MINIMAL]: 'dominante minimal más grande'
+      };
+      const alTerminar = (paso) => Boolean(paso && paso.propiedades);
+      return {
+        orientacion: 'grafo',
+        conjuntos: true,
+        verticesMaximos: VERTICES_MAXIMOS,
+        calculo: true,
+        // Repite la tabla y el aviso: en una ventana chica se suelta.
+        calculoPrescindible: true,
+        tituloCalculo: 'Conjuntos',
+        calculoSoloEnOperacion: true,
+        sinTamano: true,
+        sinLongitud: true,
+        sinOperaciones: true,
+        sinClaves: true,
+        tamano: () => ({ n: 1, l: 1 }),
+        nombreEstructura: 'grafo',
+        tituloConfiguracion: 'Grafo',
+        mensajeReinicio: 'Comprobación borrada: el grafo queda sin marcar.',
+        mensajeLienzoVacio: {
+          titulo: 'Escriba las aristas del grafo',
+          indicacion: 'Una por renglón, en el panel de la derecha'
+        },
+        mensajeDerivacion: 'Comprobación iniciada.',
+        mensajeCreacion: (estructura) => {
+          const grafo = grafoDe(estructura);
+          const modo = estructura.parametros.modo;
+          return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas. `
+            + (modo === MODOS.COMPROBAR ? `Se comprueba S′ = {${conjuntoDe(estructura, grafo).join(', ')}}.` : `Se busca el ${BUSQUEDAS[modo].nombre}.`);
+        },
+        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${NOMBRES[estructura.parametros.modo]}`,
+        alCrear: ({ estructura }) => {
+          const grafo = grafoDe(estructura);
+          const modo = estructura.parametros.modo;
+          return algoritmos.conjuntos.recorrer(grafo, {
+            modo,
+            conjunto: modo === MODOS.COMPROBAR ? conjuntoDe(estructura, grafo) : null
+          });
+        },
+        conservarAlFinal: ['modo', 'conjunto', 'tabla', 'fase', 'filasIndep', 'filasDom', 'dominados', 'propiedades', 'optimos',
+          'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => `conjuntos-${estructura.parametros.modo}-${grafoDe(estructura).vertices.length}v`,
+        vistaPrevia: (datos) => {
+          const lectura = leer(datos.get('aristas'));
+          return lectura.valido ? lectura.grafo : null;
+        },
+        parametros: [
+          {
+            nombre: 'modo',
+            etiqueta: 'Qué hacer',
+            opciones: Object.values(MODOS).map((valor) => ({
+              valor,
+              etiqueta: valor === MODOS.COMPROBAR ? 'Comprobar un conjunto S′'
+                : `Buscar ${NOMBRES[valor].replace(/^dominante/, 'el dominante').replace(/^independiente/, 'el independiente')}  ${BUSQUEDAS[valor].simbolo}`
+            })),
+            ayuda: 'Al buscar, se prueban los conjuntos por tamaño y el primero que cumple se comprueba como en la hoja.',
+            validar: (entrada) => (Object.values(MODOS).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija qué hacer.' })
+          },
+          {
+            ...PARAMETRO_ARISTAS,
+            renglones: 6,
+            ayuda: `Una por renglón: sus dos vértices. Un vértice solo en su renglón queda aislado. Hasta ${VERTICES_MAXIMOS} vértices, numerados.`,
+            validar: (entrada) => {
+              const lectura = leer(entrada);
+              return lectura.valido
+                ? { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) }
+                : { valido: false, mensaje: lectura.mensaje };
+            }
+          },
+          {
+            nombre: 'conjunto',
+            etiqueta: 'Conjunto S′',
+            marcador: '1 3',
+            ayuda: 'Para comprobar: sus vértices, separados por espacios o comas. Al buscar no se usa.',
+            // Va después de las aristas: se valida contra el grafo.
+            validar: (entrada, { parametros }) => {
+              if (parametros.modo !== MODOS.COMPROBAR) return { valido: true, valor: '' };
+              const lectura = leer(parametros.aristas);
+              if (!lectura.valido) return { valido: true, valor: '' };
+              const s = dominio.conjuntos.leerConjunto(entrada, lectura.grafo);
+              return s.valido ? { valido: true, valor: s.conjunto.join(' ') } : { valido: false, mensaje: s.mensaje };
+            }
+          }
+        ],
+        casillasRelevantes: () => [],
+        describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+        metricas: [
+          {
+            id: 'vertices',
+            etiqueta: 'Vértices',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'aristas',
+            etiqueta: 'Aristas',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          },
+          {
+            id: 'tamano',
+            etiqueta: '|S′|',
+            valor: ({ paso }) => (paso && paso.conjunto ? String(paso.conjunto.length) : '—')
+          },
+          {
+            id: 'cuarta',
+            etiqueta: 'Dominados',
+            etiquetaSegun: ({ paso }) => (alTerminar(paso) && paso.optimos.length ? paso.optimos[0].metrica : 'Dominados'),
+            valor: ({ estructura, paso }) => {
+              if (!paso || !paso.conjunto) return '—';
+              if (alTerminar(paso)) return paso.optimos.length ? String(paso.optimos[0].valor) : '—';
+              const grafo = grafoDe(estructura);
+              return `${(paso.dominados || []).length} de ${grafo.vertices.length - paso.conjunto.length}`;
             }
           }
         ]

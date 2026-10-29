@@ -33,7 +33,8 @@
       if (!p.aristas) return null;
       if (leido.texto !== p.aristas || leido.tipo !== p.tipo) {
         // Sin tipo —el coloreado no lo pide— es no dirigido, como en app.js.
-        const lectura = dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO);
+        const lectura = dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO,
+          config.verticesMaximos ? { verticesMaximos: config.verticesMaximos } : undefined);
         leido = { texto: p.aristas, tipo: p.tipo, grafo: lectura.valido ? lectura.grafo : null };
       }
       return leido.grafo;
@@ -56,7 +57,9 @@
         const mapa = new Map(vertices.map((v, i) => [v, { x: MARGEN + CUADRADO[i][0] * lado, y: MARGEN + CUADRADO[i][1] * lado }]));
         return { mapa, ancho, alto, centro: { x: ancho / 2, y: alto / 2 } };
       }
-      const radio = n <= 2 ? 80 : 50 + n * 12;
+      // Más de 8 solo en los conjuntos (hasta 12): el círculo se cierra un
+      // poco para que quepa con su tabla.
+      const radio = n <= 2 ? 80 : n <= 8 ? 50 + n * 12 : 60 + n * 9;
       const inicio = -Math.PI / 2 - Math.PI / n;
       const centro = radio + MARGEN;
       const mapa = new Map();
@@ -113,6 +116,14 @@
         } else {
           aristas = (a) => (a.nombre === fila.clave ? 'rango' : relacionados.has(a.nombre) ? 'evaluacion' : undefined);
         }
+      }
+      // Conjuntos: las aristas del vértice del paso que la fase mira —a sus
+      // vecinos dentro de S′, o a los que domina—, en naranja.
+      if (paso.conjunto && paso.actual !== undefined && paso.tabla) {
+        const fila = paso.tabla.find((f) => f.vertice === paso.actual);
+        const otros = new Set(paso.fase === 'independencia' ? fila.enS : fila.domina);
+        aristas = (a) => ((a.origen === paso.actual && otros.has(a.destino))
+          || (a.destino === paso.actual && otros.has(a.origen)) ? 'evaluacion' : undefined);
       }
       if (paso.resaltar) {
         const { tipo, vertices: elegidos } = paso.resaltar;
@@ -226,12 +237,13 @@
         // (opción B de las maquetas, elegida por el usuario el 2026-10-24); el
         // del paso, con un anillo naranja, y sus vecinos con uno azul.
         const colorVertice = paso && paso.modo !== MODOS_COLOREADO.ARISTAS ? colorDe(paso, vertice) : null;
-        const enColoreo = paso && paso.modo && paso.modo !== MODOS_COLOREADO.ARISTAS;
+        const enColoreo = config.coloreado && paso && paso.modo && paso.modo !== MODOS_COLOREADO.ARISTAS;
         const papelEnColoreo = enColoreo && paso.actual === vertice ? ' grafo__vertice--actual'
           : enColoreo && (paso.vecinos || []).includes(vertice) && paso.actual !== undefined ? ' grafo__vertice--vecino' : '';
         const grupo = svg('g', {
           class: 'grafo__vertice' + (estadoVertice ? ` grafo__vertice--${estadoVertice}` : '')
-            + (colorVertice ? ` grafo__vertice--color grafo__color--${colorVertice}` : '') + papelEnColoreo,
+            + (colorVertice ? ` grafo__vertice--color grafo__color--${colorVertice}` : '') + papelEnColoreo
+            + papelEnConjunto(paso, vertice),
           'data-vertice': vertice
         }, nodos);
         svg('circle', { cx: x, cy: y, r: RADIO }, grupo);
@@ -266,6 +278,17 @@
         }
       }
       return dibujo;
+    }
+
+    // Conjuntos (CLAUDE.md 5.16): S′ en verde y lo dominado en rosa, como en
+    // la hoja; el vértice del paso, con el anillo naranja del coloreado.
+    function papelEnConjunto(paso, vertice) {
+      if (!config.conjuntos || !paso || !paso.conjunto) return '';
+      const clases = [];
+      if (paso.conjunto.includes(vertice)) clases.push('grafo__vertice--elegido');
+      else if ((paso.dominados || []).includes(vertice)) clases.push('grafo__vertice--dominado');
+      if (paso.actual === vertice) clases.push('grafo__vertice--actual');
+      return clases.map((c) => ` ${c}`).join('');
     }
 
     // La letra del color de un vértice o una arista en el paso, o nada.
@@ -724,7 +747,85 @@
       ajustarGrafo();
     }
 
+    // La tabla de la hoja: por vértice de S′, sus vecinos dentro de S′ y a
+    // quién domina. Las columnas se llenan con su fase.
+    function crearTablaDeConjunto(paso) {
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla conjunto-tabla';
+      tabla.innerHTML = `<caption class="matriz-grafo__titulo">S′ = {${paso.conjunto.join(', ')}}</caption>
+        <tr><th scope="col">Vértice de S′</th><th scope="col">Vecinos en S′</th><th scope="col">Domina a</th></tr>`;
+      paso.tabla.forEach((fila, i) => {
+        const tr = document.createElement('tr');
+        if (paso.actual === fila.vertice) tr.className = 'coloreo-tabla__fila--actual';
+        const enS = i < paso.filasIndep ? (fila.enS.join(', ') || 'ninguno') : '';
+        const domina = i < paso.filasDom ? `{${fila.domina.join(', ')}}` : '';
+        tr.innerHTML = `<td>${fila.vertice}</td><td${fila.enS.length && enS ? ' class="conjunto-tabla__adyacente"' : ''}>${enS}</td><td>${domina}</td>`;
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
+    // La lista S del docente, con S′ en verde y los dominados en rosa.
+    function crearListaS(grafo, paso) {
+      const fila = document.createElement('p');
+      fila.className = 'conjunto-s';
+      fila.append('S = {');
+      grafo.vertices.forEach((v) => {
+        const el = document.createElement('span');
+        el.className = 'conjunto-s__vertice'
+          + (paso.conjunto.includes(v) ? ' conjunto-s__vertice--elegido'
+            : (paso.dominados || []).includes(v) ? ' conjunto-s__vertice--dominado' : '');
+        el.textContent = v;
+        fila.appendChild(el);
+      });
+      fila.append('}');
+      return fila;
+    }
+
+    // Al final, lo que es S′: propiedad por propiedad, y el óptimo.
+    function crearPropiedades(paso) {
+      const tabla = document.createElement('table');
+      tabla.className = 'conjunto-propiedades';
+      const marca = (valor) => (valor === null ? '—' : valor ? 'sí' : 'no');
+      for (const p of paso.propiedades) {
+        const tr = document.createElement('tr');
+        tr.className = p.valor === null ? 'conjunto-propiedades--no-aplica' : p.valor ? 'conjunto-propiedades--si' : 'conjunto-propiedades--no';
+        tr.innerHTML = `<th scope="row">${p.nombre}</th><td class="conjunto-propiedades__marca">${marca(p.valor)}</td><td>${p.detalle}</td>`;
+        tabla.appendChild(tr);
+      }
+      for (const o of paso.optimos) {
+        const tr = document.createElement('tr');
+        tr.className = 'conjunto-propiedades--optimo';
+        tr.innerHTML = `<th scope="row">${o.simbolo}</th><td class="conjunto-propiedades__marca">${o.valor}</td><td>${o.detalle}</td>`;
+        tabla.appendChild(tr);
+      }
+      return tabla;
+    }
+
     function renderizarGrafo(paso) {
+      if (config.conjuntos) {
+        const grafo = grafoDeLaEstructura();
+        dom.estructuraEl.className = 'estructura-grafo';
+        dom.estructuraEl.removeAttribute('style');
+        dom.estructuraEl.innerHTML = '';
+        if (!grafo) return;
+        dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        if (paso && paso.conjunto && paso.conjunto.length) {
+          // La lista S arriba; debajo la tabla y las conclusiones, que bajas
+          // de alto van una al lado de la otra (`--extendida`): con 12
+          // vértices, apiladas no cabían a 1280 × 633 ni a la mitad.
+          const columna = document.createElement('div');
+          columna.className = 'estructura-grafo__columna conjunto-columna';
+          const cuerpo = document.createElement('div');
+          cuerpo.className = 'conjunto-cuerpo';
+          cuerpo.appendChild(crearTablaDeConjunto(paso));
+          if (paso.propiedades) cuerpo.appendChild(crearPropiedades(paso));
+          columna.append(crearListaS(grafo, paso), cuerpo);
+          dom.estructuraEl.appendChild(columna);
+        }
+        ajustarGrafo();
+        return;
+      }
       if (config.operaciones) {
         renderizarOperacion(paso);
         return;
@@ -797,18 +898,23 @@
       // matriz y su estructura una al lado de la otra, en vez de una encima
       // de la otra —con la adyacencia de aristas son doce filas de alto, y en
       // un proyector XGA no cabían ni a la mitad—.
+      // Los conjuntos suman las dos a la vez: el grafo encima, y debajo la
+      // tabla al lado de las conclusiones —con 12 vértices, en un proyector
+      // XGA, es la única que cabe—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado || config.operaciones ? ['estructura-grafo--extendida'] : []);
-      const quitarTodas = () => disposiciones.forEach((clase) => clase && caja.classList.remove(clase));
+        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos ? ['estructura-grafo--extendida'] : [])
+        .concat(config.conjuntos ? ['estructura-grafo--apilada estructura-grafo--extendida'] : []);
+      const clasesDe = (disposicion) => disposicion.split(' ').filter(Boolean);
+      const quitarTodas = () => disposiciones.forEach((clase) => caja.classList.remove(...clasesDe(clase)));
       let mejor = { clase: '', cabe: -1 };
       for (const clase of disposiciones) {
         quitarTodas();
-        if (clase) caja.classList.add(clase);
+        caja.classList.add(...clasesDe(clase));
         const medida = cabe();
         if (medida > mejor.cabe + 0.001) mejor = { clase, cabe: medida };
       }
       quitarTodas();
-      if (mejor.clase) caja.classList.add(mejor.clase);
+      caja.classList.add(...clasesDe(mejor.clase));
       let factor = Math.max(ENCOGIMIENTO_MINIMO, mejor.cabe);
       if (factor < 1) caja.style.zoom = String(factor);
       // Encogida, deja sitio que el panel del cálculo —flexible como ella—

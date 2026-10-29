@@ -2423,3 +2423,116 @@ form.panel > .pantalla-tema__reproduccion {
   stroke: var(--estado-evaluacion-borde);
   stroke-width: 3;
 }
+
+/* ── Conjuntos independientes y dominantes (CLAUDE.md 5.16) ───────────────
+   Como en la hoja del docente: S′ en verde, lo dominado en rosa —su
+   resaltador sobre la lista S—, y al lado la tabla «2 – {1, 4}». */
+.grafo__vertice--elegido circle {
+  fill: var(--estado-encontrada-relleno);
+  stroke: var(--estado-encontrada-borde);
+  stroke-width: 3;
+}
+
+.grafo__vertice--dominado circle {
+  fill: var(--dominado-relleno);
+  stroke: var(--dominado-borde);
+  stroke-width: 2;
+}
+
+.conjunto-s {
+  margin: 0;
+  font-family: var(--fuente-mono);
+  font-size: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.conjunto-s__vertice {
+  min-width: 28px;
+  padding: 1px 6px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.conjunto-s__vertice--elegido {
+  background: var(--estado-encontrada-relleno);
+  box-shadow: inset 0 0 0 2px var(--estado-encontrada-borde);
+}
+
+.conjunto-s__vertice--dominado {
+  background: var(--dominado-relleno);
+  box-shadow: inset 0 0 0 2px var(--dominado-borde);
+}
+
+.conjunto-tabla td:nth-child(2),
+.conjunto-tabla td:nth-child(3) {
+  font-family: var(--fuente-mono);
+}
+
+.conjunto-tabla__adyacente {
+  color: var(--estado-colision-borde);
+  font-weight: 700;
+}
+
+.conjunto-propiedades {
+  border-collapse: collapse;
+  font-size: 15px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+
+.conjunto-propiedades th,
+.conjunto-propiedades td {
+  padding: 4px 10px;
+  border-top: 1px solid var(--borde);
+  text-align: left;
+}
+
+.conjunto-propiedades th {
+  font-weight: 600;
+}
+
+.conjunto-propiedades td:last-child {
+  max-width: 340px;
+}
+
+.conjunto-propiedades__marca {
+  font-weight: 700;
+  text-align: center;
+}
+
+.conjunto-propiedades--si .conjunto-propiedades__marca { color: var(--estado-encontrada-borde); }
+.conjunto-propiedades--no .conjunto-propiedades__marca { color: var(--estado-colision-borde); }
+.conjunto-propiedades--no-aplica { color: var(--tinta-suave); }
+
+.conjunto-propiedades--optimo th,
+.conjunto-propiedades--optimo td {
+  font-family: var(--fuente-mono);
+  font-size: 17px;
+  border-top: 2px solid var(--borde);
+}
+
+.conjunto-cuerpo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+
+.estructura-grafo--extendida .conjunto-columna {
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.estructura-grafo--extendida .conjunto-cuerpo {
+  flex-direction: row;
+}
+
+/* El vértice del paso lleva su anillo aunque sea de S′ o esté dominado. */
+.grafo__vertice--elegido.grafo__vertice--actual circle,
+.grafo__vertice--dominado.grafo__vertice--actual circle {
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 5;
+}

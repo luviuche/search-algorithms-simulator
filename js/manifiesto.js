@@ -29,6 +29,7 @@
     'dominio/grafo.js',
     'dominio/coloreado.js',
     'dominio/operaciones.js',
+    'dominio/conjuntos.js',
 
     'algoritmos/traza.js',
     'algoritmos/secuencial.js',
@@ -56,6 +57,7 @@
     'algoritmos/representacion.js',
     'algoritmos/coloreado.js',
     'algoritmos/operaciones.js',
+    'algoritmos/conjuntos.js',
 
     // Serializar y validar son cálculo puro; guardar y leer usan el navegador
     // solo cuando se llaman, no al cargarse.
