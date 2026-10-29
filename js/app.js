@@ -34,18 +34,13 @@
           hijos: [
             { id: 'lineal', titulo: 'Búsqueda secuencial', descripcion: 'Recorrido lineal, clave por clave', tema: 'secuencial', disponible: true },
             { id: 'binaria', titulo: 'Búsqueda binaria', descripcion: 'División sobre arreglo ordenado', tema: 'binaria', disponible: true },
-            {
-              id: 'transformacion',
-              titulo: 'Búsqueda por transformación de claves',
-              descripcion: 'La dirección la calcula una función hash',
-              hijos: [
-                { id: 'hash-modulo', titulo: 'Función módulo', descripcion: 'Dirección por residuo de n', tema: 'hash-modulo', disponible: true },
-                { id: 'hash-cuadrado', titulo: 'Función cuadrado', descripcion: 'Cifras centrales del cuadrado', tema: 'hash-cuadrado', disponible: true },
-                { id: 'hash-truncamiento', titulo: 'Función truncamiento', descripcion: 'Selección de dígitos de la clave', tema: 'hash-truncamiento', disponible: true },
-                { id: 'hash-plegamiento', titulo: 'Función plegamiento', descripcion: 'Suma o producto de las particiones', tema: 'hash-plegamiento', disponible: true },
-                { id: 'hash-bases', titulo: 'Conversión de bases', descripcion: 'Las cifras de la clave leídas en otra base', tema: 'hash-bases', disponible: true }
-              ]
-            },
+            // **Las cinco funciones hash son un solo tema**, y la función se
+            // elige al crear, como el tratamiento de colisiones (opción E del
+            // menú, elegida por el usuario el 2026-10-28): comparten la tabla,
+            // `n`, `l` y los tratamientos, y solo cambia cómo se calcula la
+            // dirección. Con cuatro renglones menos el índice cabe en dos
+            // partes iguales, Búsquedas y Grafos.
+            { id: 'transformacion', titulo: 'Búsqueda por transformación de claves', descripcion: 'Las cinco funciones hash, a elegir', tema: 'hash', disponible: true },
             {
               id: 'residuo',
               // Nombres y orden del docente (traídos por el usuario,
@@ -86,15 +81,15 @@
         // los caminos mínimos y los conceptos que se leen de ellos. El docente
         // pone los conceptos en un tema aparte; viven aquí mientras tanto, y
         // separarlos es mover su parte de la traza a otro tema.
-        { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y el centro, el radio y la mediana que salen de ellas', tema: 'floyd', disponible: true },
+        { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y sus conceptos', tema: 'floyd', disponible: true },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Producto cartesiano, producto tensorial y composición de dos grafos', tema: 'operaciones', disponible: true },
+        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Producto cartesiano, tensorial y composición', tema: 'operaciones', disponible: true },
         { id: 'grafos-expansion', titulo: 'Árboles de expansión — Prim y Kruskal', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia', tema: 'representacion', disponible: true },
-        { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Vértices y aristas con el primer color libre, y el polinomio cromático', tema: 'coloreado', disponible: true },
-        { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Comprobar un conjunto como en la hoja, o buscar el máximo independiente y los dominantes mínimos', tema: 'conjuntos', disponible: true },
+        { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
+        { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
+        { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Independiente máximo y dominante mínimo', tema: 'conjuntos', disponible: true },
         { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: '', tema: null, disponible: false }
       ]
     }
@@ -822,76 +817,91 @@
       ]
     },
 
-    'hash-modulo': temaHash({
-      direccionDe: algoritmos.hash.modulo.direccionModulo
-    }),
-
-    'hash-cuadrado': temaHash({
-      direccionDe: algoritmos.hash.cuadrado.direccionCuadrado
-    }),
-
-    // Las posiciones son del estudiante: "fijas" significa las mismas para
-    // toda la estructura, no decididas por el simulador. Es lo que el docente
-    // plantea en un ejercicio ("tome la primera y la tercera cifra").
-    'hash-truncamiento': temaHash({
-      direccionDe: algoritmos.hash.truncamiento.direccionTruncamiento,
-      parametros: [
-        {
-          nombre: 'posiciones',
-          etiqueta: 'Posiciones a tomar',
-          tipo: 'texto',
-          marcador: '1, 3',
-          ayuda: 'Cifras de la clave, numeradas desde 1. Si se deja vacío, se toman las primeras que hagan falta para direccionar n.',
-          validar: (entrada, { n, l }) => (
-            entrada.trim() === ''
-              ? { valido: true, valor: algoritmos.hash.truncamiento.posicionesPorDefecto(n) }
-              : algoritmos.hash.truncamiento.validarPosiciones(entrada, { n, l })
-          )
-        }
-      ]
-    }),
-
-    // La operación entre grupos la elige el estudiante, como las posiciones
-    // del truncamiento: el docente plantea el ejercicio sumando los grupos o
-    // multiplicándolos, y el resto del cálculo es el mismo.
-    'hash-plegamiento': temaHash({
-      direccionDe: algoritmos.hash.plegamiento.direccionPlegamiento,
-      parametros: [
-        {
-          nombre: 'operacion',
-          etiqueta: 'Operación entre grupos',
-          opciones: [
-            { valor: algoritmos.hash.plegamiento.OPERACIONES.SUMAR, etiqueta: 'Sumar' },
-            { valor: algoritmos.hash.plegamiento.OPERACIONES.MULTIPLICAR, etiqueta: 'Multiplicar' }
-          ],
-          ayuda: 'Los grupos se combinan con esta operación; del total se toman las últimas cifras.',
-          validar: (entrada) => algoritmos.hash.plegamiento.validarOperacion(entrada)
-        }
-      ]
-    }),
-
-    // No convierte la clave: lee sus cifras como cifras en base b y evalúa el
-    // polinomio (CLAUDE.md 5.3). Con base 2 eso hace que las cifras pesen como
-    // bits, pero no muestra la clave en binario: lo binario del documento
-    // quedó otra vez sin resolver.
-    'hash-bases': temaHash({
-      direccionDe: algoritmos.hash.bases.direccionBases,
-      parametros: [
-        {
-          nombre: 'base',
-          etiqueta: 'Base de conversión',
-          tipo: 'numero',
-          marcador: String(algoritmos.hash.bases.BASE_POR_DEFECTO),
-          ayuda: `Entre ${algoritmos.hash.bases.BASE_MINIMA} y ${algoritmos.hash.bases.BASE_MAXIMA}. `
-            + `Si se deja vacío se usa ${algoritmos.hash.bases.BASE_POR_DEFECTO}.`,
-          validar: (entrada) => (
-            entrada.trim() === ''
-              ? { valido: true, valor: algoritmos.hash.bases.BASE_POR_DEFECTO }
-              : algoritmos.hash.bases.validarBase(entrada)
-          )
-        }
-      ]
-    }),
+    // **Búsqueda por transformación de claves: las cinco funciones en un solo
+    // tema** (opción E, elegida por el usuario el 2026-10-28). La función se
+    // elige al crear, primero, porque decide qué más pide el formulario: las
+    // posiciones del truncamiento, la operación del plegamiento o la base de
+    // la conversión. Como el tratamiento, vale para toda la estructura.
+    hash: (() => {
+      const FUNCIONES = {
+        modulo: { etiqueta: 'Módulo', ayuda: 'Dirección por residuo de n.', direccionDe: algoritmos.hash.modulo.direccionModulo },
+        cuadrado: { etiqueta: 'Cuadrado', ayuda: 'Cifras centrales del cuadrado de la clave.', direccionDe: algoritmos.hash.cuadrado.direccionCuadrado },
+        truncamiento: { etiqueta: 'Truncamiento', ayuda: 'Selección de dígitos de la clave.', direccionDe: algoritmos.hash.truncamiento.direccionTruncamiento },
+        plegamiento: { etiqueta: 'Plegamiento', ayuda: 'Suma o producto de las particiones de la clave.', direccionDe: algoritmos.hash.plegamiento.direccionPlegamiento },
+        bases: { etiqueta: 'Conversión de bases', ayuda: 'Las cifras de la clave leídas en otra base.', direccionDe: algoritmos.hash.bases.direccionBases }
+      };
+      const nombreDe = (estructura) => FUNCIONES[estructura.parametros.funcion].etiqueta;
+      const tema = temaHash({
+        direccionDe: (clave, n, parametros) => FUNCIONES[parametros.funcion].direccionDe(clave, n, parametros),
+        parametros: [
+          {
+            nombre: 'funcion',
+            etiqueta: 'Función hash',
+            primero: true,
+            opciones: Object.entries(FUNCIONES).map(([valor, f]) => ({ valor, etiqueta: f.etiqueta })),
+            ayuda: 'Como el tratamiento de colisiones, se elige al crear y vale para toda la estructura.',
+            enBitacora: (valor) => `función ${FUNCIONES[valor].etiqueta.toLowerCase()}`,
+            validar: (entrada) => (FUNCIONES[entrada]
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija una función hash.' })
+          },
+          // Las posiciones son del estudiante: "fijas" significa las mismas
+          // para toda la estructura, no decididas por el simulador. Es lo que
+          // el docente plantea en un ejercicio ("tome la primera y la tercera
+          // cifra").
+          {
+            nombre: 'posiciones',
+            etiqueta: 'Posiciones a tomar',
+            soloCon: { parametro: 'funcion', valor: 'truncamiento' },
+            tipo: 'texto',
+            marcador: '1, 3',
+            ayuda: 'Cifras de la clave, numeradas desde 1. Si se deja vacío, se toman las primeras que hagan falta para direccionar n.',
+            validar: (entrada, { n, l }) => (
+              entrada.trim() === ''
+                ? { valido: true, valor: algoritmos.hash.truncamiento.posicionesPorDefecto(n) }
+                : algoritmos.hash.truncamiento.validarPosiciones(entrada, { n, l })
+            )
+          },
+          // La operación entre grupos la elige el estudiante, como las
+          // posiciones del truncamiento: el docente plantea el ejercicio
+          // sumando los grupos o multiplicándolos.
+          {
+            nombre: 'operacion',
+            etiqueta: 'Operación entre grupos',
+            soloCon: { parametro: 'funcion', valor: 'plegamiento' },
+            opciones: [
+              { valor: algoritmos.hash.plegamiento.OPERACIONES.SUMAR, etiqueta: 'Sumar' },
+              { valor: algoritmos.hash.plegamiento.OPERACIONES.MULTIPLICAR, etiqueta: 'Multiplicar' }
+            ],
+            ayuda: 'Los grupos se combinan con esta operación; del total se toman las últimas cifras.',
+            validar: (entrada) => algoritmos.hash.plegamiento.validarOperacion(entrada)
+          },
+          // No convierte la clave: lee sus cifras como cifras en base b y
+          // evalúa el polinomio (CLAUDE.md 5.3).
+          {
+            nombre: 'base',
+            etiqueta: 'Base de conversión',
+            soloCon: { parametro: 'funcion', valor: 'bases' },
+            tipo: 'numero',
+            marcador: String(algoritmos.hash.bases.BASE_POR_DEFECTO),
+            ayuda: `Entre ${algoritmos.hash.bases.BASE_MINIMA} y ${algoritmos.hash.bases.BASE_MAXIMA}. `
+              + `Si se deja vacío se usa ${algoritmos.hash.bases.BASE_POR_DEFECTO}.`,
+            validar: (entrada) => (
+              entrada.trim() === ''
+                ? { valido: true, valor: algoritmos.hash.bases.BASE_POR_DEFECTO }
+                : algoritmos.hash.bases.validarBase(entrada)
+            )
+          }
+        ]
+      });
+      return Object.assign(tema, {
+        descripcion: 'La dirección de cada clave la calcula una función hash',
+        // La función se lee en el resumen y en la reciente: es lo que
+        // distingue dos tablas con el mismo n y l.
+        detalleReciente: (estructura) => `${nombreDe(estructura)} · n = ${estructura.n} · l = ${estructura.l}`,
+        nombreArchivo: (estructura) => `${estructura.parametros.funcion}-n${estructura.n}-l${estructura.l}`
+      });
+    })(),
 
     // Las dos búsquedas externas (CLAUDE.md 5.8 y 5.11) comparten todo menos
     // el recorrido: ver `temaExterno`.
@@ -1060,6 +1070,9 @@
     // crearlo arranca la traza. Así guardar, abrir y las recientes funcionan
     // sin nada propio: lo que se guarda son las aristas.
     floyd: {
+      // La descripción larga va en el encabezado del tema; el menú lleva una
+      // corta (2026-10-28).
+      descripcion: 'Distancias entre todos los pares, y el centro, el radio y la mediana que salen de ellas',
       orientacion: 'grafo',
       calculo: true,
       tituloCalculo: 'Comparaciones',
@@ -1148,6 +1161,9 @@
     // conjuntos de corte quedan fuera hasta que el docente aclare cómo elige
     // los fundamentales (ver §5.12, «Lo que el material dejó abierto»).
     representacion: {
+      // La descripción larga va en el encabezado del tema; el menú lleva una
+      // corta (2026-10-28).
+      descripcion: 'Incidencia y adyacencia, en matriz y en estructura de adyacencia',
       orientacion: 'grafo',
       nombresDeAristas: true,
       calculo: true,
@@ -1267,6 +1283,9 @@
     // temas de grafos; no pide si el grafo es dirigido, porque el coloreado
     // no depende de la dirección.
     coloreado: {
+      // La descripción larga va en el encabezado del tema; el menú lleva una
+      // corta (2026-10-28).
+      descripcion: 'Vértices y aristas con el primer color libre, y el polinomio cromático',
       orientacion: 'grafo',
       coloreado: true,
       nombresDeAristas: true,
@@ -1416,6 +1435,9 @@
         }
       });
       return {
+        // La descripción larga va en el encabezado del tema; el menú lleva una
+        // corta (2026-10-28).
+        descripcion: 'Producto cartesiano, producto tensorial y composición de dos grafos',
         orientacion: 'grafo',
         operaciones: true,
         calculo: true,
@@ -1541,6 +1563,7 @@
       };
       const alTerminar = (paso) => Boolean(paso && paso.propiedades);
       return {
+        descripcion: 'Comprobar un conjunto como en la hoja, o buscar el máximo independiente y los dominantes mínimos',
         orientacion: 'grafo',
         conjuntos: true,
         verticesMaximos: VERTICES_MAXIMOS,

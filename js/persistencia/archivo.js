@@ -53,6 +53,28 @@
     return partes.join('-') + EXTENSION;
   }
 
+  // **Las cinco funciones hash eran cinco temas** hasta el 2026-10-28, y sus
+  // archivos guardan esa clave —`hash-modulo`, `hash-truncamiento`…—. Ahora
+  // son un solo tema con la función como parámetro, así que un archivo viejo
+  // se lee como uno del tema nuevo con su función ya elegida: abre en su
+  // propio tema, con sus posiciones, su operación o su base. Lo usan también
+  // las recientes guardadas antes del cambio.
+  const TEMAS_HASH_VIEJOS = Object.freeze({
+    'hash-modulo': 'modulo',
+    'hash-cuadrado': 'cuadrado',
+    'hash-truncamiento': 'truncamiento',
+    'hash-plegamiento': 'plegamiento',
+    'hash-bases': 'bases'
+  });
+  function migrar(datos) {
+    const funcion = datos && TEMAS_HASH_VIEJOS[datos.tema];
+    if (!funcion) return datos;
+    return Object.assign({}, datos, {
+      tema: 'hash',
+      parametros: Object.assign({}, datos.parametros, { funcion })
+    });
+  }
+
   // Qué tiene que traer un archivo para que se pueda abrir **en este tema**.
   // Se valida antes de tocar nada: si algo no cuadra, la estructura que está
   // en pantalla se queda como está (CLAUDE.md 10.5).
@@ -95,7 +117,7 @@
     if (datos.l !== undefined && datos.l !== null && (!Number.isInteger(datos.l) || datos.l < 1)) {
       return { valido: false, mensaje: 'Archivo inconsistente: la longitud de clave (l) no es válida.' };
     }
-    return { valido: true, datos };
+    return { valido: true, datos: migrar(datos) };
   }
 
   // El `n` con que se creó la estructura guardada. En casi todos los temas es
@@ -260,6 +282,7 @@
     serializar,
     nombreSugerido,
     validar,
+    migrar,
     nInicial,
     parametrosComoTexto,
     compatibilidad,

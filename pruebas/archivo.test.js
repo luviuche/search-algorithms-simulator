@@ -275,3 +275,16 @@ test('un parámetro guardado fuera de rango no pasa el validador del tema', () =
   assert.equal(cubetas.validarR(texto.get('r')).valido, false);
   assert.equal(cubetas.validarUmbral(texto.get('umbralExpandir'), 'Umbral').valido, false);
 });
+
+test('un archivo de una de las cinco funciones hash de antes abre en el tema único, con su función', () => {
+  // Hasta el 2026-10-28 cada función era un tema: `hash-truncamiento`.
+  const viejo = {
+    version: 1, tema: 'hash-truncamiento', tipoClave: 'numerica', modo: 'dispersa',
+    n: 24, l: 4, tratamiento: 'reasignacion', parametros: { posiciones: [1, 2], n0: 24 }, claves: [1234, 5678]
+  };
+  const { valido, datos } = archivo.validar(viejo);
+  assert.equal(valido, true);
+  assert.equal(datos.tema, 'hash');
+  assert.deepEqual(datos.parametros, { posiciones: [1, 2], n0: 24, funcion: 'truncamiento' });
+  assert.equal(archivo.validar({ ...viejo, tema: 'secuencial' }).datos.tema, 'secuencial', 'los demás no cambian');
+});

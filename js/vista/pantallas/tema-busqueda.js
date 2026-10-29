@@ -1244,7 +1244,7 @@
       // de la conversión— junto a n y l, por la misma razón que el tratamiento:
       // definen cómo se dispersa la estructura y cambiarlos con claves ya
       // colocadas dejaría direcciones que no corresponden a ninguna cuenta.
-      const camposParametros = (config.parametros || []).map((parametro) => {
+      const campoDeParametro = (parametro) => {
         // Un parámetro con `opciones` se digita eligiendo, no escribiendo: la
         // operación del plegamiento es una de dos y no tiene por qué validarse
         // contra erratas del estudiante.
@@ -1265,16 +1265,25 @@
         // tratamiento está elegido. Sigue existiendo en el formulario aunque
         // esté oculto, y su validación resuelve el vacío como el valor por
         // defecto, así que no hace falta un camino aparte para leerlo.
+        //
+        // Lo mismo con otro parámetro (`soloCon`): las posiciones solo existen
+        // con la función truncamiento, la base solo con conversión de bases.
         const alcance = parametro.soloConTratamiento
           ? ` data-solo-con-tratamiento="${parametro.soloConTratamiento}"`
-          : '';
+          : parametro.soloCon
+            ? ` data-solo-con-parametro="${parametro.soloCon.parametro}" data-solo-con-valor="${parametro.soloCon.valor}"`
+            : '';
         return `
         <label class="texto-nivel-3"${alcance}>${parametro.etiqueta}
           ${control}
           <span class="campo__ayuda texto-nivel-5">${parametro.ayuda || ''}</span>
         </label>
       `;
-      }).join('');
+      };
+      // Un parámetro `primero` va antes del tamaño: la función hash decide qué
+      // más pide el formulario, así que se elige antes que todo lo demás.
+      const camposPrimeros = (config.parametros || []).filter((p) => p.primero).map(campoDeParametro).join('');
+      const camposParametros = (config.parametros || []).filter((p) => !p.primero).map(campoDeParametro).join('');
       // Un árbol de bits no tiene tamaño que elegir: cuántas posiciones caben
       // sale de la profundidad que dan los bits del código, y la clave es
       // siempre una letra. Pedir n y l ahí sería pedir un dato que el tema no
@@ -1297,6 +1306,7 @@
         </label>`}`;
       contenedor.innerHTML = `
         <h2 class="panel__titulo texto-nivel-2">${config.tituloConfiguracion || 'Configuración de la estructura'}</h2>
+        ${camposPrimeros}
         ${camposTamano}
         ${camposParametros}
         ${selectorTratamiento}
@@ -1323,6 +1333,18 @@
       }
       if (selector) selector.addEventListener('change', sincronizarCamposDelTratamiento);
       sincronizarCamposDelTratamiento();
+      // Y los que pertenecen a un valor de otro parámetro, con él.
+      const camposDeOtroParametro = [...contenedor.querySelectorAll('[data-solo-con-parametro]')];
+      function sincronizarCamposDeParametros() {
+        for (const campo of camposDeOtroParametro) {
+          const control = contenedor.querySelector(`[name="${campo.dataset.soloConParametro}"]`);
+          campo.hidden = !control || control.value !== campo.dataset.soloConValor;
+        }
+      }
+      if (camposDeOtroParametro.length) {
+        contenedor.addEventListener('change', sincronizarCamposDeParametros);
+        sincronizarCamposDeParametros();
+      }
 
       // La vista previa sigue lo que se escribe, mientras no haya estructura.
       if (config.vistaPrevia) {
@@ -1459,10 +1481,19 @@
     // contra `n` y `l`. Vive aparte porque lo necesitan dos caminos: crear la
     // estructura desde el formulario, y abrir un archivo **de otro tema**, que
     // no trae estos datos y tiene que tomarlos de lo que haya en pantalla.
+    // Si un parámetro va con esta estructura: los de `soloCon`, solo cuando
+    // el otro parámetro —leído antes— tiene ese valor.
+    function aplica(parametro, parametros) {
+      return !parametro.soloCon || parametros[parametro.soloCon.parametro] === parametro.soloCon.valor;
+    }
+
     function leerParametros(datos, tamano) {
       const parametros = {};
       const advertencias = [];
       for (const parametro of config.parametros || []) {
+        // Uno que pertenece a otro valor de otro parámetro no se lee: la
+        // estructura no lo usa, y su campo está oculto.
+        if (!aplica(parametro, parametros)) continue;
         // `parametros` lleva los ya leídos, en el orden en que el tema los
         // declara: es lo que permite validar un campo contra otro —en índices,
         // que el registro quepa en el bloque— sin sacar la comprobación del
@@ -1892,6 +1923,7 @@
         // Un parámetro de otro tratamiento no se registra: la bitácora diría
         // que se creó con un dato que la estructura no usa.
         .filter((parametro) => !parametro.soloConTratamiento || parametro.soloConTratamiento === tratamiento)
+        .filter((parametro) => aplica(parametro, parametros))
         .map((parametro) => `, ${parametro.enBitacora
           ? parametro.enBitacora(parametros[parametro.nombre])
           : `${parametro.etiqueta.toLowerCase()} ${parametros[parametro.nombre]}`}`)

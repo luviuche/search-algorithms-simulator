@@ -267,8 +267,28 @@ El estado (`estructura`, `reproductor`, `pasoActual`) vive en el closure de cada
 
 **Desde el 2026-09-27, tres columnas y un menú que crece con la pantalla** (repaso de diseño contra las tres pantallas de referencia: portátil 1366×640, la del usuario 1920×950 y 1440p 2560×1310). En el portátil, el índice de dos columnas dejaba Huffman y todas las externas bajo el borde; y en 1440p ocupaba la mitad izquierda de la pantalla.
 
-- **Búsquedas pone sus categorías lado a lado, cada una entera en su columna**: internas | externas (`indice__parte--en-columnas`, para toda parte con más de una categoría). Se probó equilibrar las alturas pasando los árboles a la columna de externas, y el usuario no quiso: Búsquedas se divide en internas y externas, y cada mitad va junta. Bajo externas queda un hueco; es el precio.
-- **Una parte sin ningún tema construido va angosta** (`indice__parte--pendiente`, hoy Grafos): solo los nombres, y el «En desarrollo» una vez en su cabecera en vez de en cada renglón. Es lo que le deja a Búsquedas el ancho para que sus descripciones quepan. Cuando Grafos tenga temas volverá a llevar descripciones, y el menú habrá que repensarlo. **Con Floyd (2026-10-22) Grafos tiene un tema construido y sigue angosta mientras le queden pendientes**: los construidos primero, en tinta normal y sin descripción (va en el `title`), y el «En desarrollo» una sola vez encima de los pendientes, que se juntan al final; en la cabecera habría dicho que toda la parte está en desarrollo.
+- *(Reemplazado el 2026-10-28, ver abajo.)* **Búsquedas pone sus categorías lado a lado, cada una entera en su columna**: internas | externas (`indice__parte--en-columnas`, para toda parte con más de una categoría). Se probó equilibrar las alturas pasando los árboles a la columna de externas, y el usuario no quiso: Búsquedas se divide en internas y externas, y cada mitad va junta. Bajo externas queda un hueco; es el precio.
+- *(Reemplazado el 2026-10-28.)* **Una parte sin ningún tema construido va angosta** (`indice__parte--pendiente`, hoy Grafos): solo los nombres, y el «En desarrollo» una vez en su cabecera en vez de en cada renglón. Es lo que le deja a Búsquedas el ancho para que sus descripciones quepan. Cuando Grafos tenga temas volverá a llevar descripciones, y el menú habrá que repensarlo. **Con Floyd (2026-10-22) Grafos tiene un tema construido y sigue angosta mientras le queden pendientes**: los construidos primero, en tinta normal y sin descripción (va en el `title`), y el «En desarrollo» una sola vez encima de los pendientes, que se juntan al final; en la cabecera habría dicho que toda la parte está en desarrollo.
+
+**Desde el 2026-10-28, dos partes iguales: Búsquedas | Grafos** (opción E de las maquetas, elegida por el usuario). Grafos ya tenía cinco temas construidos y pedía sus descripciones, pero en su columna angosta no cabían. Se probaron tres caminos:
+- llevarlas al renglón de la columna angosta (A): le quitaba ancho a Búsquedas y las descripciones de las externas se partían en hasta cinco renglones;
+- ponerlas debajo del título (B): no se leía como el resto del índice;
+- meter Grafos bajo las externas (C): parecía parte de Búsquedas.
+
+Lo que lo resolvió fue idea del usuario: **juntar las cinco funciones hash en un solo tema** (§5.3). Con cuatro renglones menos:
+- las búsquedas internas y, debajo, las externas caben en una columna;
+- Búsquedas y Grafos van lado a lado, del mismo ancho, cada una con su título, su descripción y su línea;
+- con media pantalla por parte, **cada tema va en un solo renglón**: título, puntos y descripción. Lo vigila `menuEnColumnas` en la prueba de humo, que también mide que el índice quepa sin desplazar.
+
+En Grafos, los pendientes van al final, bajo un solo «En desarrollo», en dos columnas y solo con su nombre (`indice__lista--pendientes`). `indice__parte--pendiente` queda para una parte sin ningún tema construido, con el sello en la cabecera.
+
+**Las descripciones del menú son cortas**, del largo de las de Búsquedas. Un tema de grafos lleva la suya, más larga, como subtítulo dentro del tema (`descripcion` en `TEMAS`, §4 «El nombre de un tema vive en un solo sitio»).
+
+Se revisó si convenía agrupar más temas, con un criterio: agrupar solo cuando comparten estructura y formulario, y difieren en una regla que se elige al crear (como el tratamiento). Lo cumplen las funciones hash. No lo cumplen:
+- secuencial y binaria, internas o externas: lo que cambia es la búsqueda, y binaria tiene su propio dibujo;
+- los árboles: cada uno es una estructura distinta y hoy no tienen formulario.
+
+**Dijkstra y Bellman, cuando se construyan, irán en «Caminos mínimos»**, con el algoritmo a elegir, junto a Floyd. Y antes de construir «Conjuntos de corte y conectividad» hay que decidir qué parte vive ahí y cuál en la representación matricial, donde quedaron pendientes los circuitos y cortes en matriz.
 - **Los títulos de grupo y subgrupo no llevan el margen del navegador**: `h3` y `h4` traían unos 40 px de aire vacío por subgrupo que nunca se anularon. El renglón, además, va más apretado (1 px de relleno vertical).
 - **El menú se dibuja al ancho de un portátil y se escala para llenar la ventana** (`escalarAlaVentana` en `menu.js`; opción A de la maqueta, elegida sobre una variante adaptable que cambiaba de diseño a los 1600 px y aun así dejaba media pantalla vacía). Letra, renglones y espacios crecen juntos, con `zoom` —que sí cambia el espacio ocupado, a diferencia de `transform`—, desde 1× en el portátil hasta un tope de 2×; se recalcula al cambiar la ventana. **Y también se achica, hasta 0,75×** (2026-10-06): con el piso en 1, por debajo de 1366 px el diseño se apretaba —a 1024 las descripciones quedaban una palabra por renglón, y a 1280, la pantalla de referencia con el zoom a 150 %, las de externas ocupaban hasta cinco—. 0,75 es lo que pide un proyector XGA (1024 / 1366). El `min-height` de la pantalla se divide por la escala, o `100vh` con zoom 1,4 mediría 140 vh. **Solo en el menú**: en las pantallas de tema, escalarlo todo le quitaría ancho a las estructuras anchas como índices. Se evaluó aparte y se descartó el 2026-10-04: el zoom del navegador hace ese escalado, y por tema (§6.9).
 
@@ -454,6 +474,8 @@ Detalles que no se deducen del enunciado y conviene no cambiar sin motivo: el cu
 **Los parámetros se eligen al crear la estructura**, junto a `n`, `l` y el tratamiento de colisiones, y por la misma razón (§5.4): cambiarlos con claves ya colocadas dejaría direcciones que no corresponden a ninguna cuenta. Se validan contra `n` y `l` en ese momento, no al insertar.
 
 El documento original pedía soportarlas «en decimal y en binario». **Descartado (2026-08-29):** el usuario confirmó que lo binario no se vio en clase y no se va a implementar. Se daba por cubierto porque conversión de bases con base 2 mostraba la clave en binario y truncaba bits; con la fórmula del docente eso dejó de ocurrir —base 2 solo hace que las cifras de la clave pesen como bits— y al preguntarlo quedó claro que no hacía falta. **Las claves se digitan y se muestran siempre en decimal** (§3.3). No reabrir esto por "completar el enunciado": está decidido.
+
+**Las cinco funciones son un solo tema desde el 2026-10-28** (`hash` en `TEMAS`; «Búsqueda por transformación de claves» en el menú). La función se elige al crear, primero en el formulario (`primero` en el parámetro), porque decide qué más pide. Las posiciones salen solo con truncamiento, la operación con plegamiento y la base con conversión de bases (`soloCon: { parametro, valor }`, que oculta el campo y salta su validación). Como el tratamiento, vale para toda la estructura, y se lee en el resumen: «Truncamiento · n = 24 · l = 4». **Los archivos y recientes de antes**, con `tema: 'hash-modulo'` y sus hermanos, abren en el tema único con su función ya elegida (`archivo.migrar`).
 
 ### 5.4 Tratamiento de colisiones internas
 

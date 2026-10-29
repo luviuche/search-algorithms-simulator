@@ -15,15 +15,23 @@
   //
   // Las guardadas antes no traen `datos` ni `tema`: no hay nada que abrir, y
   // se descartan al leer en vez de mostrar una pastilla que no responde.
+  //
+  // Una de las cinco funciones hash de antes del 2026-10-28 pasa al tema
+  // único, como sus archivos (`archivo.migrar`).
+  const FUNCIONES_HASH = {
+    modulo: 'Módulo', cuadrado: 'Cuadrado', truncamiento: 'Truncamiento', plegamiento: 'Plegamiento', bases: 'Conversión de bases'
+  };
   function normalizar(item) {
     if (!item || !item.datos || !item.tema || !item.id) return null;
+    const datos = window.CC2.persistencia.archivo.migrar(Object.assign({}, item.datos, { tema: item.tema }));
+    const migrada = datos.tema !== item.tema;
     return {
       id: item.id,
       fecha: item.fecha,
-      tema: item.tema,
-      temaTitulo: item.temaTitulo,
-      detalle: item.detalle,
-      datos: item.datos
+      tema: datos.tema,
+      temaTitulo: migrada ? 'Búsqueda por transformación de claves' : item.temaTitulo,
+      detalle: migrada ? `${FUNCIONES_HASH[datos.parametros.funcion]} · ${item.detalle}` : item.detalle,
+      datos: migrada ? datos : item.datos
     };
   }
 

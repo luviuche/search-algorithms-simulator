@@ -44,9 +44,7 @@
     boton.append(titulo, guia);
 
     if (nodo.descripcion) {
-      // En una parte angosta la descripción no se dibuja (ver `crearSeccion`):
-      // queda en el `title`, para quien pase el cursor.
-      boton.title = nodo.descripcion;
+        boton.title = nodo.descripcion;
       const descripcion = document.createElement('span');
       descripcion.className = 'indice__tema-descripcion texto-nivel-5';
       descripcion.textContent = nodo.descripcion;
@@ -88,29 +86,20 @@
     }
     seccion.appendChild(titulo);
 
-    // Dos rasgos de la parte que cambian cómo se dibuja (menú en columnas,
-    // 2026-09-27; CLAUDE.md 4):
-    //
-    //   · **Sus categorías, cada una en su columna.** Búsquedas se divide en
-    //     internas y externas, y cada mitad va entera en la suya: partir
-    //     internas para equilibrar alturas no convenció al usuario.
-    //   · **Una parte con temas sin construir va angosta**: sin
-    //     descripciones, y el «En desarrollo» una sola vez en vez de en cada
-    //     renglón. Es lo que le pasa a Grafos, y lo que le deja a Búsquedas
-    //     el ancho para que sus descripciones quepan. Sin ningún tema
-    //     construido el rótulo va en la cabecera; con alguno —Floyd, desde el
-    //     2026-10-22— va encima de los pendientes, que se juntan al final:
-    //     en la cabecera habría dicho que toda la parte está en desarrollo.
+    // **Los temas sin construir dicen «En desarrollo» una sola vez**, no en
+    // cada renglón (CLAUDE.md 4). Sin ningún tema construido, el rótulo va en
+    // la cabecera de la parte y no se dibujan descripciones. Con alguno
+    // —Grafos desde Floyd, 2026-10-22— los pendientes se juntan al final,
+    // bajo su rótulo y en dos columnas: en la cabecera habría dicho que toda
+    // la parte está en desarrollo.
     let pendientesAlFinal = false;
     if (profundidad === 0) {
       const categorias = (nodo.hijos || []).filter((hijo) => hijo.hijos);
-      if (categorias.length > 1) seccion.classList.add('indice__parte--en-columnas');
       const hayPendientes = (nodo.hijos || []).some((hijo) => !hijo.hijos && !hijo.disponible);
       if (!tieneTemaDisponible(nodo)) {
         seccion.classList.add('indice__parte--pendiente');
         titulo.appendChild(crearEstado());
       } else if (hayPendientes && categorias.length === 0) {
-        seccion.classList.add('indice__parte--pendiente');
         pendientesAlFinal = true;
       }
     }
@@ -138,7 +127,7 @@
       }
       if (!lista) {
         lista = document.createElement('ul');
-        lista.className = 'indice__lista';
+        lista.className = 'indice__lista' + (rotuloPuesto ? ' indice__lista--pendientes' : '');
         seccion.appendChild(lista);
       }
       lista.appendChild(crearRenglonTema(hijo, alSeleccionarTema));
@@ -262,12 +251,14 @@
     const cuerpo = document.createElement('div');
     cuerpo.className = 'pantalla-menu__cuerpo';
 
-    // Las dos partes van una al lado de la otra (`indice--columnas`): el
-    // catálogo entero en una sola columna mide 1439 px y no cabe en la ventana
-    // de proyección de 950, así que Grafos quedaba al fondo y había que
-    // desplazar para verlo — justo lo que el índice viene a evitar. A dos
-    // columnas mide 1045 y las dos mitades del programa quedan a la misma
-    // altura (medido sobre la maqueta, 2026-09-11).
+    // **Las dos partes van una al lado de la otra, del mismo ancho**
+    // (`indice--columnas`; opción E, elegida por el usuario el 2026-10-28):
+    // Búsquedas a la izquierda —las internas y, debajo, las externas— y Grafos
+    // a la derecha, cada una con su título y su línea. Con media pantalla
+    // cada tema cabe en un renglón con su título, sus puntos y su
+    // descripción, también en un portátil de 1366. Fue posible al juntar las
+    // cinco funciones hash en un tema; antes Grafos iba angosto y sin
+    // descripciones, y las de las externas se partían.
     const columnaCatalogo = document.createElement('div');
     columnaCatalogo.className = 'pantalla-menu__catalogo indice indice--columnas';
     for (const parte of catalogo) {

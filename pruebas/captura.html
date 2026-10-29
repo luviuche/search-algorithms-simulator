@@ -99,11 +99,25 @@
     // "Búsqueda secuencial" y "Búsqueda secuencial externa", y un `includes`
     // entraría siempre al primero que aparezca.
 
+    // **Las cinco funciones hash son un solo tema desde el 2026-10-28**: se
+    // las sigue nombrando como antes —«Función módulo»— y aquí se entra al
+    // tema único con esa función ya elegida.
+    const FUNCIONES_HASH = {
+      'Función módulo': 'modulo', 'Función cuadrado': 'cuadrado', 'Función truncamiento': 'truncamiento',
+      'Función plegamiento': 'plegamiento', 'Conversión de bases': 'bases'
+    };
     function entrarATema(nombreTema) {
+      const funcion = FUNCIONES_HASH[nombreTema];
+      const titulo = funcion ? 'Búsqueda por transformación de claves' : nombreTema;
       const renglon = [...document.querySelectorAll('.indice__tema')]
-        .find((el) => el.querySelector('.indice__tema-titulo').textContent === nombreTema);
-      if (!renglon) throw new Error(`No está en el índice: ${nombreTema}`);
+        .find((el) => el.querySelector('.indice__tema-titulo').textContent === titulo);
+      if (!renglon) throw new Error(`No está en el índice: ${titulo}`);
       renglon.click();
+      if (funcion) {
+        const selector = document.querySelector('form.panel [name="funcion"]');
+        selector.value = funcion;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       return [...document.querySelectorAll('form.panel')];
     }
 

@@ -128,45 +128,22 @@
   gap: var(--espacio-5);
 }
 
-/* Las dos partes —Búsquedas y Grafos— una al lado de la otra: en una sola
-   columna el índice no cabe en la ventana de proyección y Grafos quedaba al
-   fondo (medido sobre maqueta, 2026-09-11). */
-/* Columnas con tope de ancho, no `1fr` a secas: sin el panel de recientes la
-   pantalla entera son dos columnas de unos 700 px, y la guía de puntos se
-   estira tanto que el ojo pierde el renglón entre el título y su descripción.
-   El tope las deja en un ancho de lectura, y cuando sí hay recientes encogen
-   solas. */
+/* Las dos partes —Búsquedas y Grafos— una al lado de la otra y del mismo
+   ancho (opción E, 2026-10-28): con media pantalla cada tema va en un renglón
+   con su título, sus puntos y su descripción. El menú se dibuja al ancho de
+   un portátil y se escala con la ventana (`escalarAlaVentana` en menu.js),
+   así que estas medidas son las de 1366 px; el tope evita que, sin escalar,
+   la guía de puntos se estire hasta perder el renglón. */
 .indice--columnas {
   display: grid;
-  /* Búsquedas se lleva el ancho y Grafos, sin temas construidos, va angosto
-     (2026-09-27). El menú se dibuja al ancho de un portátil y se escala con la
-     ventana (`escalarAlaVentana` en menu.js), así que estas medidas son las
-     de 1366 px: el tope evita que en una ventana sin escalar la guía de
-     puntos se estire hasta perder el renglón. */
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   max-width: 1300px;
-  gap: var(--espacio-6);
+  column-gap: calc(var(--espacio-6) * 1.5);
   align-items: start;
 }
 
-/* Una parte con varias categorías las pone lado a lado, cada una entera en
-   su columna, con el título de la parte encima de todas: en Búsquedas,
-   internas y externas. */
-/* Con las dos clases: `.indice__parte { display: flex }` viene después en el
-   archivo y, a igual especificidad, ganaba. */
-.indice__parte.indice__parte--en-columnas {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  column-gap: var(--espacio-6);
-  align-items: start;
-}
-
-.indice__parte.indice__parte--en-columnas > .indice__parte-titulo {
-  grid-column: 1 / -1;
-}
-
-/* Una parte sin temas construidos (hoy, Grafos): solo los nombres, y el
-   «En desarrollo» una vez en su cabecera. */
+/* Una parte sin ningún tema construido: solo los nombres, y el «En
+   desarrollo» una vez en su cabecera. */
 .indice__parte--pendiente .indice__tema .indice__estado,
 .indice__parte--pendiente .indice__guia,
 .indice__parte--pendiente .indice__parte-descripcion,
@@ -190,6 +167,22 @@
   padding-left: var(--espacio-4);
 }
 
+/* Los pendientes bajo su rótulo, en dos columnas y solo con el nombre: el
+   sello ya está encima, y así Grafos cabe en un portátil. */
+.indice__lista--pendientes {
+  columns: 2;
+  column-gap: var(--espacio-5);
+}
+
+.indice__lista--pendientes li {
+  break-inside: avoid;
+}
+
+.indice__lista--pendientes .indice__guia,
+.indice__lista--pendientes .indice__estado {
+  display: none;
+}
+
 .indice__parte,
 .indice__grupo {
   display: flex;
@@ -202,6 +195,7 @@
 }
 
 .indice__parte-titulo {
+  margin: 0;
   display: flex;
   align-items: baseline;
   gap: var(--espacio-3);

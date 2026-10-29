@@ -60,11 +60,25 @@
     // **Por título exacto y no por `includes`**: en el índice conviven
     // "Búsqueda secuencial" y "Búsqueda secuencial externa", y un `includes`
     // entraría siempre al primero que aparezca.
+    // **Las cinco funciones hash son un solo tema desde el 2026-10-28**: se
+    // las sigue nombrando como antes —«Función módulo»— y aquí se entra al
+    // tema único con esa función ya elegida.
+    const FUNCIONES_HASH = {
+      'Función módulo': 'modulo', 'Función cuadrado': 'cuadrado', 'Función truncamiento': 'truncamiento',
+      'Función plegamiento': 'plegamiento', 'Conversión de bases': 'bases'
+    };
     function entrarATema(nombreTema) {
+      const funcion = FUNCIONES_HASH[nombreTema];
+      const titulo = funcion ? 'Búsqueda por transformación de claves' : nombreTema;
       const renglon = [...document.querySelectorAll('.indice__tema')]
-        .find((el) => el.querySelector('.indice__tema-titulo').textContent === nombreTema);
-      if (!renglon) throw new Error(`No está en el índice: ${nombreTema}`);
+        .find((el) => el.querySelector('.indice__tema-titulo').textContent === titulo);
+      if (!renglon) throw new Error(`No está en el índice: ${titulo}`);
       renglon.click();
+      if (funcion) {
+        const selector = document.querySelector('form.panel [name="funcion"]');
+        selector.value = funcion;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
 
     // Insertar, buscar y eliminar comparten un panel: se escribe la clave una
@@ -642,6 +656,7 @@
       panelLateralPlegado();
       archivos();
       recientesQueSeAbren();
+      recienteDeUnaFuncionHashVieja();
       floyd();
       representacionMatricial();
       coloreadoDeGrafos();
@@ -744,11 +759,17 @@
 
       const formularios = entrarATemaHash('Función plegamiento', { n: 12, l: 4, tratamiento: 'reasignacion'
       });
+      // Las cinco funciones comparten formulario: con plegamiento elegido se
+      // ve su operación, y los campos de las otras quedan ocultos.
+      // Con la estructura creada la configuración se pliega: se mira si el
+      // campo quedó oculto, no si se ve.
+      const seVe = (nombre) => {
+        const campo = formularios[0].querySelector(`[name="${nombre}"]`);
+        return !!campo && !campo.closest('label').hidden;
+      };
       afirmar(
-        !!formularios[0].querySelector('select[name="operacion"]')
-          && !formularios[0].querySelector('[name="posiciones"]')
-          && !formularios[0].querySelector('[name="base"]'),
-        'el tema declara su operación como lista y no hereda los campos de los otros'
+        seVe('operacion') && !!formularios[0].querySelector('select[name="operacion"]') && !seVe('posiciones') && !seVe('base'),
+        'con plegamiento se ve su operación como lista, y no los campos de las otras funciones'
       );
 
       // 7412 con n = 12 → grupos de 2 → 74 + 12 = 86 → 86 + 1 = 87 → 3.
@@ -2974,20 +2995,38 @@
       document.querySelector('.pantalla-tema__volver').click();
     }
 
-    // El menú (2026-09-27): internas y externas lado a lado, cada una entera
-    // en su columna; Grafos, sin temas construidos, con el sello una sola vez.
-    // Se mide lo que se ve: la primera vez la regla de columnas perdía contra
-    // otra más general y externas quedaba debajo de internas.
+    // El menú (opción E, 2026-10-28): Búsquedas y Grafos lado a lado y del
+    // mismo ancho, las externas debajo de las internas, y **cada tema
+    // construido en un solo renglón**, con su descripción a la vista. Se mide
+    // lo que se ve: la primera vez que hubo columnas, una regla más general
+    // ganaba y el dibujo no era el que el CSS decía.
     function menuEnColumnas() {
       registro.push('', '── Menú ──');
+      const partes = [...document.querySelectorAll('.indice__parte')];
+      const [busquedas, grafosParte] = partes.map((p) => p.getBoundingClientRect());
+      afirmar(
+        partes.length === 2 && Math.abs(busquedas.top - grafosParte.top) <= 1 && grafosParte.left > busquedas.right
+          && Math.abs(busquedas.width - grafosParte.width) <= 2,
+        `Búsquedas y Grafos van lado a lado y del mismo ancho (${Math.round(busquedas.width)} y ${Math.round(grafosParte.width)} px)`
+      );
       const grupos = [...document.querySelectorAll('.indice__grupo-titulo')];
       const internas = grupos.find((g) => g.textContent === 'Búsquedas internas');
       const externas = grupos.find((g) => g.textContent === 'Búsquedas externas');
       afirmar(
-        internas && externas && Math.abs(internas.getBoundingClientRect().top - externas.getBoundingClientRect().top) <= 1
-          && externas.getBoundingClientRect().left > internas.getBoundingClientRect().right,
-        'búsquedas internas y externas van lado a lado'
+        internas && externas && externas.getBoundingClientRect().top > internas.getBoundingClientRect().bottom
+          && Math.abs(externas.getBoundingClientRect().left - internas.getBoundingClientRect().left) <= 1,
+        'las búsquedas externas van debajo de las internas'
       );
+      // Un renglón partido mide más de un renglón: se compara el alto de cada
+      // tema con el de su título.
+      const construidos = [...document.querySelectorAll('.indice__tema:not(.indice__tema--pendiente)')];
+      const partidos = construidos.filter((tema) => {
+        const descripcion = tema.querySelector('.indice__tema-descripcion');
+        return !descripcion || descripcion.getClientRects().length !== 1;
+      }).map((tema) => tema.querySelector('.indice__tema-titulo').textContent);
+      afirmar(partidos.length === 0, `cada tema construido, con su descripción en un solo renglón (${partidos.join(', ') || 'todos'})`);
+      const catalogo = document.querySelector('.pantalla-menu__catalogo').getBoundingClientRect();
+      afirmar(catalogo.bottom <= window.innerHeight + 1, `el índice cabe sin desplazar (termina en ${Math.round(catalogo.bottom)} de ${window.innerHeight})`);
       const grafos = [...document.querySelectorAll('.indice__parte')].find((p) => p.textContent.startsWith('Grafos'));
       const sellos = grafos.querySelectorAll('.indice__estado');
       const visibles = [...sellos].filter((el) => el.getClientRects().length > 0);
@@ -3726,6 +3765,39 @@
         const encima = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         afirmar(!encima, `${contexto}: el panel del cálculo no tapa la matriz`);
       }
+    }
+
+    // Una reciente guardada cuando las cinco funciones hash eran cinco temas
+    // (antes del 2026-10-28) abre en el tema único, con su función y sus
+    // parámetros: el estudiante no tiene por qué notar el cambio.
+    function recienteDeUnaFuncionHashVieja() {
+      registro.push('', '── Reciente de una función hash de antes ──');
+      const vieja = {
+        id: 'vieja', fecha: new Date().toISOString(), tema: 'hash-truncamiento', temaTitulo: 'Función truncamiento',
+        detalle: 'n = 12 · l = 4',
+        datos: {
+          version: 1, tema: 'hash-truncamiento', tipoClave: 'numerica', modo: 'dispersa', n: 12, l: 4,
+          tratamiento: 'reasignacion', parametros: { posiciones: [1, 2] }, claves: [1234, 5678]
+        }
+      };
+      try { window.localStorage.setItem('cc2:recientes', JSON.stringify([vieja])); } catch (error) { return; }
+      // El menú lee las recientes al dibujarse: se entra a un tema y se vuelve.
+      entrarATema('Búsqueda secuencial');
+      document.querySelector('.pantalla-tema__volver').click();
+      const pastilla = document.querySelector('.tira-recientes__item');
+      afirmar(!!pastilla && pastilla.textContent.includes('Búsqueda por transformación de claves')
+        && pastilla.textContent.includes('Truncamiento · n = 12 · l = 4'),
+        `la pastilla ya dice el tema nuevo (${pastilla ? pastilla.textContent : 'ninguna'})`);
+      if (!pastilla) return;
+      pastilla.click();
+      const resumen = document.querySelector('.panel__resumen-texto');
+      afirmar(document.querySelector('.pantalla-tema h1').textContent === 'Búsqueda por transformación de claves'
+        && !!resumen && resumen.textContent.startsWith('Truncamiento'),
+        `abre en el tema único con su función (${resumen ? resumen.textContent : 'sin resumen'})`);
+      afirmar(document.querySelectorAll('.casilla[data-clave="1234"], .casilla[data-clave="5678"]').length === 2,
+        'con sus dos claves colocadas');
+      document.querySelector('.pantalla-tema__volver').click();
+      try { window.localStorage.removeItem('cc2:recientes'); } catch (error) { /* sin almacenamiento */ }
     }
 
     // Las recientes del menú se abren como las dejó el estudiante (pedido del
