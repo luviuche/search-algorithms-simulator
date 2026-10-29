@@ -632,6 +632,7 @@
       hashCuadrado();
       hashTruncamiento();
       hashPlegamiento();
+      camposDeCadaFuncionHash();
       hashBases();
       hashTablaGrande();
       eliminarEnSecuencial();
@@ -749,6 +750,27 @@
         `la escala no pierde casillas (${dibujadas} dibujadas + ${ocultas} elididas)`
       );
 
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Con las cinco funciones en un tema (2026-10-28), el formulario muestra
+    // solo el campo de la función elegida. Se mira lo que **se ve**, antes de
+    // crear: la primera versión ponía `hidden` en el campo y una regla de
+    // estilo le ganaba, y la prueba —que miraba el atributo— no lo notó.
+    function camposDeCadaFuncionHash() {
+      registro.push('', '── Campos de cada función hash ──');
+      entrarATema('Búsqueda por transformación de claves');
+      const formulario = document.querySelector('form.panel');
+      const selector = formulario.querySelector('[name="funcion"]');
+      const propios = ['posiciones', 'operacion', 'base'];
+      const esperados = { modulo: [], cuadrado: [], truncamiento: ['posiciones'], plegamiento: ['operacion'], bases: ['base'] };
+      for (const [funcion, campos] of Object.entries(esperados)) {
+        selector.value = funcion;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+        const visibles = propios.filter((nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0);
+        afirmar(visibles.join(',') === campos.join(','),
+          `con ${funcion} se ve${campos.length ? ` solo ${campos.join(', ')}` : 'n solo n, l y el tratamiento'} (se ven: ${visibles.join(', ') || 'ninguno'})`);
+      }
       document.querySelector('.pantalla-tema__volver').click();
     }
 

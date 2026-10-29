@@ -190,10 +190,15 @@ form select {
    (defecto encontrado al construir el plegado, 2026-09-27). Y lo mismo
    `.boton { display: inline-flex }`: «Guardar», «Vaciar» y «Cancelar» se
    veían al entrar a los once temas con configuración, sin estructura que
-   guardar, vaciar ni a la que volver (2026-09-30). */
+   guardar, vaciar ni a la que volver (2026-09-30). Y `.panel label
+   { display: flex }`: con las funciones hash en un tema, se veían las
+   posiciones, la operación y la base con cualquier función elegida
+   (2026-10-28). */
 .panel[hidden],
 .panel__resumen[hidden],
-.boton[hidden] {
+.boton[hidden],
+.panel label[hidden],
+form label[hidden] {
   display: none;
 }
 
