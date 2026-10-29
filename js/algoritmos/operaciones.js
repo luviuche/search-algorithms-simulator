@@ -14,7 +14,7 @@
   // faltan, y retroceder solo vuelve a dibujar (CLAUDE.md 4).
 
   const SIMBOLOS = Object.freeze({
-    [OPERACIONES.CARTESIANO]: 'G₁ ⊕ G₂',
+    [OPERACIONES.CARTESIANO]: 'G₁ × G₂',
     [OPERACIONES.TENSORIAL]: 'G₁ ⊗ G₂',
     [OPERACIONES.COMPOSICION]: 'G₁[G₂]'
   });

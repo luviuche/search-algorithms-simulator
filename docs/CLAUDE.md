@@ -926,13 +926,13 @@ Se arma como Floyd (§5.12): el grafo y la representación salen de los parámet
 
 ### 5.15 Operaciones entre grafos (2026-10-26)
 
-**Cuarto tema de grafos.** El usuario pidió empezar por tres operaciones entre dos grafos, con la notación de cada una, y dejó el paso a paso a esta aplicación: **producto cartesiano G₁ ⊕ G₂** —el + en círculo es el símbolo del docente—, **producto tensorial G₁ ⊗ G₂** y **composición G₁[G₂]** (las dos últimas, confirmadas por el usuario sobre las maquetas). No hay material del docente: las pruebas se anclan al ejemplo de las maquetas —el camino 1–2–3 y la arista a–b, que dan 7, 4 y 11 aristas— y a comparar cada resultado contra su regla en todos los pares (`pruebas/operaciones.test.js`).
+**Cuarto tema de grafos.** El usuario pidió empezar por tres operaciones entre dos grafos, con la notación de cada una, y dejó el paso a paso a esta aplicación: **producto cartesiano G₁ × G₂** —hasta el 2026-10-28 se escribió ⊕, que el usuario había dado como símbolo del docente y después corrigió: es el de otra operación—, **producto tensorial G₁ ⊗ G₂** y **composición G₁[G₂]** (las dos últimas, confirmadas por el usuario sobre las maquetas). No hay material del docente: las pruebas se anclan al ejemplo de las maquetas —el camino 1–2–3 y la arista a–b, que dan 7, 4 y 11 aristas— y a comparar cada resultado contra su regla en todos los pares (`pruebas/operaciones.test.js`).
 
 **Los operandos** (`dominio/operaciones.js`, `leerOperando`): grafos simples y no dirigidos, una arista por renglón con sus dos vértices, y un vértice solo en su renglón si está aislado. **Los vértices pueden ser números o letras, en cualquiera de los dos** (pedido del usuario): por eso aquí no hay nombre de arista delante, como en los otros temas de grafos, y no se usa `leerGrafo`. Hasta 4 vértices cada uno, porque el resultado tiene el producto: con 4 y 4 son 16.
 
 **Las reglas** (~ es «adyacente a»), con los vértices del resultado los pares (u, v):
 
-- G₁ ⊕ G₂: (u, v) ~ (u′, v′) si u = u′ y v ~ v′ en G₂, o v = v′ y u ~ u′ en G₁. |A| = |V₁|·|A₂| + |V₂|·|A₁|.
+- G₁ × G₂: (u, v) ~ (u′, v′) si u = u′ y v ~ v′ en G₂, o v = v′ y u ~ u′ en G₁. |A| = |V₁|·|A₂| + |V₂|·|A₁|.
 - G₁ ⊗ G₂: (u, v) ~ (u′, v′) si u ~ u′ en G₁ y v ~ v′ en G₂. |A| = 2·|A₁|·|A₂|.
 - G₁[G₂]: (u, v) ~ (u′, v′) si u ~ u′ en G₁, o u = u′ y v ~ v′ en G₂. |A| = |V₁|·|A₂| + |V₂|²·|A₁|.
 

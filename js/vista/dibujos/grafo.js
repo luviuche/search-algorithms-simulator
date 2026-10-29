@@ -647,7 +647,7 @@
       const simbolo = document.createElement('span');
       simbolo.className = 'operacion-grafos__simbolo'
         + (operacion === operaciones.OPERACIONES.COMPOSICION ? ' operacion-grafos__simbolo--largo' : '');
-      simbolo.textContent = { cartesiano: '⊕', tensorial: '⊗', composicion: 'G₁[G₂]' }[operacion] || '';
+      simbolo.textContent = { cartesiano: '×', tensorial: '⊗', composicion: 'G₁[G₂]' }[operacion] || '';
       if (g1) caja.appendChild(crearOperando(g1, 'G₁', false, usa && usa.g1));
       caja.appendChild(simbolo);
       if (g2) caja.appendChild(crearOperando(g2, 'G₂', true, usa && usa.g2));

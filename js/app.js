@@ -1388,7 +1388,7 @@
       })()
     },
 
-    // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ ⊕ G₂,
+    // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ × G₂,
     // producto tensorial G₁ ⊗ G₂ y composición G₁[G₂]. Dos grafos simples y
     // no dirigidos, de hasta 4 vértices cada uno, con números o letras.
     operaciones: (() => {
@@ -1466,7 +1466,7 @@
             nombre: 'operacion',
             etiqueta: 'Operación',
             opciones: [
-              { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ ⊕ G₂' },
+              { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ × G₂' },
               { valor: OPERACIONES.TENSORIAL, etiqueta: 'Producto tensorial  G₁ ⊗ G₂' },
               { valor: OPERACIONES.COMPOSICION, etiqueta: 'Composición  G₁[G₂]' }
             ],

@@ -3630,10 +3630,10 @@
       escribir('cartesiano', '1 2\n2 3', 'a b');
       afirmar(document.querySelectorAll('.grafo--operando').length === 2 && !document.querySelector('.grafo--resultado'),
         'mientras se escribe, se ven los dos operandos y todavía no el resultado');
-      afirmar(document.querySelector('.operacion-grafos__simbolo').textContent === '⊕', 'el producto cartesiano lleva ⊕');
+      afirmar(document.querySelector('.operacion-grafos__simbolo').textContent === '×', 'el producto cartesiano lleva ×');
 
       crear('cartesiano', '1 2\n2 3', 'a b');
-      afirmar(document.querySelectorAll('.operacion-grafos__par').length === 6, 'G₁ ⊕ G₂: seis pares, uno por (u, v)');
+      afirmar(document.querySelectorAll('.operacion-grafos__par').length === 6, 'G₁ × G₂: seis pares, uno por (u, v)');
       for (let i = 0; i < 2; i++) control('siguiente').click();
       afirmar(resaltados().join(' ') === '(2, a) (2, b)', `vértice 2 de G₁: se resalta la fila 2 (${resaltados().join(' ')})`);
       afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista--evaluacion').length === 1,

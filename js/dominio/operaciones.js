@@ -1,14 +1,15 @@
 (function () {
-  // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ ⊕ G₂
-  // —el + en círculo es el símbolo del docente—, producto tensorial G₁ ⊗ G₂ y
-  // composición G₁[G₂] (notación confirmada por el usuario, 2026-10-26). No
+  // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ × G₂
+  // (corregido por el usuario el 2026-10-28: el ⊕ que había dicho es de otra
+  // operación), producto tensorial G₁ ⊗ G₂ y composición G₁[G₂] (notación
+  // confirmada por el usuario, 2026-10-26). No
   // hay material del docente: el paso a paso lo propuso esta aplicación sobre
   // maquetas, y el usuario lo aprobó.
   //
   // Los vértices del resultado son los pares (u, v), u de G₁ y v de G₂, y
   // las aristas salen de la regla de cada operación (~ es «adyacente a»):
   //
-  //   G₁ ⊕ G₂   (u, v) ~ (u′, v′) si u = u′ y v ~ v′, o v = v′ y u ~ u′
+  //   G₁ × G₂   (u, v) ~ (u′, v′) si u = u′ y v ~ v′, o v = v′ y u ~ u′
   //   G₁ ⊗ G₂   (u, v) ~ (u′, v′) si u ~ u′ y v ~ v′
   //   G₁[G₂]    (u, v) ~ (u′, v′) si u ~ u′, o u = u′ y v ~ v′
   //
