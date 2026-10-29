@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
-> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's algorithm, matrix representation, graph coloring and operations between two graphs are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's algorithm, matrix representation, graph coloring, operations between two graphs, and independent and dominating sets are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -55,6 +55,7 @@ The user interface is in **Spanish**, the language of the course.
 | Matrix representation: incidence, vertex adjacency and edge adjacency, directed or not, each filled one row per step next to its adjacency list | ✅ |
 | Graph coloring: vertices and edges colored in order with the first free color, the chromatic number and index, and the chromatic polynomial from the general formula | ✅ |
 | Operations between two graphs: cartesian product G₁ ⊕ G₂, tensor product G₁ ⊗ G₂ and composition G₁[G₂], built edge group by edge group on a grid of vertex pairs, with the edge count from each formula | ✅ |
+| Independent and dominating sets: check a given set step by step as in the professor's sheets, or search for the maximum independent set and the minimum dominating, independent dominating, total and connected dominating sets | ✅ |
 | Circuits and cut sets in matrix form | 🚧 Planned |
 | Definitions, traversals, Euler and Hamilton circuits, other graph operations, spanning trees (Prim, Kruskal), matchings | 🚧 Planned |
 
