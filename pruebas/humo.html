@@ -659,6 +659,7 @@
       recientesQueSeAbren();
       recienteDeUnaFuncionHashVieja();
       tiraDeRecientesQueSeDesplaza();
+      panelLateralDesvanecido();
       floyd();
       representacionMatricial();
       coloreadoDeGrafos();
@@ -3788,6 +3789,31 @@
         const encima = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         afirmar(!encima, `${contexto}: el panel del cálculo no tapa la matriz`);
       }
+    }
+
+    // El panel lateral se desvanece donde queda algo por ver (2026-10-28):
+    // abajo si sigue, arriba si ya se bajó, y nada si todo cabe. Se entra con
+    // la configuración abierta, que es cuando más mide.
+    function panelLateralDesvanecido() {
+      registro.push('', '── Panel lateral desvanecido ──');
+      entrarATema('Búsqueda por transformación de claves');
+      const panel = document.querySelector('.pantalla-tema__panel-lateral');
+      const marcar = () => panel.dispatchEvent(new Event('scroll'));
+      const cortes = () => ['arriba', 'abajo'].filter((lado) => panel.classList.contains(`pantalla-tema__panel-lateral--corte-${lado}`)).join(' y ') || 'ninguno';
+      marcar();
+      if (panel.scrollHeight <= panel.clientHeight + 1) {
+        afirmar(cortes() === 'ninguno', `todo cabe a ${window.innerHeight} px: sin desvanecido (${cortes()})`);
+      } else {
+        afirmar(cortes() === 'abajo', `arriba del todo, se desvanece solo abajo (${cortes()})`);
+        panel.scrollTop = panel.scrollHeight;
+        marcar();
+        afirmar(cortes() === 'arriba', `abajo del todo, solo arriba (${cortes()})`);
+        // El velo no tapa los clics: el último control sigue respondiendo.
+        const ultimo = [...panel.querySelectorAll('.panel')].pop().getBoundingClientRect();
+        const encima = document.elementFromPoint(ultimo.left + 20, ultimo.bottom - 5);
+        afirmar(!!encima && panel.contains(encima), 'el velo no se interpone a los clics');
+      }
+      document.querySelector('.pantalla-tema__volver').click();
     }
 
     // La tira de recientes se desplaza en horizontal con la rueda (pedido del

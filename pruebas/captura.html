@@ -629,6 +629,15 @@
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');
       prepararBusqueda(vista === 'binaria' ? 'Búsqueda binaria' : 'Búsqueda secuencial');
     }
+    // `&lateral=fin` baja el panel lateral hasta el final: así se fotografía
+    // el desvanecido de arriba (2026-10-28).
+    window.CC2.listo.then(() => {
+      if (parametros.get('lateral') !== 'fin') return;
+      setTimeout(() => {
+        const panel = document.querySelector('.pantalla-tema__panel-lateral');
+        if (panel) panel.scrollTop = panel.scrollHeight;
+      }, 100);
+    });
     // `&editar=1` abre la configuración plegada, como el enlace «Editar» del
     // resumen: es donde aparece «Cancelar».
     // Con el menú ya montado y las fuentes cargadas (`CC2.listo`, app.js).

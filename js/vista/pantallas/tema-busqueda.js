@@ -2501,6 +2501,7 @@
     );
 
     pantalla.append(crearEncabezado(), lienzo, panelLateral);
+    marcarCortesDelPanelLateral(panelLateral);
 
     // Los temas sin configuración entran con su estructura ya creada: no hay
     // decisión que tomar antes de empezar a insertar.
@@ -2521,6 +2522,30 @@
     if (reciente) abrirReciente(reciente);
     else entrarSinEstructura();
     return pantalla;
+  }
+
+  // **El panel lateral se desvanece donde queda algo por ver** (pedido del
+  // usuario, 2026-10-28): abajo mientras haya más, arriba cuando ya se bajó,
+  // y nada cuando todo cabe. Cortado en seco, una tarjeta partida por la mitad
+  // —las métricas, en una ventana baja— se leía como un defecto; desvanecida,
+  // como «aquí sigue», el mismo idioma del lienzo y de la tira de recientes.
+  // Y en la ventana compartida de una clase virtual la barra, fina y gris, se
+  // pierde con la compresión del video; el desvanecido no.
+  function marcarCortesDelPanelLateral(panel) {
+    const marcar = () => {
+      const resto = panel.scrollHeight - panel.clientHeight - panel.scrollTop;
+      panel.classList.toggle('pantalla-tema__panel-lateral--corte-arriba', panel.scrollTop > 1);
+      panel.classList.toggle('pantalla-tema__panel-lateral--corte-abajo', resto > 1);
+    };
+    panel.addEventListener('scroll', marcar, { passive: true });
+    // Cambia de alto al plegar la configuración, al crecer la bitácora o al
+    // cambiar la ventana: se observan el panel y lo que lleva dentro.
+    if (window.ResizeObserver) {
+      const observador = new ResizeObserver(marcar);
+      observador.observe(panel);
+      for (const hijo of panel.children) observador.observe(hijo);
+    }
+    requestAnimationFrame(marcar);
   }
 
   window.CC2 = window.CC2 || {};

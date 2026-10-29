@@ -444,6 +444,7 @@
 }
 
 .pantalla-tema__panel-lateral {
+  --alto-desvanecido: 40px;
   display: flex;
   flex-direction: column;
   gap: var(--espacio-3);
@@ -451,6 +452,40 @@
   overflow-y: auto;
   /* Aire para que la barra de desplazamiento no se monte sobre los paneles. */
   padding-right: var(--espacio-2);
+}
+
+/* El desvanecido donde queda algo por ver (ver `marcarCortesDelPanelLateral`
+   en tema-busqueda.js). Es un velo del color del fondo, pegado arriba o abajo
+   mientras se desplaza, y no una máscara del panel: la máscara desvanecería
+   también la barra. No ocupa sitio —el margen negativo descuenta su alto y el
+   espacio entre tarjetas— ni recibe clics. */
+.pantalla-tema__panel-lateral::before,
+.pantalla-tema__panel-lateral::after {
+  content: "";
+  flex: none;
+  position: sticky;
+  z-index: 1;
+  height: var(--alto-desvanecido);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duracion-interfaz) var(--curva-interfaz);
+}
+
+.pantalla-tema__panel-lateral::before {
+  top: 0;
+  margin-bottom: calc(-1 * (var(--alto-desvanecido) + var(--espacio-3)));
+  background: linear-gradient(to bottom, var(--papel), transparent);
+}
+
+.pantalla-tema__panel-lateral::after {
+  bottom: 0;
+  margin-top: calc(-1 * (var(--alto-desvanecido) + var(--espacio-3)));
+  background: linear-gradient(to top, var(--papel), transparent);
+}
+
+.pantalla-tema__panel-lateral--corte-arriba::before,
+.pantalla-tema__panel-lateral--corte-abajo::after {
+  opacity: 1;
 }
 
 /* Ritmo más apretado que el de los paneles de siempre (2026-09-30, opción
