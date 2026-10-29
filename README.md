@@ -18,7 +18,7 @@ The user interface is in **Spanish**, the language of the course.
 
 - **Create a structure** by choosing its size `n` and key length `l`. Some topics also ask for extra parameters, such as the collision strategy or the digit positions to truncate.
 - **Insert, search and delete keys.** Each operation becomes a trace that plays back like a video: play, pause, step forward, step back, and change the speed.
-- **See the whole calculation, not just the result.** In the hashing topics, a side panel works out each address line by line (`7412 mod 10 = 2`, `2 + 1 = 3`). The same panel lists every probe that a collision strategy makes (`9 + 2² = 13 − 12 → 1`).
+- **See the whole calculation, not just the result.** In the hashing topic, a side panel works out each address line by line (`7412 mod 10 = 2`, `2 + 1 = 3`). The same panel lists every probe that a collision strategy makes (`9 + 2² = 13 − 12 → 1`).
 - **Compare costs.** Live counters show comparisons, accesses, load factor or tree height, so two algorithms can be run on the same keys and compared.
 - **Read the log.** Every step is written to a timestamped log in plain language.
 - **Work with large structures.** A structure with 100 or more cells is drawn with the elided parts collapsed (`1 ⋯ 15 ⋯ 21 ⋯ 100`), the way it is drawn on the board. The drawing stays readable on a projector.
