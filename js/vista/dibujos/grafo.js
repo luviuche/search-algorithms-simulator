@@ -606,7 +606,9 @@
 
     // Un operando: G₁ hacia abajo, G₂ hacia la derecha. Lo que el paso usa
     // de él, resaltado: el vértice que se fija en azul, las aristas en naranja.
-    function crearOperando(grafo, titulo, horizontal, usa) {
+    // `deOperando`, al terminar: sus aristas en el color del operando, como
+    // las que salen de ellas en el resultado.
+    function crearOperando(grafo, titulo, horizontal, usa, deOperando = null) {
       const PASO_OPERANDO = 78;
       const n = grafo.vertices.length;
       const ancho = horizontal ? 2 * MARGEN + (n - 1) * PASO_OPERANDO : 2 * MARGEN + 20;
@@ -627,7 +629,10 @@
         const usada = usa && juntas(usa.aristas, p, q);
         const { d, pico } = trazoEntre(mapa.get(p), mapa.get(q), [...mapa.values()], medio);
         if (pico) picos.push(pico);
-        svg('path', { d, class: 'grafo__arista' + (usada ? ' grafo__arista--evaluacion' : '') }, lineas);
+        svg('path', {
+          d,
+          class: 'grafo__arista' + (usada ? ' grafo__arista--evaluacion' : '') + (deOperando ? ` grafo__arista--de-${deOperando}` : '')
+        }, lineas);
       }
       abarcarCurvas(dibujo, ancho, alto, picos);
       const nodos = svg('g', { class: 'grafo__vertices' }, dibujo);
@@ -641,16 +646,16 @@
       return dibujo;
     }
 
-    function crearOperandos({ g1, g2, operacion }, usa) {
+    function crearOperandos({ g1, g2, operacion }, usa, pintar = false) {
       const caja = document.createElement('div');
       caja.className = 'operacion-grafos__operandos';
       const simbolo = document.createElement('span');
       simbolo.className = 'operacion-grafos__simbolo'
         + (operacion === operaciones.OPERACIONES.COMPOSICION ? ' operacion-grafos__simbolo--largo' : '');
       simbolo.textContent = { cartesiano: '×', tensorial: '⊗', composicion: 'G₁[G₂]' }[operacion] || '';
-      if (g1) caja.appendChild(crearOperando(g1, 'G₁', false, usa && usa.g1));
+      if (g1) caja.appendChild(crearOperando(g1, 'G₁', false, usa && usa.g1, pintar ? 'g1' : null));
       caja.appendChild(simbolo);
-      if (g2) caja.appendChild(crearOperando(g2, 'G₂', true, usa && usa.g2));
+      if (g2) caja.appendChild(crearOperando(g2, 'G₂', true, usa && usa.g2, pintar ? 'g2' : null));
       return caja;
     }
 
@@ -691,11 +696,16 @@
         return i >= paso.hechas ? 0 : i >= paso.nuevasDesde ? 2 : 1;
       }
       const picos = [];
+      const pintar = seColorea(paso);
       for (const { a: [p, q], i } of orden) {
         const estadoArista = i >= paso.hechas ? 'pendiente' : i >= paso.nuevasDesde ? 'evaluacion' : null;
+        const origen = pintar ? paso.resultado.origenes[i] : null;
         const { d, pico } = trazoEntre(mapa.get(etiqueta(p)), mapa.get(etiqueta(q)), otros, medio);
         if (pico) picos.push(pico);
-        svg('path', { d, class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '') }, lineas);
+        svg('path', {
+          d,
+          class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '') + (origen ? ` grafo__arista--de-${origen}` : '')
+        }, lineas);
       }
       abarcarCurvas(dibujo, ancho, alto, picos);
       const resaltados = new Set((paso.paresResaltados || []).map(etiqueta));
@@ -711,7 +721,32 @@
       return dibujo;
     }
 
-    // Al terminar, la cuenta: |V| y |A| con su fórmula y sus números.
+    // Se pinta por operando al terminar, salvo el tensorial, donde cada
+    // arista sale de una de G₁ y una de G₂ a la vez.
+    const seColorea = (paso) => Boolean(paso && paso.cuenta && paso.resultado.origenes
+      && paso.resultado.origenes.some(Boolean));
+
+    // La leyenda de los dos colores, con una muestra del trazo.
+    function crearLeyenda(paso) {
+      const leyenda = document.createElement('p');
+      leyenda.className = 'operacion-grafos__leyenda';
+      const textos = {
+        g2: 'Aristas de G₂ (u fijo)',
+        g1: paso.operacion === operaciones.OPERACIONES.COMPOSICION ? 'De cada arista de G₁: fila con fila' : 'Aristas de G₁ (v fijo)'
+      };
+      for (const origen of ['g2', 'g1']) {
+        const item = document.createElement('span');
+        const muestra = svg('svg', { width: 34, height: 10, 'aria-hidden': 'true' });
+        svg('path', { d: 'M2,5 L32,5', class: `grafo__arista grafo__arista--de-${origen}` }, muestra);
+        item.append(muestra, textos[origen]);
+        leyenda.appendChild(item);
+      }
+      return leyenda;
+    }
+
+    // Al terminar, la cuenta: |V| y |A| con su fórmula y sus números. Los
+    // dos términos de |A| van en el color de su operando: el primero cuenta
+    // las copias de G₂, el segundo lo que sale de G₁.
     function crearCuenta(paso) {
       const tarjeta = document.createElement('div');
       tarjeta.className = 'coloreo-formula';
@@ -720,14 +755,28 @@
       const c = paso.cuenta;
       for (const [texto, clase] of [
         [`|V| = |V₁| · |V₂| = ${n1} · ${n2} = ${n1 * n2}`, ''],
-        [`|A| = ${c.formula} = ${c.numeros} = ${c.valor}`, 'coloreo-formula__resultado']
+        [null, 'coloreo-formula__resultado']
       ]) {
         const p = document.createElement('p');
-        p.textContent = texto;
+        if (texto) p.textContent = texto;
+        else p.append('|A| = ', ...terminos(c.formula, seColorea(paso)), ' = ', ...terminos(c.numeros, seColorea(paso)), ` = ${c.valor}`);
         if (clase) p.className = clase;
         tarjeta.appendChild(p);
       }
       return tarjeta;
+    }
+
+    // «a + b» con a en el color de G₂ y b en el de G₁.
+    function terminos(texto, pintar) {
+      const partes = texto.split(' + ');
+      if (!pintar || partes.length !== 2) return [texto];
+      const tramo = (contenido, origen) => {
+        const el = document.createElement('span');
+        el.className = `operacion-grafos__termino--${origen}`;
+        el.textContent = contenido;
+        return el;
+      };
+      return [tramo(partes[0], 'g2'), ' + ', tramo(partes[1], 'g1')];
     }
 
     function renderizarOperacion(paso) {
@@ -736,11 +785,12 @@
       dom.estructuraEl.innerHTML = '';
       const operandos = paso && paso.resultado ? paso : operandosDeLaEstructura();
       if (!operandos) return;
-      dom.estructuraEl.appendChild(crearOperandos(operandos, paso && paso.usa));
+      dom.estructuraEl.appendChild(crearOperandos(operandos, paso && paso.usa, seColorea(paso)));
       if (paso && paso.resultado) {
         const columna = document.createElement('div');
         columna.className = 'estructura-grafo__columna';
         columna.appendChild(crearResultado(paso));
+        if (seColorea(paso)) columna.appendChild(crearLeyenda(paso));
         if (paso.cuenta) columna.appendChild(crearCuenta(paso));
         dom.estructuraEl.appendChild(columna);
       }

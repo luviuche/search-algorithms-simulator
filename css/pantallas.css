@@ -2592,3 +2592,31 @@ form.panel > .pantalla-tema__reproduccion {
   stroke: var(--estado-evaluacion-borde);
   stroke-width: 5;
 }
+
+/* Al terminar una operación, cada arista en el color del operando del que
+   sale, como sus aristas en el operando y su término en la fórmula (pedido
+   del usuario, 2026-10-30): cada sumando de |A| se ve como un color. */
+.grafo__arista--de-g1 { stroke: var(--operando-g1); stroke-width: 2.6; stroke-dasharray: 7 5; }
+.grafo__arista--de-g2 { stroke: var(--operando-g2); stroke-width: 2.6; }
+
+.operacion-grafos__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2) var(--espacio-5);
+  margin: 0;
+  font-size: 14px;
+  color: var(--tinta);
+}
+
+.operacion-grafos__leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.operacion-grafos__leyenda svg {
+  flex: none;
+}
+
+.coloreo-formula .operacion-grafos__termino--g1 { color: var(--operando-g1); }
+.coloreo-formula .operacion-grafos__termino--g2 { color: var(--operando-g2); }

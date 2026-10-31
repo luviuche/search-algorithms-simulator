@@ -3708,11 +3708,19 @@
       const cuenta = document.querySelector('.coloreo-formula');
       afirmar(!!cuenta && cuenta.textContent.includes('= 3 · 1 + 2 · 2 = 7'), `al terminar, |A| = 7 con su fórmula (${cuenta ? cuenta.textContent : 'nada'})`);
       afirmar(!document.querySelector('.grafo__arista--pendiente'), 'y no queda ninguna punteada');
+      // Cada arista en el color de su operando (2026-10-30): 3 copias de G₂
+      // —una arista cada una— y 4 de G₁, con su leyenda.
+      const resultado = document.querySelector('.grafo--resultado');
+      const de = (origen) => resultado.querySelectorAll(`.grafo__arista--de-${origen}`).length;
+      afirmar(de('g2') === 3 && de('g1') === 4 && !!document.querySelector('.operacion-grafos__leyenda'),
+        `al terminar, 3 aristas en el color de G₂ y 4 en el de G₁, con su leyenda (${de('g2')} y ${de('g1')})`);
 
       control('editar-configuracion').click();
       crear('tensorial', '1 2\n2 3', 'a b');
       agotarTraza(10);
       afirmar(!!aviso() && aviso().textContent.includes('4 aristas'), `G₁ ⊗ G₂: 4 aristas (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmar(!document.querySelector('[class*="grafo__arista--de-"]') && !document.querySelector('.operacion-grafos__leyenda'),
+        'en el tensorial no se pinta: cada arista sale de una de G₁ y una de G₂ a la vez');
 
       control('editar-configuracion').click();
       crear('composicion', 'a b\nb c\nc d\nd a', '1 2\n2 3\n1 3\n4');

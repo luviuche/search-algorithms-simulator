@@ -52,6 +52,13 @@
   --coloreo-G: #5F6B76;
   --coloreo-O: #D1A63A;
 
+  /* Operaciones entre grafos (CLAUDE.md 5.15): al terminar, cada arista del
+     resultado en el color del operando del que sale —y su término de la
+     fórmula—. Son datos, no estados; en el paso final no queda ningún
+     estado a la vista. G₁ además va punteada, para no depender del color. */
+  --operando-g1: #B0306F;
+  --operando-g2: #2A5FB0;
+
   /* Conjuntos dominantes (CLAUDE.md 5.16): el rosa con que el docente marca
      en la lista S los vértices ya dominados. Es su resaltador, no un estado:
      S′ va en el verde de «encontrada», que sí lo es. */

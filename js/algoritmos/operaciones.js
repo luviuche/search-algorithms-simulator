@@ -40,12 +40,19 @@
   function recorrer(g1, g2, operacion) {
     const resultado = operaciones.operar(g1, g2, operacion);
     const aristas = resultado.grupos.flatMap((g) => g.aristas);
+    // De qué operando sale cada arista, para pintarla al final (pedido del
+    // usuario, 2026-10-30): las copias de G₂ son de G₂, y las copias de G₁ y
+    // las uniones fila con fila de la composición, de G₁. En el tensorial
+    // cada arista sale de una de G₁ y una de G₂ a la vez: no se pinta.
+    const origenes = resultado.grupos.flatMap((g) => g.aristas.map(() => (
+      g.tipo === 'copia-g2' ? 'g2' : g.tipo === 'cruce' ? null : 'g1'
+    )));
     const simbolo = SIMBOLOS[operacion];
     const titulo = `${TITULOS[operacion]} ${simbolo}`;
     const regla = { etiqueta: 'Regla', expresion: REGLAS[operacion], resultado: '', activa: false };
     const n1 = g1.vertices.length;
     const n2 = g2.vertices.length;
-    const comun = { operacion, g1, g2, resultado: { vertices: resultado.vertices, aristas }, tituloCalculo: titulo };
+    const comun = { operacion, g1, g2, resultado: { vertices: resultado.vertices, aristas, origenes }, tituloCalculo: titulo };
     const pasos = [];
 
     pasos.push(crearPaso(TIPOS_PASO.CALCULO, {

@@ -101,3 +101,13 @@ test('un operando sin aristas deja su paso, dicho', () => {
   assert.match(pasos[1].mensaje, /G₂ no tiene aristas, así que la fila 1 queda sin ninguna/);
   assert.equal(ultimo(pasos).hechas, 4);
 });
+
+test('al terminar, cada arista dice de qué operando sale: G₂ las copias, G₁ lo demás, y nada en el tensorial', () => {
+  const origenes = (op) => ultimo(recorrer(G1, G2, op)).resultado.origenes;
+  const cuenta = (lista, origen) => lista.filter((o) => o === origen).length;
+  const car = origenes(OPERACIONES.CARTESIANO);
+  assert.deepEqual([cuenta(car, 'g2'), cuenta(car, 'g1')], [3, 4], '|V₁|·|A₂| = 3 y |V₂|·|A₁| = 4');
+  const com = origenes(OPERACIONES.COMPOSICION);
+  assert.deepEqual([cuenta(com, 'g2'), cuenta(com, 'g1')], [3, 8], '|V₁|·|A₂| = 3 y |V₂|²·|A₁| = 8');
+  assert.ok(origenes(OPERACIONES.TENSORIAL).every((o) => o === null));
+});
