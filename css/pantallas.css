@@ -2620,3 +2620,32 @@ form.panel > .pantalla-tema__reproduccion {
 
 .coloreo-formula .operacion-grafos__termino--g1 { color: var(--operando-g1); }
 .coloreo-formula .operacion-grafos__termino--g2 { color: var(--operando-g2); }
+
+/* ── Pareamientos (CLAUDE.md 5.17) ────────────────────────────────────────
+   Como en las hojas: M con trazo grueso y lo del camino que no está en M,
+   punteado. Saturado es el verde de S′ en los conjuntos. */
+.grafo__arista--emparejada {
+  stroke: var(--estado-encontrada-borde);
+  stroke-width: 5;
+}
+
+.grafo__arista--en-camino {
+  stroke: var(--estado-evaluacion-borde);
+}
+
+.grafo__arista--del-camino {
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 3;
+  stroke-dasharray: 7 5;
+}
+
+.pareamiento-resumen {
+  font-family: var(--fuente-mono);
+  font-size: 18px;
+  display: grid;
+  gap: 2px;
+}
+
+.pareamiento-resumen p {
+  margin: 0;
+}

@@ -90,7 +90,10 @@
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
         { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Independiente máximo y dominante mínimo', tema: 'conjuntos', disponible: true },
-        { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: '', tema: null, disponible: false }
+        // Las envolventes convexas entrarán en este mismo tema cuando se vean
+        // en clase (decisión del usuario, 2026-11-03), y entonces vuelve a
+        // llamarse «Pareamientos y envolventes».
+        { id: 'grafos-pareamientos', titulo: 'Pareamientos', descripcion: 'Caminos M-aumentados hasta el pareamiento máximo', tema: 'pareamientos', disponible: true }
       ]
     }
   ];
@@ -1680,6 +1683,174 @@
               if (alTerminar(paso)) return paso.optimos.length ? String(paso.optimos[0].valor) : '—';
               const grafo = grafoDe(estructura);
               return `${(paso.dominados || []).length} de ${grafo.vertices.length - paso.conjunto.length}`;
+            }
+          }
+        ]
+      };
+    })(),
+
+    // Pareamientos (CLAUDE.md 5.17): comprobar un pareamiento, o llegar al
+    // máximo invirtiendo caminos M-aumentados, como las hojas 9 y 10. Hasta
+    // 12 vértices, con números o letras.
+    pareamientos: (() => {
+      const { MODOS, VERTICES_MAXIMOS } = dominio.pareamientos;
+      const leer = (texto) => dominio.pareamientos.leerGrafo(texto);
+      const grafoDe = (estructura) => {
+        const p = estructura && estructura.parametros;
+        return p && p.aristas ? leer(p.aristas).grafo : null;
+      };
+      const nombres = (texto, grafo) => dominio.pareamientos.leerNombres(texto, grafo, 'M').nombres || [];
+      const caminosDe = (texto, grafo) => String(texto || '').split(/\r?\n/).map((r) => r.trim()).filter(Boolean)
+        .map((r) => dominio.pareamientos.leerNombres(r, grafo, 'Camino').nombres || []);
+      const alTerminar = (paso) => Boolean(paso && paso.propiedades);
+      return {
+        descripcion: 'Comprobar un pareamiento, o llegar al máximo invirtiendo caminos M-aumentados',
+        orientacion: 'grafo',
+        pareamientos: true,
+        leerGrafo: leer,
+        nombresDeAristas: true,
+        calculo: true,
+        // Repite la tabla y el aviso: en una ventana chica se suelta.
+        calculoPrescindible: true,
+        tituloCalculo: 'Pareamiento',
+        calculoSoloEnOperacion: true,
+        sinTamano: true,
+        sinLongitud: true,
+        sinOperaciones: true,
+        sinClaves: true,
+        tamano: () => ({ n: 1, l: 1 }),
+        nombreEstructura: 'grafo',
+        tituloConfiguracion: 'Grafo',
+        mensajeReinicio: 'Pareamiento borrado: el grafo queda sin marcar.',
+        mensajeLienzoVacio: {
+          titulo: 'Escriba las aristas del grafo',
+          indicacion: 'Una por renglón, en el panel de la derecha'
+        },
+        mensajeDerivacion: 'Pareamiento iniciado.',
+        mensajeCreacion: (estructura) => {
+          const grafo = grafoDe(estructura);
+          return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas.`;
+        },
+        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${
+          estructura.parametros.modo === MODOS.COMPROBAR ? 'comprobar M' : 'pareamiento máximo'}`,
+        alCrear: ({ estructura }) => {
+          const grafo = grafoDe(estructura);
+          const { modo, pareamiento, caminos } = estructura.parametros;
+          return algoritmos.pareamientos.recorrer(grafo, {
+            modo, pareamiento: nombres(pareamiento, grafo), caminos: caminosDe(caminos, grafo)
+          });
+        },
+        conservarAlFinal: ['modo', 'M', 'tabla', 'filasLlenas', 'propiedades', 'nu', 'vs', 'vl', 'al',
+          'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => `pareamiento-${estructura.parametros.modo}-${grafoDe(estructura).vertices.length}v`,
+        vistaPrevia: (datos) => {
+          const lectura = leer(datos.get('aristas'));
+          return lectura.valido ? lectura.grafo : null;
+        },
+        parametros: [
+          {
+            nombre: 'modo',
+            etiqueta: 'Qué hacer',
+            opciones: [
+              { valor: MODOS.MAXIMO, etiqueta: 'Llegar al pareamiento máximo' },
+              { valor: MODOS.COMPROBAR, etiqueta: 'Comprobar un pareamiento M' }
+            ],
+            ayuda: 'El máximo se alcanza invirtiendo caminos M-aumentados, hasta que no quede ninguno.',
+            validar: (entrada) => (Object.values(MODOS).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija qué hacer.' })
+          },
+          {
+            ...PARAMETRO_ARISTAS,
+            renglones: 7,
+            marcador: 'a 1 2\nb 2 3\nc 3 4',
+            ayuda: `Una por renglón: su nombre, si se quiere, y sus dos vértices, números o letras. Hasta ${VERTICES_MAXIMOS} vértices.`,
+            validar: (entrada) => {
+              const lectura = leer(entrada);
+              return lectura.valido
+                ? { valido: true, valor: dominio.pareamientos.comoTexto(lectura.grafo) }
+                : { valido: false, mensaje: lectura.mensaje };
+            }
+          },
+          {
+            nombre: 'pareamiento',
+            etiqueta: 'Pareamiento M',
+            marcador: 'b',
+            ayuda: 'Sus aristas. Al llegar al máximo es el inicial, y se puede dejar vacío.',
+            // Va después de las aristas: se valida contra el grafo.
+            validar: (entrada, { parametros }) => {
+              const lectura = leer(parametros.aristas);
+              if (!lectura.valido) return { valido: true, valor: '' };
+              const m = dominio.pareamientos.leerNombres(entrada, lectura.grafo, 'M');
+              if (!m.valido) return { valido: false, mensaje: m.mensaje };
+              if (parametros.modo === MODOS.COMPROBAR && m.nombres.length === 0) {
+                return { valido: false, mensaje: 'Escriba las aristas de M, por ejemplo «b d».' };
+              }
+              if (parametros.modo === MODOS.MAXIMO) {
+                const [choque] = dominio.pareamientos.conflictos(lectura.grafo, m.nombres);
+                if (choque) return { valido: false, mensaje: `M inicial: ${choque.aristas.join(' y ')} comparten el vértice ${choque.vertice}.` };
+              }
+              return { valido: true, valor: m.nombres.join(' ') };
+            }
+          },
+          {
+            nombre: 'caminos',
+            etiqueta: 'Caminos M-aumentados',
+            soloCon: { parametro: 'modo', valor: MODOS.MAXIMO },
+            tipo: 'texto-largo',
+            renglones: 3,
+            marcador: 'a b d',
+            ayuda: 'Opcional: uno por renglón, sus aristas en orden. Sirven para seguir una hoja; sin ellos, la aplicación toma el más corto.',
+            validar: (entrada, { parametros }) => {
+              const lectura = leer(parametros.aristas);
+              if (!lectura.valido) return { valido: true, valor: '' };
+              const grafo = lectura.grafo;
+              let M = dominio.pareamientos.leerNombres(parametros.pareamiento, grafo, 'M').nombres || [];
+              const renglones = String(entrada || '').split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
+              for (const [i, renglon] of renglones.entries()) {
+                const c = dominio.pareamientos.leerNombres(renglon, grafo, `Camino ${i + 1}`);
+                if (!c.valido) return { valido: false, mensaje: c.mensaje };
+                const revision = dominio.pareamientos.comprobarCamino(grafo, M, c.nombres);
+                if (!revision.valido) return { valido: false, mensaje: `Camino ${i + 1}: ${revision.mensaje}, con M = {${M.join(', ')}}.` };
+                M = dominio.pareamientos.invertir(M, revision.camino);
+              }
+              return { valido: true, valor: renglones.join('\n') };
+            }
+          }
+        ],
+        casillasRelevantes: () => [],
+        describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+        metricas: [
+          {
+            id: 'vertices',
+            etiqueta: 'Vértices',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'aristas',
+            etiqueta: 'Aristas',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          },
+          {
+            id: 'tamano',
+            etiqueta: 'Aristas en M',
+            valor: ({ paso }) => (paso && paso.M ? String(paso.M.length) : '—')
+          },
+          {
+            id: 'cuarta',
+            etiqueta: 'Vértices libres',
+            etiquetaSegun: ({ paso }) => (alTerminar(paso) ? 'Núm. de matching' : 'Vértices libres'),
+            valor: ({ estructura, paso }) => {
+              if (!paso || !paso.M) return '—';
+              if (alTerminar(paso)) return String(paso.nu);
+              const grafo = grafoDe(estructura);
+              return String(grafo.vertices.length - dominio.pareamientos.saturados(grafo, paso.M).size);
             }
           }
         ]

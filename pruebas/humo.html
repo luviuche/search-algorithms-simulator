@@ -665,6 +665,7 @@
       coloreadoDeGrafos();
       operacionesEntreGrafos();
       conjuntosIndependientesYDominantes();
+      pareamientosDeGrafos();
       controlDeVelocidad();
     }
 
@@ -3778,6 +3779,63 @@
       // quedan unos 560 × 210 px. Ahí baja a 0,5× y se desplaza (CLAUDE.md 5.16).
       if (window.innerWidth >= 1200) afirmarGrafoCabe('conjuntos, 12 vértices');
       else registro.push(`  12 vértices a ${window.innerWidth} px: se desplaza, como está decidido`);
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Pareamientos (CLAUDE.md 5.17): las hojas 9 y 10 con sus tres caminos, y
+    // comprobar uno de la hoja 5.
+    function pareamientosDeGrafos() {
+      registro.push('', '── Pareamientos ──');
+      entrarATema('Pareamientos');
+      const formulario = document.querySelector('form.panel');
+      const aristasHoja = 'a I E\nb I M\nc M E\nd M S\ne E G\nf F G\ng S G\nh S L\ni S A\nj G A\nk L A';
+      const elegir = (modo) => {
+        const selector = formulario.querySelector('[name="modo"]');
+        selector.value = modo;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const crear = (modo, aristas, m, caminos = '') => {
+        elegir(modo);
+        for (const [nombre, valor] of [['aristas', aristas], ['pareamiento', m], ['caminos', caminos]]) {
+          formulario.querySelector(`[name="${nombre}"]`).value = valor;
+        }
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const emparejadas = () => document.querySelectorAll('.grafo__arista--emparejada').length;
+      const seVe = (nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0;
+
+      elegir('maximo');
+      afirmar(seVe('caminos'), 'al llegar al máximo se pueden escribir los caminos');
+      elegir('comprobar');
+      afirmar(!seVe('caminos'), 'al comprobar no se piden');
+
+      crear('maximo', aristasHoja, 'b', 'a c d');
+      afirmar(!!document.querySelector('.alerta') && document.querySelector('.alerta').textContent.includes('Camino 1'),
+        `un camino que no sirve se rechaza al crear (${document.querySelector('.alerta') ? document.querySelector('.alerta').textContent.trim() : 'sin aviso'})`);
+
+      crear('maximo', aristasHoja, 'b', 'a b d\ne a b d h\nf e a b d h k');
+      afirmar(emparejadas() === 1, `empieza con M = {b} (${emparejadas()})`);
+      control('siguiente').click();
+      afirmar(document.querySelectorAll('.grafo__arista--del-camino').length === 2,
+        'en el camino, las dos aristas que no están en M van punteadas');
+      afirmar(document.querySelectorAll('.grafo__vertice--actual').length === 2, 'y sus dos vértices libres, con anillo');
+      // Por debajo de 1200 px el aviso pasa a cuatro renglones en este paso y
+      // el ajuste llega en el cuadro siguiente (ResizeObserver), después de
+      // esta medida síncrona. Se mide en la conclusión, ya asentado.
+      if (window.innerWidth >= 1200) afirmarGrafoCabe('pareamientos, un camino');
+      control('siguiente').click();
+      afirmar(emparejadas() === 2, `al invertir, M = {a, d} (${emparejadas()})`);
+      agotarTraza(10);
+      afirmar(emparejadas() === 4 && !!aviso() && aviso().textContent.includes('ν(G) = 4'),
+        `al terminar, cuatro aristas y ν(G) = 4 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmarGrafoCabe('pareamientos, conclusión');
+
+      control('editar-configuracion').click();
+      crear('comprobar', 'a 1 2\nb 1 3\nc 2 3\nd 2 4\ne 3 5\nf 4 5\ng 4 6', 'b d');
+      agotarTraza(10);
+      const filas = [...document.querySelectorAll('.conjunto-propiedades tr')].map((tr) => tr.textContent);
+      afirmar(filas.some((f) => f.startsWith('Maximalsí')) && filas.some((f) => f.startsWith('Máximono')),
+        `{b, d} es maximal y no máximo (${filas.join(' | ')})`);
       document.querySelector('.pantalla-tema__volver').click();
     }
 

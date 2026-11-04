@@ -33,8 +33,12 @@
       if (!p.aristas) return null;
       if (leido.texto !== p.aristas || leido.tipo !== p.tipo) {
         // Sin tipo —el coloreado no lo pide— es no dirigido, como en app.js.
-        const lectura = dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO,
-          config.verticesMaximos ? { verticesMaximos: config.verticesMaximos } : undefined);
+        // Un tema puede leer su grafo a su manera: pareamientos, con vértices
+        // letra.
+        const lectura = config.leerGrafo
+          ? config.leerGrafo(p.aristas)
+          : dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO,
+            config.verticesMaximos ? { verticesMaximos: config.verticesMaximos } : undefined);
         leido = { texto: p.aristas, tipo: p.tipo, grafo: lectura.valido ? lectura.grafo : null };
       }
       return leido.grafo;
@@ -209,7 +213,8 @@
         svg('path', {
           d: trazo,
           class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '')
-            + (colorArista ? ` grafo__arista--color grafo__color--${colorArista}` : ''),
+            + (colorArista ? ` grafo__arista--color grafo__color--${colorArista}` : '')
+            + papelDeAristaEnPareamiento(paso, arista.nombre),
           'marker-end': dirigido ? `url(#grafo-punta-${estadoArista || 'normal'})` : ''
         }, aristas);
         // Al lado de la mitad y hacia afuera de la curva: el peso, o en la
@@ -243,7 +248,7 @@
         const grupo = svg('g', {
           class: 'grafo__vertice' + (estadoVertice ? ` grafo__vertice--${estadoVertice}` : '')
             + (colorVertice ? ` grafo__vertice--color grafo__color--${colorVertice}` : '') + papelEnColoreo
-            + papelEnConjunto(paso, vertice),
+            + papelEnConjunto(paso, vertice) + papelEnPareamiento(paso, grafo, vertice),
           'data-vertice': vertice
         }, nodos);
         svg('circle', { cx: x, cy: y, r: RADIO }, grupo);
@@ -288,6 +293,31 @@
       if (paso.conjunto.includes(vertice)) clases.push('grafo__vertice--elegido');
       else if ((paso.dominados || []).includes(vertice)) clases.push('grafo__vertice--dominado');
       if (paso.actual === vertice) clases.push('grafo__vertice--actual');
+      return clases.map((c) => ` ${c}`).join('');
+    }
+
+    // Pareamientos (CLAUDE.md 5.17): como en la hoja, M con trazo grueso y lo
+    // del camino que no está en M, punteado. Los vértices saturados en verde
+    // y los dos libres del camino con el anillo naranja.
+    function papelDeAristaEnPareamiento(paso, nombre) {
+      if (!config.pareamientos || !paso || !paso.M) return '';
+      const enCamino = paso.camino && paso.camino.aristas.includes(nombre);
+      if (paso.M.includes(nombre)) return ` grafo__arista--emparejada${enCamino ? ' grafo__arista--en-camino' : ''}`;
+      if (paso.actual) {
+        const fila = paso.tabla.find((f) => f.arista === paso.actual);
+        if (fila.comparte.includes(nombre)) return ' grafo__arista--evaluacion';
+      }
+      return enCamino ? ' grafo__arista--del-camino' : '';
+    }
+
+    function papelEnPareamiento(paso, grafo, vertice) {
+      if (!config.pareamientos || !paso || !paso.M) return '';
+      const clases = [];
+      const llenos = paso.saturadosHasta || [...dominio.pareamientos.saturados(grafo, paso.M)];
+      if (llenos.includes(vertice)) clases.push('grafo__vertice--elegido');
+      if (paso.camino && [paso.camino.vertices[0], paso.camino.vertices[paso.camino.vertices.length - 1]].includes(vertice)) {
+        clases.push('grafo__vertice--actual');
+      }
       return clases.map((c) => ` ${c}`).join('');
     }
 
@@ -832,6 +862,46 @@
       return fila;
     }
 
+    // La línea de la hoja, «A_E = {a, d}», con V_S y V_L al terminar.
+    function crearResumenDePareamiento(paso) {
+      const caja = document.createElement('div');
+      caja.className = 'pareamiento-resumen';
+      const renglon = (rotulo, cosas) => {
+        const p = document.createElement('p');
+        p.innerHTML = `<span>${rotulo}</span> = {${cosas.join(', ')}}`;
+        return p;
+      };
+      caja.appendChild(renglon('A<sub>E</sub>', paso.M));
+      if (paso.propiedades) {
+        caja.append(renglon('A<sub>L</sub>', paso.al), renglon('V<sub>S</sub>', paso.vs), renglon('V<sub>L</sub>', paso.vl));
+      }
+      return caja;
+    }
+
+    // La tabla de la hoja: con quién comparte cada arista, o los caminos.
+    function crearTablaDePareamiento(paso) {
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla conjunto-tabla';
+      if (paso.modo === dominio.pareamientos.MODOS.COMPROBAR) {
+        tabla.innerHTML = '<tr><th scope="col">Arista</th><th scope="col">Une</th><th scope="col">Comparte con</th></tr>';
+        paso.tabla.forEach((fila, i) => {
+          const tr = document.createElement('tr');
+          if (paso.actual === fila.arista) tr.className = 'coloreo-tabla__fila--actual';
+          const llena = i < paso.filasLlenas;
+          tr.innerHTML = `<td>${fila.arista}</td><td>${fila.extremos}</td><td${llena && fila.choca.length ? ' class="conjunto-tabla__adyacente"' : ''}>${llena ? fila.comparte.join(', ') || '—' : ''}</td>`;
+          tabla.appendChild(tr);
+        });
+        return tabla;
+      }
+      tabla.innerHTML = '<tr><th scope="col">Camino M-aumentado</th><th scope="col">Salen</th><th scope="col">Entran</th><th scope="col">A<sub>E</sub></th></tr>';
+      for (const fila of paso.tabla) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>{${fila.camino.join(', ')}}</td><td>${fila.salen.join(', ') || '—'}</td><td>${fila.entran.join(', ')}</td><td>{${fila.resultado.join(', ')}}</td>`;
+        tabla.appendChild(tr);
+      }
+      return tabla;
+    }
+
     // Al final, lo que es S′: propiedad por propiedad, y el óptimo.
     function crearPropiedades(paso) {
       const tabla = document.createElement('table');
@@ -843,7 +913,7 @@
         tr.innerHTML = `<th scope="row">${p.nombre}</th><td class="conjunto-propiedades__marca">${marca(p.valor)}</td><td>${p.detalle}</td>`;
         tabla.appendChild(tr);
       }
-      for (const o of paso.optimos) {
+      for (const o of paso.optimos || []) {
         const tr = document.createElement('tr');
         tr.className = 'conjunto-propiedades--optimo';
         tr.innerHTML = `<th scope="row">${o.simbolo}</th><td class="conjunto-propiedades__marca">${o.valor}</td><td>${o.detalle}</td>`;
@@ -853,6 +923,26 @@
     }
 
     function renderizarGrafo(paso) {
+      if (config.pareamientos) {
+        const grafo = grafoDeLaEstructura();
+        dom.estructuraEl.className = 'estructura-grafo';
+        dom.estructuraEl.removeAttribute('style');
+        dom.estructuraEl.innerHTML = '';
+        if (!grafo) return;
+        dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        if (paso && paso.M) {
+          const columna = document.createElement('div');
+          columna.className = 'estructura-grafo__columna conjunto-columna';
+          const cuerpo = document.createElement('div');
+          cuerpo.className = 'conjunto-cuerpo';
+          if (paso.tabla.length) cuerpo.appendChild(crearTablaDePareamiento(paso));
+          if (paso.propiedades) cuerpo.appendChild(crearPropiedades(paso));
+          columna.append(crearResumenDePareamiento(paso), cuerpo);
+          dom.estructuraEl.appendChild(columna);
+        }
+        ajustarGrafo();
+        return;
+      }
       if (config.conjuntos) {
         const grafo = grafoDeLaEstructura();
         dom.estructuraEl.className = 'estructura-grafo';
@@ -952,8 +1042,8 @@
       // tabla al lado de las conclusiones —con 12 vértices, en un proyector
       // XGA, es la única que cabe—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos ? ['estructura-grafo--extendida'] : [])
-        .concat(config.conjuntos ? ['estructura-grafo--apilada estructura-grafo--extendida'] : []);
+        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos || config.pareamientos ? ['estructura-grafo--extendida'] : [])
+        .concat(config.conjuntos || config.pareamientos ? ['estructura-grafo--apilada estructura-grafo--extendida'] : []);
       const clasesDe = (disposicion) => disposicion.split(' ').filter(Boolean);
       const quitarTodas = () => disposiciones.forEach((clase) => caja.classList.remove(...clasesDe(clase)));
       let mejor = { clase: '', cabe: -1 };
