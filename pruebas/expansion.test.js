@@ -10,6 +10,8 @@ const { METODOS, etiqueta } = expansion;
 // principal es su grafo ponderado de la figura 12 del documento de apoyo.
 const leer = (texto) => expansion.leerGrafo(texto).grafo;
 const ultimo = (pasos) => pasos[pasos.length - 1];
+// El paso que concluye el árbol, antes de las ramas y las cuerdas.
+const delArbol = (pasos) => pasos.find((p) => p.fase === 'arbol');
 const FIGURA_12 = leer('4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5');
 const etiquetas = (grafo, nombres) => nombres.map((n) => etiqueta(grafo.aristas.find((a) => a.nombre === n)));
 
@@ -27,8 +29,8 @@ test('el grafo admite números o letras, y sin peso la arista vale 1', () => {
 test('Kruskal en la figura 12: entran 4–5, 4–2, 3–5 y 3–1, peso 9, y lo demás no se revisa', () => {
   const pasos = recorrer(FIGURA_12, { metodo: METODOS.KRUSKAL });
   assert.deepEqual(pasos[0].tabla.map((f) => f.etiqueta), ['4–5', '4–2', '3–5', '3–1', '2–1', '4–3', '2–3']);
-  assert.equal(pasos.length, 1 + 4 + 1, 'el orden, cuatro aristas que entran y la conclusión');
-  const final = ultimo(pasos);
+  assert.equal(pasos.length, 1 + 4 + 1 + 2, 'el orden, cuatro aristas que entran, el árbol, y ramas y cuerdas');
+  const final = delArbol(pasos);
   assert.deepEqual(etiquetas(FIGURA_12, final.T), ['4–5', '4–2', '3–5', '3–1']);
   assert.equal(final.total, 9);
   assert.equal(final.suma, '1 + 2 + 2 + 4 = 9');
@@ -66,7 +68,7 @@ test('Prim apaga las aristas que ya no pueden entrar: sus dos extremos están en
 
 test('con un empate que deja elegir, se dice que hay otro árbol del mismo peso', () => {
   const triangulo = leer('1 2 1\n2 3 1\n1 3 1');
-  const final = ultimo(recorrer(triangulo, { metodo: METODOS.KRUSKAL }));
+  const final = delArbol(recorrer(triangulo, { metodo: METODOS.KRUSKAL }));
   assert.equal(final.propiedades[1].valor, false);
   assert.match(final.mensaje, /No es el único: con 1–3 en lugar de 1–2 pesa lo mismo/);
   const prim = recorrer(triangulo, { metodo: METODOS.PRIM, inicio: '1' });
@@ -89,4 +91,52 @@ test('Prim y Kruskal dan el mismo peso en grafos al azar', () => {
     assert.equal(k.T.length, n - 1);
     assert.equal(p.total, k.total, renglones.join('; '));
   }
+});
+
+// El ejemplo del documento de apoyo para los circuitos y cortes
+// fundamentales: el grafo verde, sin pesos, con el árbol a, b, e, f.
+const VERDE = leer('1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4');
+
+test('las aristas se nombran a, b, c… en el orden escrito, como las del grafo verde', () => {
+  assert.deepEqual(VERDE.aristas.map((a) => `${a.nombre} ${etiqueta(a)}`),
+    ['a 1–2', 'b 1–3', 'c 2–3', 'd 3–4', 'e 2–4', 'f 2–5', 'g 4–5', 'h 1–4']);
+});
+
+test('documento de apoyo: con el árbol a, b, e, f, ramas y rango 4, cuerdas c, d, g, h y nulidad 4', () => {
+  const { arbol } = expansion.leerArbol('a b e f', VERDE);
+  const pasos = recorrer(VERDE, { metodo: METODOS.DADO, arbol: arbol.map((a) => a.nombre) });
+  assert.deepEqual(pasos.map((p) => p.fase), ['dado', 'arbol', 'ramas', 'cuerdas']);
+  const ramas = pasos[2];
+  assert.deepEqual(ramas.ramas, ['a', 'b', 'e', 'f']);
+  assert.equal(ramas.rango, 4);
+  assert.match(ramas.mensaje, /Rango = n − 1 = 5 − 1 = 4/);
+  const final = ultimo(pasos);
+  assert.deepEqual(final.cuerdas, ['c', 'd', 'g', 'h']);
+  assert.equal(final.nulidad, 4);
+  assert.match(final.mensaje, /G′ = \(S′, A′\), con S′ = \{1, 2, 3, 4, 5\} y A′ = \{c, d, g, h\}/);
+  assert.match(final.mensaje, /Nulidad = m − n \+ 1 = 8 − 5 \+ 1 = 4/);
+  assert.equal(final.propiedades.find((p) => p.nombre === 'Mínimo').valor, true, 'sin pesos, todos los árboles pesan 4');
+});
+
+test('Kruskal en el grafo verde da otro árbol, a, b, d, f, con el mismo rango y nulidad', () => {
+  const final = ultimo(recorrer(VERDE, { metodo: METODOS.KRUSKAL }));
+  assert.deepEqual(final.ramas, ['a', 'b', 'd', 'f']);
+  assert.deepEqual(final.cuerdas, ['c', 'e', 'g', 'h']);
+  assert.equal(final.rango + final.nulidad, VERDE.aristas.length);
+});
+
+test('un árbol escrito se revisa: n − 1 aristas, sin ciclos, y que existan', () => {
+  assert.match(expansion.leerArbol('a b e', VERDE).mensaje, /tiene 3 aristas, y un árbol de 5 vértices tiene n − 1 = 4/);
+  assert.match(expansion.leerArbol('a b c f', VERDE).mensaje, /a, b, c forman un ciclo/);
+  assert.match(expansion.leerArbol('a b e z', VERDE).mensaje, /«z» no es una arista/);
+  const caro = leer('1 2 1\n2 3 1\n1 3 5');
+  const pasos = recorrer(caro, { metodo: METODOS.DADO, arbol: ['b', 'c'] });
+  assert.match(delArbol(pasos).mensaje, /No es mínimo: el mínimo pesa 2/);
+});
+
+test('un grafo que ya es un árbol no tiene cuerdas: nulidad 0', () => {
+  const final = ultimo(recorrer(leer('1 2 3\n2 3 4'), { metodo: METODOS.PRIM }));
+  assert.deepEqual(final.cuerdas, []);
+  assert.equal(final.nulidad, 0);
+  assert.match(final.mensaje, /no tiene cuerdas/);
 });

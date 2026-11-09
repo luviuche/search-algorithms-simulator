@@ -178,6 +178,16 @@
 
       const aristas = svg('g', { class: 'grafo__aristas' }, dibujo);
       const pesos = svg('g', { class: 'grafo__pesos' }, dibujo);
+      // **Dos diagonales que se cruzan a la mitad** —las del cuadrado del
+      // docente, 1–4 y 2–3— ponían su rótulo en el mismo punto. Las que
+      // comparten punto medio lo llevan más cerca de su origen.
+      const medioRecto = (x) => {
+        const a = mapa.get(x.origen);
+        const b = mapa.get(x.destino);
+        return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      };
+      const conMedioCompartido = new Set(grafo.aristas.filter((x) => grafo.aristas.some((y) => y !== x
+        && Math.hypot(medioRecto(x).x - medioRecto(y).x, medioRecto(x).y - medioRecto(y).y) < 6)));
       for (const arista of grafo.aristas) {
         const a = mapa.get(arista.origen);
         const b = mapa.get(arista.destino);
@@ -221,15 +231,26 @@
         // representación matricial el nombre de la arista, que es el rótulo
         // de su columna.
         const conNombre = config.nombresDeAristas;
-        if (conNombre || grafo.conPesos) {
-          const px = mx - uy * 13;
-          const py = my + ux * 13;
+        if (conNombre || grafo.conPesos || config.expansion) {
+          const t = curva === 0 && conMedioCompartido.has(arista) ? 0.32 : 0.5;
+          const lx = curva === 0 ? a.x + dx * t : mx;
+          const ly = curva === 0 ? a.y + dy * t : my;
+          const px = lx - uy * 13;
+          const py = ly + ux * 13;
           const texto = svg('text', {
             x: px, y: py,
             class: (conNombre ? 'grafo__nombre' : 'grafo__peso') + (estadoArista ? ` grafo__peso--${estadoArista}` : ''),
             'text-anchor': 'middle', 'dominant-baseline': 'central'
           }, pesos);
           texto.textContent = conNombre ? arista.nombre + (colorArista ? ` ${colorArista}` : '') : arista.peso;
+          // El árbol de expansión dice las ramas y las cuerdas por su nombre:
+          // va delante del peso, en cursiva como lo escribe el docente.
+          if (config.expansion) {
+            texto.textContent = '';
+            const nombre = svg('tspan', { class: 'grafo__nombre-en-peso' }, texto);
+            nombre.textContent = arista.nombre;
+            if (grafo.conPesos) texto.appendChild(document.createTextNode(` ${arista.peso}`));
+          }
           if (colorArista) texto.classList.add('grafo__nombre--color', `grafo__color--${colorArista}`);
         }
       }
@@ -336,6 +357,8 @@
       }
       if (delPaso) return ' grafo__arista--del-camino';
       if ((paso.candidatas || []).includes(nombre)) return ' grafo__arista--rango';
+      // Las cuerdas, el complemento del árbol, en azul punteado.
+      if ((paso.cuerdas || []).includes(nombre)) return ' grafo__arista--cuerda';
       if ((paso.descartadas || []).includes(nombre)) return ' grafo__arista--descartada';
       return '';
     }
@@ -945,6 +968,15 @@
       const total = enArbol.reduce((suma, a) => suma + a.peso, 0);
       p.innerHTML = `<span>Peso</span> = ${paso.suma || (enArbol.length > 1 ? `${enArbol.map((a) => a.peso).join(' + ')} = ${total}` : total)}`;
       caja.append(t, p);
+      // Como el documento de apoyo: «Ramas = {a, b, e, f}   Rango = 4».
+      const renglon = (rotulo, cosas, otro, valor) => {
+        const r = document.createElement('p');
+        r.className = 'expansion-resumen__concepto';
+        r.innerHTML = `<span>${rotulo}</span> = {${cosas.join(', ')}}<span class="expansion-resumen__numero"><span>${otro}</span> = ${valor}</span>`;
+        return r;
+      };
+      if (paso.ramas) caja.appendChild(renglon('Ramas', paso.ramas, 'Rango', paso.rango));
+      if (paso.cuerdas) caja.appendChild(renglon('Cuerdas', paso.cuerdas, 'Nulidad', paso.nulidad));
       return caja;
     }
 
@@ -965,26 +997,26 @@
         [paso.tabla.slice(0, mitad), paso.tabla.slice(mitad)].filter((filas) => filas.length).forEach((filas, parte) => {
           const t = document.createElement('table');
           t.className = `coloreo-tabla expansion-tabla expansion-tabla--parte-${parte + 1}`;
-          t.innerHTML = '<tr><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Decisión</th></tr>';
+          t.innerHTML = '<tr><th scope="col"></th><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Decisión</th></tr>';
           for (const fila of filas) {
             const tr = document.createElement('tr');
             const clases = [];
             if (paso.actual === fila.arista && !paso.propiedades) clases.push('coloreo-tabla__fila--actual');
             if (fila.decision) clases.push(`expansion-tabla__fila--${fila.decision}`);
             tr.className = clases.join(' ');
-            tr.innerHTML = `<td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.decision ? textos[fila.decision] : ''}</td>`;
+            tr.innerHTML = `<td class="expansion-tabla__nombre">${fila.arista}</td><td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.decision ? textos[fila.decision] : ''}</td>`;
             t.appendChild(tr);
           }
           tablas.appendChild(t);
         });
         return tablas;
       }
-      tabla.innerHTML = '<tr><th scope="col">Desde</th><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Entra</th></tr>';
+      tabla.innerHTML = '<tr><th scope="col">Desde</th><th scope="col"></th><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Entra</th></tr>';
       paso.tabla.forEach((fila, i) => {
         const tr = document.createElement('tr');
         tr.className = 'expansion-tabla__fila--entra'
           + (i === paso.tabla.length - 1 && !paso.propiedades ? ' coloreo-tabla__fila--actual' : '');
-        tr.innerHTML = `<td>{${fila.dentro.join(', ')}}</td><td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.nuevo}</td>`;
+        tr.innerHTML = `<td>{${fila.dentro.join(', ')}}</td><td class="expansion-tabla__nombre">${fila.arista}</td><td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.nuevo}</td>`;
         tabla.appendChild(tr);
       });
       return tabla;

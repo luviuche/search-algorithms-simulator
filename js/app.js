@@ -1867,9 +1867,10 @@
         const p = estructura && estructura.parametros;
         return p && p.aristas ? leer(p.aristas).grafo : null;
       };
-      const nombreDe = (metodo) => (metodo === METODOS.PRIM ? 'Prim' : 'Kruskal');
+      const nombreDe = (metodo) => (metodo === METODOS.PRIM ? 'Prim' : metodo === METODOS.DADO ? 'árbol escrito' : 'Kruskal');
+      const conCuerdas = (paso) => Boolean(paso && paso.nulidad !== undefined);
       return {
-        descripcion: 'Prim y Kruskal: el árbol de menor peso que toca todos los vértices de un grafo conexo',
+        descripcion: 'Prim y Kruskal: el árbol de menor peso que toca todos los vértices de un grafo conexo, con sus ramas, cuerdas, rango y nulidad',
         orientacion: 'grafo',
         expansion: true,
         leerGrafo: leer,
@@ -1898,11 +1899,13 @@
         },
         detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${nombreDe(estructura.parametros.metodo)}`,
         alCrear: ({ estructura }) => {
-          const { metodo, inicio } = estructura.parametros;
-          return algoritmos.expansion.recorrer(grafoDe(estructura), { metodo, inicio });
+          const { metodo, inicio, arbol } = estructura.parametros;
+          return algoritmos.expansion.recorrer(grafoDe(estructura), {
+            metodo, inicio, arbol: String(arbol || '').split(/\s+/).filter(Boolean)
+          });
         },
         conservarAlFinal: ['metodo', 'T', 'dentro', 'descartadas', 'tabla', 'total', 'suma', 'propiedades',
-          'calculo', 'tituloCalculo'],
+          'ramas', 'rango', 'cuerdas', 'nulidad', 'fase', 'calculo', 'tituloCalculo'],
         nombreArchivo: (estructura) => `expansion-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
         vistaPrevia: (datos) => {
           const lectura = leer(datos.get('aristas'));
@@ -1914,9 +1917,10 @@
             etiqueta: 'Método',
             opciones: [
               { valor: METODOS.KRUSKAL, etiqueta: 'Kruskal' },
-              { valor: METODOS.PRIM, etiqueta: 'Prim' }
+              { valor: METODOS.PRIM, etiqueta: 'Prim' },
+              { valor: METODOS.DADO, etiqueta: 'Árbol escrito' }
             ],
-            ayuda: 'Kruskal revisa las aristas de menor a mayor peso; Prim hace crecer el árbol desde un vértice.',
+            ayuda: 'Kruskal revisa las aristas de menor a mayor peso; Prim hace crecer el árbol desde un vértice. Con cualquiera, al final, las ramas y las cuerdas.',
             validar: (entrada) => (Object.values(METODOS).includes(entrada)
               ? { valido: true, valor: entrada }
               : { valido: false, mensaje: 'Elija Prim o Kruskal.' })
@@ -1925,7 +1929,7 @@
             ...PARAMETRO_ARISTAS,
             renglones: 7,
             marcador: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
-            ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
+            ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. Se nombran a, b, c… en el orden escrito. El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
             validar: (entrada) => {
               const lectura = leer(entrada);
               return lectura.valido
@@ -1948,6 +1952,21 @@
               return lectura.grafo.vertices.includes(texto)
                 ? { valido: true, valor: texto }
                 : { valido: false, mensaje: `El vértice inicial «${texto}» no está en el grafo (${lectura.grafo.vertices.join(', ')}).` };
+            }
+          },
+          {
+            nombre: 'arbol',
+            etiqueta: 'Ramas del árbol',
+            soloCon: { parametro: 'metodo', valor: METODOS.DADO },
+            marcador: 'a b e f',
+            ayuda: 'Los nombres de sus n − 1 aristas, sin ciclos.',
+            validar: (entrada, { parametros }) => {
+              const lectura = leer(parametros.aristas);
+              if (!lectura.valido || parametros.metodo !== METODOS.DADO) return { valido: true, valor: '' };
+              const revision = dominio.expansion.leerArbol(entrada, lectura.grafo);
+              return revision.valido
+                ? { valido: true, valor: revision.arbol.map((a) => a.nombre).join(' ') }
+                : { valido: false, mensaje: `El árbol escrito ${revision.mensaje}` };
             }
           }
         ],
@@ -1973,14 +1992,18 @@
           {
             id: 'tamano',
             etiqueta: 'Aristas en el árbol',
+            // Con las ramas, el mismo número tiene nombre: el rango.
+            etiquetaSegun: ({ paso }) => (paso && paso.rango !== undefined ? 'Rango' : 'Aristas en el árbol'),
             valor: ({ paso }) => (paso && paso.T ? String(paso.T.length) : '—')
           },
           {
             id: 'peso',
             etiqueta: 'Peso del árbol',
+            etiquetaSegun: ({ paso }) => (conCuerdas(paso) ? 'Nulidad' : 'Peso del árbol'),
             valor: ({ estructura, paso }) => {
               const grafo = grafoDe(estructura);
               if (!paso || !paso.T || !grafo) return '—';
+              if (conCuerdas(paso)) return String(paso.nulidad);
               return String(grafo.aristas.filter((a) => paso.T.includes(a.nombre)).reduce((s, a) => s + a.peso, 0));
             }
           }

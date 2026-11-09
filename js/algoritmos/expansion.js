@@ -13,7 +13,12 @@
   //            las candidatas que salen del árbol, con su peso, y la más
   //            liviana.
   //
-  // Al final, el árbol, su peso como suma y si hay otro del mismo peso.
+  // Con el árbol, su peso como suma y si hay otro del mismo peso. Después,
+  // como el docente antes de los circuitos y cortes fundamentales, las ramas
+  // con el rango, y el complemento —las cuerdas— con la nulidad.
+  //
+  //   Árbol escrito  un paso que lo comprueba (para seguir el ejemplo del
+  //                  docente, que elige a, b, e, f entre varios)
 
   const lista = (cosas) => (cosas.length === 1 ? String(cosas[0])
     : `${cosas.slice(0, -1).join(', ')} y ${cosas[cosas.length - 1]}`);
@@ -21,8 +26,23 @@
   const nombres = (aristas) => aristas.map((a) => a.nombre);
   const conPeso = (a) => `${etiqueta(a)} (${a.peso})`;
 
-  function recorrer(grafo, { metodo, inicio }) {
+  function recorrer(grafo, { metodo, inicio, arbol = [] }) {
+    if (metodo === METODOS.DADO) return pasosDelArbolDado(grafo, arbol);
     return metodo === METODOS.PRIM ? pasosDePrim(grafo, inicio || grafo.vertices[0]) : pasosDeKruskal(grafo);
+  }
+
+  // ── Árbol escrito ────────────────────────────────────────────────────────
+  function pasosDelArbolDado(grafo, nombresDelArbol) {
+    const arbol = grafo.aristas.filter((a) => nombresDelArbol.includes(a.nombre));
+    const n = grafo.vertices.length;
+    const comun = { metodo: METODOS.DADO, descartadas: [], tabla: [] };
+    const pasos = [crearPaso(TIPOS_PASO.CALCULO, {
+      ...comun, T: nombres(arbol), fase: 'dado',
+      calculo: arbol.map((a) => ({ etiqueta: a.nombre, expresion: `${etiqueta(a)} · peso ${a.peso}`, resultado: '', activa: false })),
+      tituloCalculo: 'Árbol escrito',
+      mensaje: `Árbol escrito: ${llaves(nombres(arbol))}. Tiene n − 1 = ${n - 1} aristas y ningún ciclo, así que toca a los ${n} vértices: es un árbol de expansión.`
+    })];
+    return pasos.concat(conclusion(grafo, arbol, { ...comun, antes: '' }));
   }
 
   // ── Kruskal ──────────────────────────────────────────────────────────────
@@ -116,6 +136,8 @@
   // Al terminar: el árbol, su peso como suma, y si es el único.
   function conclusion(grafo, arbol, { antes, ...comun }) {
     const total = expansion.peso(arbol);
+    const dado = comun.metodo === METODOS.DADO;
+    const minimo = expansion.peso(expansion.kruskal(grafo).arbol);
     const otro = expansion.otroDelMismoPeso(grafo, arbol);
     const suma = arbol.length > 1 ? `${arbol.map((a) => a.peso).join(' + ')} = ${total}` : String(total);
     const propiedades = [
@@ -123,23 +145,63 @@
         nombre: 'Árbol de expansión', valor: true,
         detalle: `toca los ${grafo.vertices.length} vértices con n − 1 = ${arbol.length} aristas, sin ciclos`
       },
+      ...(dado ? [{
+        nombre: 'Mínimo', valor: total === minimo,
+        detalle: total === minimo ? `ningún árbol de expansión pesa menos de ${minimo}` : `pesa ${total}, y el mínimo pesa ${minimo}`
+      }] : []),
       {
-        nombre: 'Único', valor: !otro,
-        detalle: otro
-          ? `cambiando ${etiqueta(otro.sale)} por ${etiqueta(otro.entra)}, las dos de peso ${otro.entra.peso}, sale otro del mismo peso`
-          : 'toda arista de fuera pesa más que las del camino que reemplazaría'
+        nombre: 'Único', valor: dado && total !== minimo ? null : !otro,
+        detalle: dado && total !== minimo ? 'no es mínimo'
+          : otro
+            ? `cambiando ${etiqueta(otro.sale)} por ${etiqueta(otro.entra)}, las dos de peso ${otro.entra.peso}, sale otro del mismo peso`
+            : 'toda arista de fuera pesa más que las del camino que reemplazaría'
       }
     ];
-    return crearPaso(TIPOS_PASO.CONSTRUIDO, {
-      ...comun, T: nombres(arbol), total, suma, propiedades,
+    const delArbol = { ...comun, T: nombres(arbol), total, suma, propiedades };
+    const paso = crearPaso(TIPOS_PASO.CALCULO, {
+      ...delArbol, fase: 'arbol',
       calculo: [
         { etiqueta: 'Aristas', expresion: arbol.map(etiqueta).join(', '), resultado: String(arbol.length), activa: false },
         { etiqueta: 'Peso', expresion: suma, resultado: String(total), activa: true }
       ],
-      tituloCalculo: 'Árbol de expansión mínimo',
-      mensaje: `${antes}Árbol de expansión mínimo: ${llaves(arbol.map(etiqueta))}, peso ${suma}.`
-        + (otro ? ` No es el único: con ${etiqueta(otro.entra)} en lugar de ${etiqueta(otro.sale)} pesa lo mismo.` : '')
+      tituloCalculo: dado ? 'Árbol de expansión' : 'Árbol de expansión mínimo',
+      mensaje: dado
+        ? `Peso del árbol: ${suma}. ${total === minimo ? 'Es mínimo' : `No es mínimo: el mínimo pesa ${minimo}`}${total === minimo && otro ? ', y no es el único' : ''}.`
+        : `${antes}Árbol de expansión mínimo: ${llaves(arbol.map(etiqueta))}, peso ${suma}.`
+          + (otro ? ` No es el único: con ${etiqueta(otro.entra)} en lugar de ${etiqueta(otro.sale)} pesa lo mismo.` : '')
     });
+    return [paso, ...pasosDeRamasYCuerdas(grafo, arbol, delArbol)];
+  }
+
+  // Como en el documento de apoyo: «se identifican las ramas y el rango»;
+  // «se encuentra el complemento», G′ = (S′, A′); «se identifican las
+  // cuerdas y la nulidad».
+  function pasosDeRamasYCuerdas(grafo, arbol, delArbol) {
+    const { ramas, cuerdas, rango, nulidad, n, m } = expansion.ramasYCuerdas(grafo, arbol);
+    const conRamas = { ...delArbol, ramas: nombres(ramas), rango };
+    return [
+      crearPaso(TIPOS_PASO.CALCULO, {
+        ...conRamas, fase: 'ramas',
+        calculo: [
+          { etiqueta: 'Ramas', expresion: llaves(nombres(ramas)), resultado: '', activa: false },
+          { etiqueta: 'Rango', expresion: `n − 1 = ${n} − 1`, resultado: String(rango), activa: true }
+        ],
+        tituloCalculo: 'Ramas y rango',
+        mensaje: `Ramas: las aristas del árbol, ${llaves(nombres(ramas))}. Rango = n − 1 = ${n} − 1 = ${rango}, el número de ramas.`
+      }),
+      crearPaso(TIPOS_PASO.CONSTRUIDO, {
+        ...conRamas, fase: 'cuerdas', cuerdas: nombres(cuerdas), nulidad, m, n,
+        calculo: [
+          { etiqueta: 'Ramas', expresion: llaves(nombres(ramas)), resultado: String(rango), activa: false },
+          { etiqueta: 'Cuerdas', expresion: llaves(nombres(cuerdas)), resultado: '', activa: false },
+          { etiqueta: 'Nulidad', expresion: `m − n + 1 = ${m} − ${n} + 1`, resultado: String(nulidad), activa: true }
+        ],
+        tituloCalculo: 'Cuerdas y nulidad',
+        mensaje: cuerdas.length
+          ? `Complemento del árbol: G′ = (S′, A′), con S′ = ${llaves(grafo.vertices)} y A′ = ${llaves(nombres(cuerdas))}. Sus aristas son las cuerdas. Nulidad = m − n + 1 = ${m} − ${n} + 1 = ${nulidad}, el número de cuerdas.`
+          : `El grafo ya es un árbol: no le quedan aristas fuera, así que no tiene cuerdas. Nulidad = m − n + 1 = ${m} − ${n} + 1 = 0.`
+      })
+    ];
   }
 
   window.CC2 = window.CC2 || {};

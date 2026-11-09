@@ -543,7 +543,8 @@
       enviar(formularios[0], {
         metodo: parametros.get('metodo') || 'kruskal',
         aristas: parametros.get('aristas') || '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
-        inicio: parametros.get('inicio') || ''
+        inicio: parametros.get('inicio') || '',
+        arbol: parametros.get('arbol') || ''
       });
       avanzar(pasosAAvanzar(40));
     }

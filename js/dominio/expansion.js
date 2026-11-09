@@ -15,8 +15,19 @@
   //
   // **Empates**: gana la que se escribió antes. Si un empate deja elegir, hay
   // otro árbol del mismo peso, y la conclusión lo dice.
+  //
+  // Del árbol salen los conceptos del documento de apoyo (2026-11-09), que
+  // el docente calcula antes de los circuitos y cortes fundamentales:
+  //
+  //   ramas     las aristas del árbol; rango = n − 1, cuántas son
+  //   cuerdas   el complemento del árbol, G′ = (S′, A′): todos los vértices
+  //             y las aristas que no están en él; nulidad = m − n + 1
+  //
+  // Su ejemplo es el grafo verde sin pesos —todas valen 1— con el árbol
+  // a, b, e, f, «a varias soluciones, se escogió la siguiente». Para poder
+  // seguirlo, el árbol también se puede escribir (`DADO`).
 
-  const METODOS = Object.freeze({ KRUSKAL: 'kruskal', PRIM: 'prim' });
+  const METODOS = Object.freeze({ KRUSKAL: 'kruskal', PRIM: 'prim', DADO: 'dado' });
 
   // Con 10 vértices caben 45 aristas, y la lista ordenada de Kruskal todavía
   // entra al lado del grafo.
@@ -66,9 +77,10 @@
       const clave = [origen, destino].sort().join('|');
       if (vistas.has(clave)) return { valido: false, mensaje: `${donde}: esa arista ya está en el renglón ${vistas.get(clave) + 1}.` };
       vistas.set(clave, indice);
-      // El nombre es solo su identidad en la traza: en este tema una arista
-      // se nombra por sus vértices, «1–3».
-      aristas.push({ origen, destino, peso, nombre: `e${aristas.length}`, orden: aristas.length });
+      // **El nombre lo pone el orden**: a, b, c… como las del docente, que
+      // en el grafo verde van en el orden en que se escriben. Las ramas y las
+      // cuerdas se dicen por su nombre; lo demás, por sus vértices, «1–3».
+      aristas.push({ origen, destino, peso, nombre: nombreEnOrden(aristas.length), orden: aristas.length });
     }
     if (aristas.length === 0) return { valido: false, mensaje: 'Escriba al menos una arista: sus dos vértices y su peso, por ejemplo «1 2 5».' };
     if (vertices.size > VERTICES_MAXIMOS) {
@@ -85,6 +97,12 @@
       };
     }
     return { valido: true, grafo };
+  }
+
+  // a, b, … z, y después aa, ab… (con 10 vértices caben 45 aristas).
+  function nombreEnOrden(indice) {
+    const letra = (i) => String.fromCharCode(97 + i);
+    return indice < 26 ? letra(indice) : letra(Math.floor(indice / 26) - 1) + letra(indice % 26);
   }
 
   function comoTexto(grafo) {
@@ -178,9 +196,42 @@
     return null;
   }
 
+  // Un árbol escrito por el nombre de sus aristas, «a b e f»: tiene que tener
+  // n − 1, sin ciclos (con n − 1 y sin ciclos, toca a todos los vértices).
+  function leerArbol(texto, grafo) {
+    const partes = String(texto || '').replace(/[{}]/g, ' ').split(/[\s,;]+/).filter(Boolean);
+    const arbol = [];
+    for (const parte of partes) {
+      const a = grafo.aristas.find((x) => x.nombre === parte);
+      if (!a) return { valido: false, mensaje: `«${parte}» no es una arista del grafo (${grafo.aristas.map((x) => x.nombre).join(', ')}).` };
+      if (arbol.includes(a)) return { valido: false, mensaje: `la arista ${parte} está dos veces.` };
+      arbol.push(a);
+    }
+    const n = grafo.vertices.length;
+    if (arbol.length !== n - 1) {
+      return { valido: false, mensaje: `tiene ${arbol.length} ${arbol.length === 1 ? 'arista' : 'aristas'}, y un árbol de ${n} vértices tiene n − 1 = ${n - 1}.` };
+    }
+    for (const [i, a] of arbol.entries()) {
+      const camino = caminoEn(arbol.slice(0, i), a.origen, a.destino);
+      if (camino) return { valido: false, mensaje: `${[...camino, a].map((x) => x.nombre).join(', ')} forman un ciclo.` };
+    }
+    return { valido: true, arbol: grafo.aristas.filter((a) => arbol.includes(a)) };
+  }
+
+  // Ramas y cuerdas de un árbol: las suyas y su complemento, en el orden del
+  // grafo, con el rango y la nulidad.
+  function ramasYCuerdas(grafo, arbol) {
+    const ramas = grafo.aristas.filter((a) => arbol.includes(a));
+    const cuerdas = grafo.aristas.filter((a) => !arbol.includes(a));
+    const n = grafo.vertices.length;
+    const m = grafo.aristas.length;
+    return { ramas, cuerdas, rango: n - 1, nulidad: m - n + 1, n, m };
+  }
+
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
   window.CC2.dominio.expansion = {
-    METODOS, VERTICES_MAXIMOS, leerGrafo, comoTexto, etiqueta, componentes, caminoEn, kruskal, prim, peso, otroDelMismoPeso
+    METODOS, VERTICES_MAXIMOS, leerGrafo, comoTexto, etiqueta, componentes, caminoEn, kruskal, prim, peso, otroDelMismoPeso,
+    leerArbol, ramasYCuerdas
   };
 })();

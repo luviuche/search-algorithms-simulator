@@ -57,7 +57,7 @@ The user interface is in **Spanish**, the language of the course.
 | Operations between two graphs: cartesian product G₁ × G₂, tensor product G₁ ⊗ G₂ and composition G₁[G₂], built edge group by edge group on a grid of vertex pairs, with the edge count from each formula | ✅ |
 | Independent and dominating sets: check a given set step by step as in the professor's sheets, or search for the maximum independent set and the minimum dominating, independent dominating, total and connected dominating sets | ✅ |
 | Matchings: reach a maximum matching by inverting augmenting paths, chosen by the app or written by hand as in the professor's sheets, or check a given matching edge by edge | ✅ |
-| Minimum spanning tree with Kruskal (edges by weight, accepted or rejected for closing a cycle) or Prim (from a chosen vertex, the lightest edge leaving the tree), with the total weight and whether another tree weighs the same | ✅ |
+| Minimum spanning tree with Kruskal (edges by weight, accepted or rejected for closing a cycle) or Prim (from a chosen vertex, the lightest edge leaving the tree), with the total weight and whether another tree weighs the same; then its branches and rank, chords and nullity, also for a tree written by hand | ✅ |
 | Circuits and cut sets in matrix form | 🚧 Planned |
 | Definitions, traversals, Euler and Hamilton circuits, other graph operations, convex hulls | 🚧 Planned |
 

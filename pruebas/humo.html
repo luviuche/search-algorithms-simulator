@@ -3851,17 +3851,20 @@
         selector.value = metodo;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
       };
-      const crear = (metodo, aristas, inicio = '') => {
+      const crear = (metodo, aristas, inicio = '', arbol = '') => {
         elegir(metodo);
         formulario.querySelector('[name="aristas"]').value = aristas;
         formulario.querySelector('[name="inicio"]').value = inicio;
+        formulario.querySelector('[name="arbol"]').value = arbol;
         formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       };
       const enArbol = () => document.querySelectorAll('.grafo__arista--emparejada').length;
       const seVe = (nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0;
 
       elegir('prim');
-      afirmar(seVe('inicio'), 'con Prim se pide el vértice inicial');
+      afirmar(seVe('inicio') && !seVe('arbol'), 'con Prim se pide el vértice inicial');
+      elegir('dado');
+      afirmar(seVe('arbol') && !seVe('inicio'), 'con el árbol escrito, sus ramas');
       elegir('kruskal');
       afirmar(!seVe('inicio'), 'con Kruskal no');
 
@@ -3876,8 +3879,10 @@
         `la primera que entra va resaltada (${enArbol()})`);
       if (window.innerWidth >= 1200) afirmarGrafoCabe('Kruskal, una arista');
       agotarTraza(10);
-      afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('peso 1 + 2 + 2 + 4 = 9'),
-        `al terminar, cuatro aristas y peso 9 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      agotarTraza(10);
+      afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('Nulidad = m − n + 1 = 7 − 5 + 1 = 3'),
+        `al terminar, cuatro ramas y nulidad 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmar(document.querySelectorAll('.grafo__arista--cuerda').length === 3, 'las tres cuerdas, en azul punteado');
       afirmarGrafoCabe('Kruskal, conclusión');
 
       control('editar-configuracion').click();
@@ -3886,9 +3891,22 @@
       afirmar(document.querySelectorAll('.grafo__arista--rango').length === 1,
         `Prim muestra en azul las candidatas que no entran (${document.querySelectorAll('.grafo__arista--rango').length})`);
       agotarTraza(10);
-      afirmar(enArbol() === 4 && document.querySelectorAll('.grafo__arista--descartada').length === 3,
-        'al terminar Prim, cuatro en el árbol y tres apagadas');
+      afirmar(enArbol() === 4 && document.querySelectorAll('.grafo__arista--cuerda').length === 3,
+        'al terminar Prim, cuatro ramas y tres cuerdas');
       afirmarGrafoCabe('Prim, conclusión');
+
+      // El ejemplo del documento de apoyo: el grafo verde con el árbol a, b, e, f.
+      control('editar-configuracion').click();
+      crear('dado', '1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4', '', 'a b c f');
+      afirmar(!!document.querySelector('.alerta') && document.querySelector('.alerta').textContent.includes('forman un ciclo'),
+        'un árbol escrito con un ciclo se rechaza al crear');
+      crear('dado', '1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4', '', 'a b e f');
+      agotarTraza(10);
+      const resumen = document.querySelector('.pareamiento-resumen').textContent;
+      afirmar(resumen.includes('Ramas = {a, b, e, f}') && resumen.includes('Rango = 4')
+        && resumen.includes('Cuerdas = {c, d, g, h}') && resumen.includes('Nulidad = 4'),
+        `el grafo verde: ramas a, b, e, f y cuerdas c, d, g, h (${resumen})`);
+      afirmarGrafoCabe('ramas y cuerdas del grafo verde');
 
       // Nueve vértices y catorce aristas: la lista de Kruskal se parte en dos
       // para caber.

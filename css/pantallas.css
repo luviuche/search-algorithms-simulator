@@ -2663,7 +2663,7 @@ form.panel > .pantalla-tema__reproduccion {
   color: var(--tinta-suave);
 }
 
-.expansion-tabla__fila--ciclo td:first-child {
+.expansion-tabla__fila--ciclo td:nth-child(-n + 2) {
   text-decoration: line-through;
 }
 
@@ -2701,9 +2701,10 @@ form.panel > .pantalla-tema__reproduccion {
 }
 
 /* Columnas de ancho fijo: sin partir, las dos mitades se leen como una. */
-.expansion-tabla td:nth-child(1) { width: 6ch; }
-.expansion-tabla td:nth-child(2) { width: 4ch; }
-.expansion-tabla td:nth-child(3) { width: 8ch; }
+.expansion-tablas .expansion-tabla td:nth-child(1) { width: 3ch; }
+.expansion-tablas .expansion-tabla td:nth-child(2) { width: 6ch; }
+.expansion-tablas .expansion-tabla td:nth-child(3) { width: 4ch; }
+.expansion-tablas .expansion-tabla td:nth-child(4) { width: 8ch; }
 
 .expansion-tablas {
   align-items: stretch;
@@ -2721,4 +2722,35 @@ form.panel > .pantalla-tema__reproduccion {
 .estructura-grafo--partida .expansion-tablas .expansion-tabla {
   table-layout: auto;
   width: auto;
+}
+
+/* El nombre de la arista, en cursiva como lo escribe el docente: en la
+   tabla y delante del peso en el dibujo. */
+.expansion-tabla__nombre,
+.grafo__nombre-en-peso {
+  font-style: italic;
+  font-weight: 600;
+}
+
+.expansion-tabla__nombre {
+  color: var(--tinta-suave);
+}
+
+/* Las cuerdas, el complemento del árbol: azul punteado, para que el árbol
+   en verde siga leyéndose. */
+.grafo__arista--cuerda {
+  stroke: var(--estado-rango-borde);
+  stroke-width: 2.6;
+  stroke-dasharray: 7 5;
+}
+
+/* «Ramas = {a, b, e, f}   Rango = 4», como el documento de apoyo. */
+.expansion-resumen__concepto {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--espacio-5);
+}
+
+.expansion-resumen__numero {
+  font-weight: 700;
 }
