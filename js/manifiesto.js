@@ -31,6 +31,7 @@
     'dominio/operaciones.js',
     'dominio/conjuntos.js',
     'dominio/pareamientos.js',
+    'dominio/expansion.js',
 
     'algoritmos/traza.js',
     'algoritmos/secuencial.js',
@@ -60,6 +61,7 @@
     'algoritmos/operaciones.js',
     'algoritmos/conjuntos.js',
     'algoritmos/pareamientos.js',
+    'algoritmos/expansion.js',
 
     // Serializar y validar son cálculo puro; guardar y leer usan el navegador
     // solo cuando se llaman, no al cargarse.

@@ -1003,6 +1003,20 @@ También van en su color las aristas de cada operando y los dos términos de |A|
 
 **Cómo se dibuja**: M con trazo grueso verde y lo saturado en el verde de S′ (§5.16). En el camino, lo de M en naranja grueso y lo de fuera en naranja punteado, como las rayas de la hoja, con un anillo naranja en sus dos vértices libres. Al lado, «Aₑ = {…}», la tabla de caminos con lo que sale y entra, o la de «comparte con», y al final Aₗ, Vₛ, Vₗ y las propiedades. El panel del cálculo se suelta en ventana chica (`calculoPrescindible`).
 
+### 5.18 Árbol de expansión mínimo — Prim y Kruskal (2026-11-09)
+
+**Séptimo tema de grafos.** Se vio en clase con los dos métodos, Prim y Kruskal, y **no hay hojas del docente** (dicho por el usuario, 2026-11-09). Por eso el paso a paso lo define esta aplicación, como en las operaciones entre grafos (§5.15). Las pruebas (`pruebas/expansion.test.js`) se anclan a la figura 12 del documento de apoyo, que es un grafo ponderado del docente: el árbol es 4–5, 4–2, 3–5, 3–1, con peso 9, y es único. Además se prueba que Prim y Kruskal dan el mismo peso en 200 grafos al azar.
+
+**El grafo** (`dominio/expansion.js`, `leerGrafo` propio): una arista por renglón, «1 2 5», con sus dos vértices y su peso. Sin peso vale 1, como en la hoja de Floyd. Los vértices pueden ser números o letras, porque los libros dibujan estos grafos con A, B…, y se ordenan números primero y letras después. Caben hasta 10 vértices. **Se rechaza al crear un grafo que no es conexo**, diciendo qué partes quedan sueltas: no tiene árbol de expansión. Se rechaza también un peso negativo («1 2 -3»): el guion separa vértices, y partido como separador volvía positivo el peso sin avisar.
+
+**Empates: gana la arista escrita antes.** Si un empate deja elegir, existe otro árbol del mismo peso. La conclusión lo dice con el cambio concreto: una arista de fuera que pesa lo mismo que alguna del camino que reemplazaría.
+
+**Kruskal** (`algoritmos/expansion.js`): un primer paso con las aristas ordenadas por peso, y después un paso por arista revisada. Si une dos componentes, entra, y se dicen los dos componentes. Si sus extremos ya están unidos, se descarta, y se dice por qué camino del árbol, que se pinta en naranja: ese camino y la arista cerrarían el ciclo. **Se detiene al tener n − 1 aristas**, y las que quedan se marcan «—» con la frase «no hace falta revisarlas».
+
+**Prim**: el vértice inicial lo elige el formulario (vacío, el primero). Hay un paso por arista que entra, como Floyd va un paso por renglón: el panel del cálculo lista las candidatas, que son las que salen del árbol hacia un vértice nuevo, de la más liviana a la más pesada, y marca la que entra. Las aristas con los dos extremos ya en el árbol se apagan.
+
+**Cómo se dibuja**: el árbol con el trazo grueso verde de M en los pareamientos (§5.17), y sus vértices en verde. La arista del paso va en naranja: gruesa si entra, punteada si Kruskal la descarta. Las candidatas de Prim van en azul, y lo que ya no puede entrar, en gris punteado. Al lado van «T = {…}» y «Peso = 1 + 2 + … = 9», y la tabla. En Kruskal es la lista ordenada con su decisión: «entra» en verde, y «ciclo» gris con la arista tachada. En Prim, una fila por arista que entra, con «desde» el árbol que había y el vértice nuevo. Al final, las propiedades: árbol de expansión y único. **La lista de Kruskal se parte en dos mitades**, que sin partir se leen como una sola tabla (columnas de ancho fijo). `encajar` prueba además ponerlas lado a lado (`estructura-grafo--partida`): con 9 vértices y 14 aristas, a 1280 × 633 la lista entera no cabía ni a la mitad. **A 1024 × 650 ese caso todavía no cabe**: sobran unos 30 px a 0,5×. Es lo mismo que el caso extremo de los conjuntos, y el XGA ya no es requisito. El panel del cálculo se suelta en ventana chica (`calculoPrescindible`).
+
 ## 6. Visualización
 
 ### 6.1 Orientación

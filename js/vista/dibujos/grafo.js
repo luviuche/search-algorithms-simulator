@@ -214,7 +214,7 @@
           d: trazo,
           class: 'grafo__arista' + (estadoArista ? ` grafo__arista--${estadoArista}` : '')
             + (colorArista ? ` grafo__arista--color grafo__color--${colorArista}` : '')
-            + papelDeAristaEnPareamiento(paso, arista.nombre),
+            + papelDeAristaEnPareamiento(paso, arista.nombre) + papelDeAristaEnExpansion(paso, arista.nombre),
           'marker-end': dirigido ? `url(#grafo-punta-${estadoArista || 'normal'})` : ''
         }, aristas);
         // Al lado de la mitad y hacia afuera de la curva: el peso, o en la
@@ -248,7 +248,7 @@
         const grupo = svg('g', {
           class: 'grafo__vertice' + (estadoVertice ? ` grafo__vertice--${estadoVertice}` : '')
             + (colorVertice ? ` grafo__vertice--color grafo__color--${colorVertice}` : '') + papelEnColoreo
-            + papelEnConjunto(paso, vertice) + papelEnPareamiento(paso, grafo, vertice),
+            + papelEnConjunto(paso, vertice) + papelEnPareamiento(paso, grafo, vertice) + papelEnExpansion(paso, grafo, vertice),
           'data-vertice': vertice
         }, nodos);
         svg('circle', { cx: x, cy: y, r: RADIO }, grupo);
@@ -316,6 +316,38 @@
       const llenos = paso.saturadosHasta || [...dominio.pareamientos.saturados(grafo, paso.M)];
       if (llenos.includes(vertice)) clases.push('grafo__vertice--elegido');
       if (paso.camino && [paso.camino.vertices[0], paso.camino.vertices[paso.camino.vertices.length - 1]].includes(vertice)) {
+        clases.push('grafo__vertice--actual');
+      }
+      return clases.map((c) => ` ${c}`).join('');
+    }
+
+    // Árbol de expansión (CLAUDE.md 5.18): el árbol con el trazo grueso verde
+    // de M en los pareamientos; la arista del paso en naranja —si entra, gruesa;
+    // si Kruskal la descarta, punteada, con el camino del árbol que cerraría
+    // el ciclo también en naranja—; las candidatas de Prim en azul, y lo que
+    // ya no puede entrar, gris punteado.
+    function papelDeAristaEnExpansion(paso, nombre) {
+      if (!config.expansion || !paso || !paso.T) return '';
+      const enArbol = paso.T.includes(nombre);
+      const delPaso = paso.actual === nombre && !paso.propiedades;
+      if (enArbol) {
+        const resaltada = delPaso || (paso.ciclo || []).includes(nombre);
+        return ` grafo__arista--emparejada${resaltada ? ' grafo__arista--en-camino' : ''}`;
+      }
+      if (delPaso) return ' grafo__arista--del-camino';
+      if ((paso.candidatas || []).includes(nombre)) return ' grafo__arista--rango';
+      if ((paso.descartadas || []).includes(nombre)) return ' grafo__arista--descartada';
+      return '';
+    }
+
+    function papelEnExpansion(paso, grafo, vertice) {
+      if (!config.expansion || !paso || !paso.T) return '';
+      const clases = [];
+      const tocados = paso.dentro
+        || grafo.aristas.filter((a) => paso.T.includes(a.nombre)).flatMap((a) => [a.origen, a.destino]);
+      if (tocados.includes(vertice)) clases.push('grafo__vertice--elegido');
+      const actual = !paso.propiedades && grafo.aristas.find((a) => a.nombre === paso.actual);
+      if (actual && (paso.nuevo !== undefined ? paso.nuevo === vertice : [actual.origen, actual.destino].includes(vertice))) {
         clases.push('grafo__vertice--actual');
       }
       return clases.map((c) => ` ${c}`).join('');
@@ -902,6 +934,62 @@
       return tabla;
     }
 
+    // «T = {…}» y su peso como suma, como la línea de A_E de los pareamientos.
+    function crearResumenDeExpansion(paso, grafo) {
+      const caja = document.createElement('div');
+      caja.className = 'pareamiento-resumen';
+      const enArbol = paso.T.map((n) => grafo.aristas.find((a) => a.nombre === n));
+      const t = document.createElement('p');
+      t.innerHTML = `<span>T</span> = {${enArbol.map(dominio.expansion.etiqueta).join(', ')}}`;
+      const p = document.createElement('p');
+      const total = enArbol.reduce((suma, a) => suma + a.peso, 0);
+      p.innerHTML = `<span>Peso</span> = ${paso.suma || (enArbol.length > 1 ? `${enArbol.map((a) => a.peso).join(' + ')} = ${total}` : total)}`;
+      caja.append(t, p);
+      return caja;
+    }
+
+    // Kruskal: la lista ordenada por peso, que se va decidiendo. Prim: una
+    // fila por arista que entra, con desde dónde salió.
+    function crearTablaDeExpansion(paso) {
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla expansion-tabla';
+      if (paso.metodo === dominio.expansion.METODOS.KRUSKAL) {
+        // **La lista se parte en dos mitades** que, juntas, se ven como una
+        // sola tabla; en una ventana baja `encajar` prueba ponerlas una al
+        // lado de la otra (`--partida`): con 9 vértices y 14 aristas, a
+        // 1280 × 633 la lista entera no cabía ni a la mitad.
+        const textos = { entra: 'entra', ciclo: 'ciclo', sobra: '—' };
+        const mitad = Math.ceil(paso.tabla.length / 2);
+        const tablas = document.createElement('div');
+        tablas.className = 'expansion-tablas';
+        [paso.tabla.slice(0, mitad), paso.tabla.slice(mitad)].filter((filas) => filas.length).forEach((filas, parte) => {
+          const t = document.createElement('table');
+          t.className = `coloreo-tabla expansion-tabla expansion-tabla--parte-${parte + 1}`;
+          t.innerHTML = '<tr><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Decisión</th></tr>';
+          for (const fila of filas) {
+            const tr = document.createElement('tr');
+            const clases = [];
+            if (paso.actual === fila.arista && !paso.propiedades) clases.push('coloreo-tabla__fila--actual');
+            if (fila.decision) clases.push(`expansion-tabla__fila--${fila.decision}`);
+            tr.className = clases.join(' ');
+            tr.innerHTML = `<td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.decision ? textos[fila.decision] : ''}</td>`;
+            t.appendChild(tr);
+          }
+          tablas.appendChild(t);
+        });
+        return tablas;
+      }
+      tabla.innerHTML = '<tr><th scope="col">Desde</th><th scope="col">Arista</th><th scope="col">Peso</th><th scope="col">Entra</th></tr>';
+      paso.tabla.forEach((fila, i) => {
+        const tr = document.createElement('tr');
+        tr.className = 'expansion-tabla__fila--entra'
+          + (i === paso.tabla.length - 1 && !paso.propiedades ? ' coloreo-tabla__fila--actual' : '');
+        tr.innerHTML = `<td>{${fila.dentro.join(', ')}}</td><td>${fila.etiqueta}</td><td>${fila.peso}</td><td>${fila.nuevo}</td>`;
+        tabla.appendChild(tr);
+      });
+      return tabla;
+    }
+
     // Al final, lo que es S′: propiedad por propiedad, y el óptimo.
     function crearPropiedades(paso) {
       const tabla = document.createElement('table');
@@ -923,6 +1011,26 @@
     }
 
     function renderizarGrafo(paso) {
+      if (config.expansion) {
+        const grafo = grafoDeLaEstructura();
+        dom.estructuraEl.className = 'estructura-grafo';
+        dom.estructuraEl.removeAttribute('style');
+        dom.estructuraEl.innerHTML = '';
+        if (!grafo) return;
+        dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        if (paso && paso.T) {
+          const columna = document.createElement('div');
+          columna.className = 'estructura-grafo__columna conjunto-columna';
+          const cuerpo = document.createElement('div');
+          cuerpo.className = 'conjunto-cuerpo';
+          if (paso.tabla.length) cuerpo.appendChild(crearTablaDeExpansion(paso));
+          if (paso.propiedades) cuerpo.appendChild(crearPropiedades(paso));
+          columna.append(crearResumenDeExpansion(paso, grafo), cuerpo);
+          dom.estructuraEl.appendChild(columna);
+        }
+        ajustarGrafo();
+        return;
+      }
       if (config.pareamientos) {
         const grafo = grafoDeLaEstructura();
         dom.estructuraEl.className = 'estructura-grafo';
@@ -1042,8 +1150,11 @@
       // tabla al lado de las conclusiones —con 12 vértices, en un proyector
       // XGA, es la única que cabe—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos || config.pareamientos ? ['estructura-grafo--extendida'] : [])
-        .concat(config.conjuntos || config.pareamientos ? ['estructura-grafo--apilada estructura-grafo--extendida'] : []);
+        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--extendida'] : [])
+        .concat(config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--apilada estructura-grafo--extendida'] : [])
+        // El árbol de expansión suma la lista de Kruskal partida en dos.
+        .concat(config.expansion ? ['estructura-grafo--partida', 'estructura-grafo--apilada estructura-grafo--partida',
+          'estructura-grafo--extendida estructura-grafo--partida', 'estructura-grafo--apilada estructura-grafo--extendida estructura-grafo--partida'] : []);
       const clasesDe = (disposicion) => disposicion.split(' ').filter(Boolean);
       const quitarTodas = () => disposiciones.forEach((clase) => caja.classList.remove(...clasesDe(clase)));
       let mejor = { clase: '', cabe: -1 };

@@ -2649,3 +2649,76 @@ form.panel > .pantalla-tema__reproduccion {
 .pareamiento-resumen p {
   margin: 0;
 }
+
+/* ── Árbol de expansión mínimo (CLAUDE.md 5.18) ──────────────────────────
+   El árbol con el trazo de M de los pareamientos. En la tabla, lo que entra
+   en verde y lo que cerraría un ciclo tachado en gris: así se lee de un
+   vistazo cuáles quedaron. */
+.expansion-tabla__fila--entra td:last-child {
+  color: var(--estado-encontrada-borde);
+  font-weight: 700;
+}
+
+.expansion-tabla__fila--ciclo td {
+  color: var(--tinta-suave);
+}
+
+.expansion-tabla__fila--ciclo td:first-child {
+  text-decoration: line-through;
+}
+
+.expansion-tabla__fila--sobra td {
+  color: var(--tinta-suave);
+}
+
+/* La lista de Kruskal en dos mitades: juntas son una sola tabla, y partida
+   (`--partida`, la elige `encajar` cuando no cabe) van lado a lado. */
+.expansion-tablas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.expansion-tablas .expansion-tabla--parte-2 {
+  border-top: none;
+}
+
+.expansion-tablas .expansion-tabla--parte-2 tr:first-child {
+  display: none;
+}
+
+.estructura-grafo--partida .expansion-tablas {
+  flex-direction: row;
+  gap: var(--espacio-3);
+}
+
+.estructura-grafo--partida .expansion-tablas .expansion-tabla--parte-2 {
+  border-top: 1px solid var(--borde);
+}
+
+.estructura-grafo--partida .expansion-tablas .expansion-tabla--parte-2 tr:first-child {
+  display: table-row;
+}
+
+/* Columnas de ancho fijo: sin partir, las dos mitades se leen como una. */
+.expansion-tabla td:nth-child(1) { width: 6ch; }
+.expansion-tabla td:nth-child(2) { width: 4ch; }
+.expansion-tabla td:nth-child(3) { width: 8ch; }
+
+.expansion-tablas {
+  align-items: stretch;
+}
+
+.expansion-tablas .expansion-tabla {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.estructura-grafo--partida .expansion-tablas {
+  align-items: flex-start;
+}
+
+.estructura-grafo--partida .expansion-tablas .expansion-tabla {
+  table-layout: auto;
+  width: auto;
+}

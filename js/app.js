@@ -85,7 +85,7 @@
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Producto cartesiano, tensorial y composición', tema: 'operaciones', disponible: true },
-        { id: 'grafos-expansion', titulo: 'Árboles de expansión — Prim y Kruskal', descripcion: '', tema: null, disponible: false },
+        { id: 'grafos-expansion', titulo: 'Árbol de expansión mínimo — Prim y Kruskal', descripcion: 'El árbol de menor peso que une todos los vértices', tema: 'expansion', disponible: true },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
@@ -1851,6 +1851,137 @@
               if (alTerminar(paso)) return String(paso.nu);
               const grafo = grafoDe(estructura);
               return String(grafo.vertices.length - dominio.pareamientos.saturados(grafo, paso.M).size);
+            }
+          }
+        ]
+      };
+    })(),
+
+    // Árbol de expansión mínimo (CLAUDE.md 5.18): Prim o Kruskal sobre un
+    // grafo ponderado y conexo, con vértices número o letra. Sin hojas del
+    // docente: el paso a paso es de esta aplicación.
+    expansion: (() => {
+      const { METODOS, VERTICES_MAXIMOS } = dominio.expansion;
+      const leer = (texto) => dominio.expansion.leerGrafo(texto);
+      const grafoDe = (estructura) => {
+        const p = estructura && estructura.parametros;
+        return p && p.aristas ? leer(p.aristas).grafo : null;
+      };
+      const nombreDe = (metodo) => (metodo === METODOS.PRIM ? 'Prim' : 'Kruskal');
+      return {
+        descripcion: 'Prim y Kruskal: el árbol de menor peso que toca todos los vértices de un grafo conexo',
+        orientacion: 'grafo',
+        expansion: true,
+        leerGrafo: leer,
+        calculo: true,
+        // Repite la tabla y el aviso: en una ventana chica se suelta.
+        calculoPrescindible: true,
+        tituloCalculo: 'Árbol de expansión',
+        calculoSoloEnOperacion: true,
+        sinTamano: true,
+        sinLongitud: true,
+        sinOperaciones: true,
+        sinClaves: true,
+        tamano: () => ({ n: 1, l: 1 }),
+        nombreEstructura: 'grafo',
+        tituloConfiguracion: 'Grafo',
+        mensajeReinicio: 'Árbol borrado: el grafo queda sin marcar.',
+        mensajeLienzoVacio: {
+          titulo: 'Escriba las aristas del grafo, con su peso',
+          indicacion: 'Una por renglón, en el panel de la derecha'
+        },
+        mensajeDerivacion: 'Árbol de expansión iniciado.',
+        mensajeCreacion: (estructura) => {
+          const grafo = grafoDe(estructura);
+          return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas`
+            + `${grafo.conPesos ? '' : ', sin pesos (cada arista vale 1)'}. Método: ${nombreDe(estructura.parametros.metodo)}.`;
+        },
+        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${nombreDe(estructura.parametros.metodo)}`,
+        alCrear: ({ estructura }) => {
+          const { metodo, inicio } = estructura.parametros;
+          return algoritmos.expansion.recorrer(grafoDe(estructura), { metodo, inicio });
+        },
+        conservarAlFinal: ['metodo', 'T', 'dentro', 'descartadas', 'tabla', 'total', 'suma', 'propiedades',
+          'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => `expansion-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
+        vistaPrevia: (datos) => {
+          const lectura = leer(datos.get('aristas'));
+          return lectura.valido ? lectura.grafo : null;
+        },
+        parametros: [
+          {
+            nombre: 'metodo',
+            etiqueta: 'Método',
+            opciones: [
+              { valor: METODOS.KRUSKAL, etiqueta: 'Kruskal' },
+              { valor: METODOS.PRIM, etiqueta: 'Prim' }
+            ],
+            ayuda: 'Kruskal revisa las aristas de menor a mayor peso; Prim hace crecer el árbol desde un vértice.',
+            validar: (entrada) => (Object.values(METODOS).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija Prim o Kruskal.' })
+          },
+          {
+            ...PARAMETRO_ARISTAS,
+            renglones: 7,
+            marcador: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
+            ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
+            validar: (entrada) => {
+              const lectura = leer(entrada);
+              return lectura.valido
+                ? { valido: true, valor: dominio.expansion.comoTexto(lectura.grafo) }
+                : { valido: false, mensaje: lectura.mensaje };
+            }
+          },
+          {
+            nombre: 'inicio',
+            etiqueta: 'Vértice inicial',
+            soloCon: { parametro: 'metodo', valor: METODOS.PRIM },
+            marcador: '1',
+            ayuda: 'Desde dónde crece el árbol. Vacío, el primero.',
+            // Va después de las aristas: se valida contra el grafo.
+            validar: (entrada, { parametros }) => {
+              const lectura = leer(parametros.aristas);
+              const texto = String(entrada || '').trim();
+              if (!lectura.valido || parametros.metodo !== METODOS.PRIM) return { valido: true, valor: '' };
+              if (!texto) return { valido: true, valor: lectura.grafo.vertices[0] };
+              return lectura.grafo.vertices.includes(texto)
+                ? { valido: true, valor: texto }
+                : { valido: false, mensaje: `El vértice inicial «${texto}» no está en el grafo (${lectura.grafo.vertices.join(', ')}).` };
+            }
+          }
+        ],
+        casillasRelevantes: () => [],
+        describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+        metricas: [
+          {
+            id: 'vertices',
+            etiqueta: 'Vértices',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'aristas',
+            etiqueta: 'Aristas',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          },
+          {
+            id: 'tamano',
+            etiqueta: 'Aristas en el árbol',
+            valor: ({ paso }) => (paso && paso.T ? String(paso.T.length) : '—')
+          },
+          {
+            id: 'peso',
+            etiqueta: 'Peso del árbol',
+            valor: ({ estructura, paso }) => {
+              const grafo = grafoDe(estructura);
+              if (!paso || !paso.T || !grafo) return '—';
+              return String(grafo.aristas.filter((a) => paso.T.includes(a.nombre)).reduce((s, a) => s + a.peso, 0));
             }
           }
         ]

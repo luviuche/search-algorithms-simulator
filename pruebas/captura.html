@@ -536,6 +536,18 @@
       avanzar(pasosAAvanzar(40));
     }
 
+    // Árbol de expansión mínimo: ?vista=expansion&metodo=kruskal|prim
+    // &inicio=…&aristas=…, por omisión la figura 12 del documento de apoyo.
+    function prepararExpansion() {
+      const formularios = entrarATema('Árbol de expansión mínimo — Prim y Kruskal');
+      enviar(formularios[0], {
+        metodo: parametros.get('metodo') || 'kruskal',
+        aristas: parametros.get('aristas') || '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
+        inicio: parametros.get('inicio') || ''
+      });
+      avanzar(pasosAAvanzar(40));
+    }
+
     // Conjuntos independientes y dominantes: ?vista=conjuntos&ejemplo=…&modo=…
     // &conjunto=…, con los grafos de las hojas del docente. Con `&previa=1`,
     // el formulario escrito sin crear.
@@ -652,6 +664,7 @@
       if (vista === 'operaciones') return prepararOperaciones();
       if (vista === 'conjuntos') return prepararConjuntos();
       if (vista === 'pareamientos') return prepararPareamientos();
+      if (vista === 'expansion') return prepararExpansion();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');
       if (vista === 'eliminar-secuencial') return prepararEliminacion('Búsqueda secuencial');

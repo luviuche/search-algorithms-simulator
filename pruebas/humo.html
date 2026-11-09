@@ -666,6 +666,7 @@
       operacionesEntreGrafos();
       conjuntosIndependientesYDominantes();
       pareamientosDeGrafos();
+      arbolDeExpansionMinimo();
       controlDeVelocidad();
     }
 
@@ -3836,6 +3837,69 @@
       const filas = [...document.querySelectorAll('.conjunto-propiedades tr')].map((tr) => tr.textContent);
       afirmar(filas.some((f) => f.startsWith('Maximalsí')) && filas.some((f) => f.startsWith('Máximono')),
         `{b, d} es maximal y no máximo (${filas.join(' | ')})`);
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    function arbolDeExpansionMinimo() {
+      registro.push('', '── Árbol de expansión mínimo ──');
+      entrarATema('Árbol de expansión mínimo — Prim y Kruskal');
+      const formulario = document.querySelector('form.panel');
+      // La figura 12 del documento de apoyo del docente.
+      const figura12 = '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5';
+      const elegir = (metodo) => {
+        const selector = formulario.querySelector('[name="metodo"]');
+        selector.value = metodo;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const crear = (metodo, aristas, inicio = '') => {
+        elegir(metodo);
+        formulario.querySelector('[name="aristas"]').value = aristas;
+        formulario.querySelector('[name="inicio"]').value = inicio;
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const enArbol = () => document.querySelectorAll('.grafo__arista--emparejada').length;
+      const seVe = (nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0;
+
+      elegir('prim');
+      afirmar(seVe('inicio'), 'con Prim se pide el vértice inicial');
+      elegir('kruskal');
+      afirmar(!seVe('inicio'), 'con Kruskal no');
+
+      crear('kruskal', '1 2 3\n3 4 1');
+      afirmar(!!document.querySelector('.alerta') && document.querySelector('.alerta').textContent.includes('no es conexo'),
+        `un grafo partido se rechaza al crear (${document.querySelector('.alerta') ? document.querySelector('.alerta').textContent.trim() : 'sin aviso'})`);
+
+      crear('kruskal', figura12);
+      afirmar(document.querySelectorAll('.expansion-tabla tr:not(:first-child)').length === 7, 'Kruskal lista las siete aristas por peso');
+      control('siguiente').click();
+      afirmar(enArbol() === 1 && document.querySelectorAll('.grafo__arista--en-camino').length === 1,
+        `la primera que entra va resaltada (${enArbol()})`);
+      if (window.innerWidth >= 1200) afirmarGrafoCabe('Kruskal, una arista');
+      agotarTraza(10);
+      afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('peso 1 + 2 + 2 + 4 = 9'),
+        `al terminar, cuatro aristas y peso 9 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
+      afirmarGrafoCabe('Kruskal, conclusión');
+
+      control('editar-configuracion').click();
+      crear('prim', figura12, '1');
+      control('siguiente').click();
+      afirmar(document.querySelectorAll('.grafo__arista--rango').length === 1,
+        `Prim muestra en azul las candidatas que no entran (${document.querySelectorAll('.grafo__arista--rango').length})`);
+      agotarTraza(10);
+      afirmar(enArbol() === 4 && document.querySelectorAll('.grafo__arista--descartada').length === 3,
+        'al terminar Prim, cuatro en el árbol y tres apagadas');
+      afirmarGrafoCabe('Prim, conclusión');
+
+      // Nueve vértices y catorce aristas: la lista de Kruskal se parte en dos
+      // para caber.
+      control('editar-configuracion').click();
+      crear('kruskal', 'A B 4\nA H 8\nB H 11\nB C 8\nH I 7\nH G 1\nI G 6\nC I 2\nC F 4\nC D 7\nG F 2\nD F 14\nD E 9\nE F 10');
+      agotarTraza(20);
+      afirmar(enArbol() === 8 && document.querySelectorAll('.expansion-tabla__fila--ciclo').length === 3,
+        `nueve vértices: ocho en el árbol y tres ciclos (${enArbol()})`);
+      // A 1024 × 650 (el proyector XGA, que ya no es requisito) sobran unos
+      // 30 px aun a 0,5×, como el caso extremo de los conjuntos.
+      if (window.innerWidth >= 1280) afirmarGrafoCabe('Kruskal con nueve vértices');
       document.querySelector('.pantalla-tema__volver').click();
     }
 
