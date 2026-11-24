@@ -138,7 +138,14 @@
         if (tipo === 'centro' || tipo === 'mediana') {
           apagarResto = true;
           const dentro = new Set(elegidos);
-          aristas = (a) => (dentro.has(a.origen) && dentro.has(a.destino) ? 'encontrada' : 'descartada');
+          // Sobre un árbol de expansión solo cuentan sus ramas.
+          aristas = (a) => (dentro.has(a.origen) && dentro.has(a.destino)
+            && (!config.expansion || paso.T.includes(a.nombre)) ? 'encontrada' : 'descartada');
+          if (config.expansion) {
+            apagarResto = false;
+            const delSubgrafo = aristas;
+            aristas = (a) => (delSubgrafo(a) === 'encontrada' ? 'encontrada' : undefined);
+          }
         }
       }
       return { vertices, aristas, apagarResto };
@@ -350,6 +357,13 @@
     function papelDeAristaEnExpansion(paso, nombre) {
       if (!config.expansion || !paso || !paso.T) return '';
       const enArbol = paso.T.includes(nombre);
+      // Centro, bicentro y mediana: el árbol en trazo normal, para que se vea
+      // lo elegido; el camino del diámetro, en naranja. Las cuerdas, apagadas.
+      if (paso.conceptos) {
+        if (!enArbol) return ' grafo__arista--descartada';
+        if ((paso.caminoDiametro || []).includes(nombre)) return ' grafo__arista--evaluacion';
+        return paso.resaltar ? '' : ' grafo__arista--emparejada';
+      }
       const delPaso = paso.actual === nombre && !paso.propiedades;
       if (enArbol) {
         const resaltada = delPaso || (paso.ciclo || []).includes(nombre);
@@ -364,7 +378,7 @@
     }
 
     function papelEnExpansion(paso, grafo, vertice) {
-      if (!config.expansion || !paso || !paso.T) return '';
+      if (!config.expansion || !paso || !paso.T || paso.conceptos) return '';
       const clases = [];
       const tocados = paso.dentro
         || grafo.aristas.filter((a) => paso.T.includes(a.nombre)).flatMap((a) => [a.origen, a.destino]);
@@ -395,7 +409,7 @@
       tabla.className = 'matriz-grafo';
       const titulo = document.createElement('caption');
       titulo.className = 'matriz-grafo__titulo';
-      titulo.textContent = paso && paso.fase === 'conceptos'
+      titulo.textContent = paso && paso.tituloMatriz ? paso.tituloMatriz : paso && paso.fase === 'conceptos'
         ? 'Distancias mínimas'
         : (paso && paso.j !== undefined ? `Matriz de distancias D (j = ${v[paso.j]})` : 'Matriz de distancias D');
       tabla.appendChild(titulo);
@@ -638,8 +652,15 @@
     // columna por vértice de G₂ (maquetas aprobadas el 2026-10-26). G₁ va en
     // vertical y G₂ en horizontal, como las filas y las columnas.
     const operaciones = dominio.operaciones;
+    const combinaciones = dominio.combinaciones;
+    const libres = window.CC2.vista.dibujos.grafosLibres({ svg, trazoEntre, abarcarCurvas, posiciones });
     function operandosDeLaEstructura() {
       const p = (estado.estructura && estado.estructura.parametros) || {};
+      if (combinaciones.es(p.operacion)) {
+        const a = combinaciones.leer(p.aristas1, 'G₁');
+        const b = combinaciones.leer(p.aristas2, 'G₂');
+        return a.valido && b.valido ? { g1: a.grafo, g2: b.grafo, operacion: p.operacion } : null;
+      }
       const g1 = operaciones.leerOperando(p.aristas1, 'G₁');
       const g2 = operaciones.leerOperando(p.aristas2, 'G₂');
       return g1.valido && g2.valido ? { g1: g1.grafo, g2: g2.grafo, operacion: p.operacion } : null;
@@ -651,7 +672,8 @@
     // meterse en la columna de al lado. Devuelve el trazo y el punto más
     // salido de la curva, que el dibujo tiene que abarcar.
     const CURVA_MAXIMA = 44;
-    function trazoEntre(a, b, otros, medio) {
+    // Tapa el que queda a menos de `holgura`: el radio del vértice, y un poco.
+    function trazoEntre(a, b, otros, medio, holgura = 22) {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const largo = Math.hypot(dx, dy);
@@ -659,7 +681,7 @@
         if (o === a || o === b) return false;
         const t = ((o.x - a.x) * dx + (o.y - a.y) * dy) / (largo * largo);
         if (t <= 0 || t >= 1) return false;
-        return Math.hypot(a.x + t * dx - o.x, a.y + t * dy - o.y) < 22;
+        return Math.hypot(a.x + t * dx - o.x, a.y + t * dy - o.y) < holgura;
       });
       if (!tapa) return { d: `M${a.x},${a.y} L${b.x},${b.y}`, pico: null };
       const mx = (a.x + b.x) / 2;
@@ -870,6 +892,12 @@
       dom.estructuraEl.innerHTML = '';
       const operandos = paso && paso.resultado ? paso : operandosDeLaEstructura();
       if (!operandos) return;
+      // Las que no son productos se dibujan aparte (`grafos-libres.js`).
+      if (combinaciones.es(operandos.operacion)) {
+        libres.llenarCombinacion(dom.estructuraEl, operandos, paso);
+        ajustarGrafo();
+        return;
+      }
       dom.estructuraEl.appendChild(crearOperandos(operandos, paso && paso.usa, seColorea(paso)));
       if (paso && paso.resultado) {
         const columna = document.createElement('div');
@@ -975,6 +1003,25 @@
         r.innerHTML = `<span>${rotulo}</span> = {${cosas.join(', ')}}<span class="expansion-resumen__numero"><span>${otro}</span> = ${valor}</span>`;
         return r;
       };
+      // Con la matriz de distancias, lo que se lee de ella: ramas y cuerdas ya
+      // se dijeron, y las dos cosas no caben de alto.
+      if (paso.conceptos) {
+        const c = paso.conceptos;
+        if (c.mostrar.includes('radio')) {
+          const r = document.createElement('p');
+          r.className = 'expansion-resumen__concepto';
+          r.innerHTML = `<span>Radio</span> = ${c.radio}<span class="expansion-resumen__numero"><span>Diámetro</span> = ${c.diametro}</span>`;
+          caja.appendChild(r);
+        }
+        if (c.mostrar.includes('centro')) {
+          const r = document.createElement('p');
+          r.className = 'expansion-resumen__concepto';
+          r.innerHTML = `<span>${c.esBicentro ? 'Bicentro' : 'Centro'}</span> = {${c.centro.join(', ')}}`
+            + (c.mostrar.includes('mediana') ? `<span class="expansion-resumen__numero"><span>Mediana</span> = {${c.mediana.join(', ')}}</span>` : '');
+          caja.appendChild(r);
+        }
+        return caja;
+      }
       if (paso.ramas) caja.appendChild(renglon('Ramas', paso.ramas, 'Rango', paso.rango));
       if (paso.cuerdas) caja.appendChild(renglon('Cuerdas', paso.cuerdas, 'Nulidad', paso.nulidad));
       return caja;
@@ -1055,8 +1102,14 @@
           columna.className = 'estructura-grafo__columna conjunto-columna';
           const cuerpo = document.createElement('div');
           cuerpo.className = 'conjunto-cuerpo';
-          if (paso.tabla.length) cuerpo.appendChild(crearTablaDeExpansion(paso));
-          if (paso.propiedades) cuerpo.appendChild(crearPropiedades(paso));
+          if (paso.conceptos) {
+            const matriz = crearMatriz(grafo, paso, paso.matriz);
+            matriz.classList.add('matriz-grafo--compacta');
+            cuerpo.appendChild(matriz);
+          } else {
+            if (paso.tabla.length) cuerpo.appendChild(crearTablaDeExpansion(paso));
+            if (paso.propiedades) cuerpo.appendChild(crearPropiedades(paso));
+          }
           columna.append(crearResumenDeExpansion(paso, grafo), cuerpo);
           dom.estructuraEl.appendChild(columna);
         }
@@ -1108,6 +1161,16 @@
       }
       if (config.operaciones) {
         renderizarOperacion(paso);
+        return;
+      }
+      if (config.transformaciones) {
+        const deUno = grafoDeLaEstructura();
+        dom.estructuraEl.className = 'estructura-grafo';
+        dom.estructuraEl.removeAttribute('style');
+        dom.estructuraEl.innerHTML = '';
+        if (!deUno) return;
+        libres.llenarTransformacion(dom.estructuraEl, deUno, paso);
+        ajustarGrafo();
         return;
       }
       const grafo = grafoDeLaEstructura();
@@ -1182,7 +1245,7 @@
       // tabla al lado de las conclusiones —con 12 vértices, en un proyector
       // XGA, es la única que cabe—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado || config.operaciones || config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--extendida'] : [])
+        .concat(config.representacionDe || config.coloreado || config.operaciones || config.transformaciones || config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--extendida'] : [])
         .concat(config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--apilada estructura-grafo--extendida'] : [])
         // El árbol de expansión suma la lista de Kruskal partida en dos.
         .concat(config.expansion ? ['estructura-grafo--partida', 'estructura-grafo--apilada estructura-grafo--partida',
@@ -1220,7 +1283,10 @@
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       // En las operaciones, la vista previa son los dos operandos.
-      dom.estructuraEl.appendChild(config.operaciones ? crearOperandos(grafo, null) : crearGrafo(grafo, null));
+      if (config.operaciones && combinaciones.es(grafo.operacion)) libres.llenarCombinacion(dom.estructuraEl, grafo, null);
+      else if (config.operaciones) dom.estructuraEl.appendChild(crearOperandos(grafo, null));
+      else if (config.transformaciones) libres.llenarTransformacion(dom.estructuraEl, grafo, null);
+      else dom.estructuraEl.appendChild(crearGrafo(grafo, null));
       ajustarGrafo();
     }
 

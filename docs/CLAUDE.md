@@ -968,6 +968,24 @@ Se arma como Floyd (§5.12): el grafo y la representación salen de los parámet
 
 También van en su color las aristas de cada operando y los dos términos de |A| en la tarjeta de la cuenta, de modo que cada sumando de la fórmula se ve como un color. Una leyenda lo dice debajo del resultado. **El tensorial no se pinta**: cada arista suya sale de una de G₁ y una de G₂ a la vez. Los colores son datos y no estados (`--operando-g1`, `--operando-g2`), y el punteado de G₁ deja distinguir los dos grupos sin depender del color. La traza lo lleva en `resultado.origenes`.
 
+#### Unión, intersección, diferencia, suma anillo y suma (2026-11-24)
+
+El usuario pidió «operaciones entre grafos (unión, intersección, productos, composición…)», pidió una lista y **aprobó la propuesta el 2026-11-24**: «por ahora realicémoslo a tu recomendación, ya luego corregimos con las dudas que le pregunte al profesor». **No hay material del docente**: las definiciones son las usuales y el paso a paso es de esta aplicación, sin maquetas previas. Van en el mismo tema y el mismo selector, antes de los productos (`dominio/combinaciones.js`, `algoritmos/combinaciones.js`).
+
+| Operación | Vértices | Aristas | \|A\| |
+|---|---|---|---|
+| G₁ ∪ G₂ | V₁ ∪ V₂ | las de cualquiera de los dos | \|A₁\| + \|A₂\| − \|A₁ ∩ A₂\| |
+| G₁ ∩ G₂ | V₁ ∩ V₂ | las que están en los dos | \|A₁ ∩ A₂\| |
+| G₁ − G₂ | V₁ | las de G₁ que no están en G₂ | \|A₁\| − \|A₁ ∩ A₂\| |
+| G₁ ⊕ G₂ | V₁ ∪ V₂ | las que están en uno solo | \|A₁\| + \|A₂\| − 2·\|A₁ ∩ A₂\| |
+| G₁ + G₂ | V₁ ∪ V₂ | las de los dos y todas las de V₁ con V₂ | \|A₁\| + \|A₂\| + \|V₁\|·\|V₂\| |
+
+Aquí **dos vértices con el mismo nombre son el mismo**, y 2–1 es la arista 1–2. Hasta 6 vértices por grafo: el resultado llega a 12. El paso a paso: primero los vértices; después una arista por paso, diciendo en qué grafo está y si entra; al final, |V| y |A| con su fórmula. En la suma todas entran, así que un paso copia A₁, otro A₂, y después va uno por vértice de V₁.
+
+**El dibujo** (`vista/dibujos/grafos-libres.js`): **cada vértice va en el mismo sitio en G₁, en G₂ y en el resultado**, y los conjuntos se escriben como en el cuaderno, `A₁ = {1–2, 2–3}`, con lo que el paso mira resaltado. En la suma, V₁ a la izquierda y V₂ a la derecha, y A no se escribe —llega a 66 aristas—. Al terminar, cada arista va en su color: solo de G₁, solo de G₂, de los dos, o nueva.
+
+**Dudas para el docente** (el usuario las aclara en las próximas clases): si la suma exige vértices distintos —hoy sí, y se rechaza si los comparten— y si la suma anillo conserva los vértices que quedan aislados —hoy sí, V₁ ∪ V₂—.
+
 ### 5.16 Conjuntos independientes y dominantes (2026-10-28)
 
 **Quinto tema de grafos**, visto en clase con las hojas manuscritas de `docs/C. indep y dominante/` (3 de independientes y 6 de dominantes; el docente cita a Grimaldi, *Matemáticas discretas*). No estaba en el catálogo: entrada nueva. **Un solo tema** (decisión del usuario): un independiente es maximal justo cuando además domina, y la comprobación es la misma.
@@ -1003,11 +1021,13 @@ También van en su color las aristas de cada operando y los dos términos de |A|
 
 **Cómo se dibuja**: M con trazo grueso verde y lo saturado en el verde de S′ (§5.16). En el camino, lo de M en naranja grueso y lo de fuera en naranja punteado, como las rayas de la hoja, con un anillo naranja en sus dos vértices libres. Al lado, «Aₑ = {…}», la tabla de caminos con lo que sale y entra, o la de «comparte con», y al final Aₗ, Vₛ, Vₗ y las propiedades. El panel del cálculo se suelta en ventana chica (`calculoPrescindible`).
 
-### 5.18 Árbol de expansión mínimo — Prim y Kruskal (2026-11-09)
+### 5.18 Árbol de expansión — Prim y Kruskal (2026-11-09; el máximo, 2026-11-24)
 
 **Séptimo tema de grafos.** Se vio en clase con los dos métodos, Prim y Kruskal, y **no hay hojas del docente** (dicho por el usuario, 2026-11-09). Por eso el paso a paso lo define esta aplicación, como en las operaciones entre grafos (§5.15). Las pruebas (`pruebas/expansion.test.js`) se anclan a la figura 12 del documento de apoyo, que es un grafo ponderado del docente: el árbol es 4–5, 4–2, 3–5, 3–1, con peso 9, y es único. Además se prueba que Prim y Kruskal dan el mismo peso en 200 grafos al azar.
 
 **El grafo** (`dominio/expansion.js`, `leerGrafo` propio): una arista por renglón, «1 2 5», con sus dos vértices y su peso. Sin peso vale 1, como en la hoja de Floyd. Los vértices pueden ser números o letras, porque los libros dibujan estos grafos con A, B…, y se ordenan números primero y letras después. Caben hasta 10 vértices. **Se rechaza al crear un grafo que no es conexo**, diciendo qué partes quedan sueltas: no tiene árbol de expansión. Se rechaza también un peso negativo («1 2 -3»): el guion separa vértices, y partido como separador volvía positivo el peso sin avisar.
+
+**Mínimo o máximo** (pedido del usuario, 2026-11-24): el formulario pide primero cuál (`objetivo`). El máximo son los mismos métodos con el orden al revés —Kruskal de mayor a menor peso, Prim la más pesada que sale— y la misma regla de empates. Un árbol escrito se compara con el que se busca. Sin hojas del docente: la figura 12 da 2–3, 4–3, 2–1, 3–5, con peso 25, y las pruebas comparan los dos métodos con la fuerza bruta. Un archivo de antes, sin `objetivo`, es el mínimo. El tema dejó de llamarse «Árbol de expansión mínimo».
 
 **Empates: gana la arista escrita antes.** Si un empate deja elegir, existe otro árbol del mismo peso. La conclusión lo dice con el cambio concreto: una arista de fuera que pesa lo mismo que alguna del camino que reemplazaría.
 
@@ -1021,9 +1041,30 @@ También van en su color las aristas de cada operando y los dos términos de |A|
 
 Las métricas pasan a llamarse Rango y Nulidad. **Las aristas se nombran a, b, c… en el orden escrito**, como las del grafo verde del docente: las ramas y las cuerdas se dicen por su nombre, que va en cursiva delante del peso en el dibujo y en una columna propia de las tablas. Lo demás se sigue diciendo por sus vértices («1–3»).
 
+**Centro y bicentro, sobre el árbol** (decisión del usuario, 2026-11-24). Después de las cuerdas, cuatro pasos sobre la matriz de distancias del árbol: distancias y excentricidad, radio y diámetro (su camino en naranja), centro o bicentro, y mediana. Entre dos vértices hay un solo camino, así que la matriz es la de Floyd aplicado al árbol, y una prueba lo compara. **Bicentro** es el centro cuando son dos vértices, que con pesos positivos son siempre adyacentes; con aristas de peso 0 el centro puede tener más de dos, y no se llama bicentro. Las distancias llevan los pesos, como la figura 12 del documento de apoyo. En estos pasos las métricas dicen radio, diámetro, centro y mediana, cada una desde su paso. En el árbol mínimo de la figura 12: centro {3}, mediana {5}, radio 5 y diámetro 9. Los conceptos del tema de Floyd siguen siendo los del grafo entero.
+
+**Dudas para el docente** (2026-11-24): si el bicentro se calcula con los pesos o contando aristas; qué es fusionar vértices y aristas, y si al fusionar quedan paralelas y lazos. Mientras tanto va lo recomendado al usuario, que lo aceptó: fusionar una arista es contraerla, uniendo sus dos extremos.
+
 **Árbol escrito**, la tercera opción del formulario. El docente toma el grafo verde, sin pesos, y elige el árbol a, b, e, f, «a varias soluciones, se escogió la siguiente». Kruskal da a, b, d, f en ese grafo. Para seguir la hoja, el árbol se escribe por los nombres de sus aristas (`leerArbol`). Al crear se revisa que tenga n − 1 aristas, que existan y que no formen ciclo; si lo forman, se dice cuáles. El primer paso lo comprueba, y la conclusión dice si es mínimo comparando con el peso de Kruskal. Con el ejemplo del docente da ramas a, b, e, f, rango 4, cuerdas c, d, g, h y nulidad 4: es la prueba. Él escribe las cuerdas «{d, c, g, h}»; la aplicación las ordena por nombre.
 
 **Cómo se dibuja**: el árbol con el trazo grueso verde de M en los pareamientos (§5.17), y sus vértices en verde. La arista del paso va en naranja: gruesa si entra, punteada si Kruskal la descarta. Las candidatas de Prim van en azul, y lo que ya no puede entrar, en gris punteado. Las cuerdas, en azul punteado. **Dos aristas con el mismo punto medio** (las diagonales del cuadrado, 1–4 y 2–3) llevan su rótulo más cerca de su origen, en todos los temas de grafos: antes quedaban encimados. Al lado van «T = {…}» y «Peso = 1 + 2 + … = 9», y la tabla. En Kruskal es la lista ordenada con su decisión: «entra» en verde, y «ciclo» gris con la arista tachada. En Prim, una fila por arista que entra, con «desde» el árbol que había y el vértice nuevo. Al final, las propiedades: árbol de expansión y único. **La lista de Kruskal se parte en dos mitades**, que sin partir se leen como una sola tabla (columnas de ancho fijo). `encajar` prueba además ponerlas lado a lado (`estructura-grafo--partida`): con 9 vértices y 14 aristas, a 1280 × 633 la lista entera no cabía ni a la mitad. **A 1024 × 650 ese caso todavía no cabe**: sobran unos 30 px a 0,5×. Es lo mismo que el caso extremo de los conjuntos, y el XGA ya no es requisito. El panel del cálculo se suelta en ventana chica (`calculoPrescindible`).
+
+### 5.19 Operaciones sobre un grafo (2026-11-24)
+
+**Octavo tema de grafos**, aparte del anterior por decisión del usuario (2026-11-24), que pidió «insertar un vértice, borrar una arista, insertar una arista, fusión de vértices, fusión de aristas, complemento…» y confirmó borrar vértice. **No hay material del docente.** Grafo simple y no dirigido, hasta 8 vértices, escrito como en §5.15 (`dominio/transformaciones.js`, `algoritmos/transformaciones.js`).
+
+- **Insertar vértice**: con los vecinos que se escriban, o aislado. |V| + 1 y |A| + gr(v).
+- **Borrar vértice**: se van primero sus aristas, una por paso, y después él. |V| − 1 y |A| − gr(v).
+- **Insertar arista** entre dos no adyacentes, y **borrar arista**: los vértices se quedan.
+- **Fusionar vértices**: los dos pasan a ser uno, «2,4», en el medio de donde estaban, con los vecinos de ambos. Una arista por paso, que pasa al vértice nuevo o se descarta.
+- **Fusionar (contraer) arista**: lo mismo, con los extremos de una arista, que desaparece.
+- **Complemento**: un paso por vértice, con las aristas que le faltan con los que siguen. n(n − 1)/2 − |A|.
+
+**Al fusionar queda un grafo simple**: un lazo o una paralela se descarta y el paso lo dice. Es una recomendación de esta aplicación que el usuario aceptó mientras pregunta. **Dudas para el docente**: si fusionar aristas es contraerlas, y si al fusionar se conservan paralelas y lazos. Si se conservan, hay que cambiar `fusionar` —que ya clasifica cada arista en `pasa`, `paralela` o `lazo`— y el dibujo, que hoy no traza ni lazos ni paralelas.
+
+**Cada operación pide solo su dato**: `soloCon` de un parámetro admite desde aquí varios valores. El lienzo pone G y G′ lado a lado, con cada vértice en el mismo sitio, y G′ tal como va quedando.
+
+---
 
 ## 6. Visualización
 
@@ -1657,7 +1698,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —cartesiano, tensorial y composición— (§5.15, 2026-10-26), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28) **y los pareamientos** (§5.17, 2026-11-03). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —productos, composición, unión, intersección, diferencia y sumas— (§5.15, 2026-10-26 y 2026-11-24), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28), **los pareamientos** (§5.17, 2026-11-03), **el árbol de expansión** (§5.18, 2026-11-09) **y las operaciones sobre un grafo** (§5.19, 2026-11-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

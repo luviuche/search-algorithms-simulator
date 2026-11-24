@@ -1,9 +1,9 @@
 (function () {
   const { TIPOS_PASO, crearPaso } = window.CC2.algoritmos.traza;
   const expansion = window.CC2.dominio.expansion;
-  const { METODOS, etiqueta } = expansion;
+  const { METODOS, OBJETIVOS, etiqueta } = expansion;
 
-  // Árbol de expansión mínimo (CLAUDE.md 5.18): la traza de Prim o de
+  // Árbol de expansión mínimo o máximo (CLAUDE.md 5.18): la traza de Prim o de
   // Kruskal. Sin hojas del docente, el paso a paso es de esta aplicación:
   //
   //   Kruskal  un paso con la lista ordenada por peso, y uno por arista
@@ -15,7 +15,9 @@
   //
   // Con el árbol, su peso como suma y si hay otro del mismo peso. Después,
   // como el docente antes de los circuitos y cortes fundamentales, las ramas
-  // con el rango, y el complemento —las cuerdas— con la nulidad.
+  // con el rango, y el complemento —las cuerdas— con la nulidad. Y al final,
+  // sobre el árbol, la matriz de distancias con su radio, diámetro, centro o
+  // bicentro, y mediana (pedido del usuario, 2026-11-24).
   //
   //   Árbol escrito  un paso que lo comprueba (para seguir el ejemplo del
   //                  docente, que elige a, b, e, f entre varios)
@@ -26,16 +28,24 @@
   const nombres = (aristas) => aristas.map((a) => a.nombre);
   const conPeso = (a) => `${etiqueta(a)} (${a.peso})`;
 
-  function recorrer(grafo, { metodo, inicio, arbol = [] }) {
-    if (metodo === METODOS.DADO) return pasosDelArbolDado(grafo, arbol);
-    return metodo === METODOS.PRIM ? pasosDePrim(grafo, inicio || grafo.vertices[0]) : pasosDeKruskal(grafo);
+  // Lo que cambia al decirlo, según se busque el mínimo o el máximo.
+  const PALABRAS = {
+    [OBJETIVOS.MINIMO]: { nombre: 'mínimo', Nombre: 'Mínimo', orden: 'de menor a mayor peso', elegida: 'más liviana', ninguno: 'menos', fuera: 'más' },
+    [OBJETIVOS.MAXIMO]: { nombre: 'máximo', Nombre: 'Máximo', orden: 'de mayor a menor peso', elegida: 'más pesada', ninguno: 'más', fuera: 'menos' }
+  };
+
+  function recorrer(grafo, { metodo, inicio, arbol = [], objetivo = OBJETIVOS.MINIMO }) {
+    if (metodo === METODOS.DADO) return pasosDelArbolDado(grafo, arbol, objetivo);
+    return metodo === METODOS.PRIM
+      ? pasosDePrim(grafo, inicio || grafo.vertices[0], objetivo)
+      : pasosDeKruskal(grafo, objetivo);
   }
 
   // ── Árbol escrito ────────────────────────────────────────────────────────
-  function pasosDelArbolDado(grafo, nombresDelArbol) {
+  function pasosDelArbolDado(grafo, nombresDelArbol, objetivo) {
     const arbol = grafo.aristas.filter((a) => nombresDelArbol.includes(a.nombre));
     const n = grafo.vertices.length;
-    const comun = { metodo: METODOS.DADO, descartadas: [], tabla: [] };
+    const comun = { metodo: METODOS.DADO, objetivo, descartadas: [], tabla: [] };
     const pasos = [crearPaso(TIPOS_PASO.CALCULO, {
       ...comun, T: nombres(arbol), fase: 'dado',
       calculo: arbol.map((a) => ({ etiqueta: a.nombre, expresion: `${etiqueta(a)} · peso ${a.peso}`, resultado: '', activa: false })),
@@ -46,9 +56,9 @@
   }
 
   // ── Kruskal ──────────────────────────────────────────────────────────────
-  function pasosDeKruskal(grafo) {
+  function pasosDeKruskal(grafo, objetivo) {
     const n = grafo.vertices.length;
-    const { orden, decisiones, arbol } = expansion.kruskal(grafo);
+    const { orden, decisiones, arbol } = expansion.kruskal(grafo, objetivo);
     const tabla = (hasta) => orden.map((a, i) => {
       const d = decisiones[i];
       return {
@@ -57,10 +67,10 @@
       };
     });
     const pasos = [crearPaso(TIPOS_PASO.CALCULO, {
-      metodo: METODOS.KRUSKAL, T: [], descartadas: [], tabla: tabla(0),
+      metodo: METODOS.KRUSKAL, objetivo, T: [], descartadas: [], tabla: tabla(0),
       calculo: orden.map((a) => ({ etiqueta: etiqueta(a), expresion: `peso ${a.peso}`, resultado: '', activa: false })),
       tituloCalculo: 'Aristas por peso',
-      mensaje: `Se ordenan las ${orden.length} aristas de menor a mayor peso (las de igual peso, en el orden escrito). Cada vértice empieza solo, en su propio componente; el árbol necesita n − 1 = ${n - 1} aristas.`
+      mensaje: `Se ordenan las ${orden.length} aristas ${PALABRAS[objetivo].orden} (las de igual peso, en el orden escrito). Cada vértice empieza solo, en su propio componente; el árbol necesita n − 1 = ${n - 1} aristas.`
     })];
     const T = [];
     const descartadas = [];
@@ -70,7 +80,7 @@
       else descartadas.push(a);
       const [x, y] = d.une || [];
       pasos.push(crearPaso(TIPOS_PASO.CALCULO, {
-        metodo: METODOS.KRUSKAL, T: nombres(T), descartadas: nombres(descartadas), tabla: tabla(i + 1),
+        metodo: METODOS.KRUSKAL, objetivo, T: nombres(T), descartadas: nombres(descartadas), tabla: tabla(i + 1),
         actual: a.nombre, entra: d.entra, ciclo: d.ciclo ? nombres(d.ciclo) : [],
         componentes: expansion.componentes(grafo, T),
         calculo: [{
@@ -87,7 +97,7 @@
     });
     const sobran = orden.slice(decisiones.length);
     return pasos.concat(conclusion(grafo, arbol, {
-      metodo: METODOS.KRUSKAL, descartadas: nombres(descartadas), tabla: tabla(decisiones.length),
+      metodo: METODOS.KRUSKAL, objetivo, descartadas: nombres(descartadas), tabla: tabla(decisiones.length),
       antes: sobran.length
         ? `Ya hay ${n - 1} aristas: ${sobran.length === 1 ? 'la que queda' : `las ${sobran.length} que quedan`} (${sobran.map(etiqueta).join(', ')}) no hace falta revisarlas. `
         : ''
@@ -95,9 +105,9 @@
   }
 
   // ── Prim ─────────────────────────────────────────────────────────────────
-  function pasosDePrim(grafo, inicio) {
+  function pasosDePrim(grafo, inicio, objetivo) {
     const n = grafo.vertices.length;
-    const { vueltas, arbol } = expansion.prim(grafo, inicio);
+    const { vueltas, arbol } = expansion.prim(grafo, inicio, objetivo);
     const tabla = (hasta) => vueltas.slice(0, hasta).map((v) => ({
       dentro: v.dentro.slice(), arista: v.elegida.nombre, etiqueta: etiqueta(v.elegida), peso: v.elegida.peso, nuevo: v.nuevo
     }));
@@ -105,8 +115,8 @@
     const internas = (dentro, T) => grafo.aristas
       .filter((a) => !T.includes(a) && dentro.includes(a.origen) && dentro.includes(a.destino));
     const pasos = [crearPaso(TIPOS_PASO.CALCULO, {
-      metodo: METODOS.PRIM, T: [], dentro: [inicio], descartadas: [], tabla: [],
-      mensaje: `Se empieza por el vértice ${inicio}. En cada paso entra la arista más liviana que sale del árbol hacia un vértice que todavía no está en él (entre iguales, la escrita antes). Hacen falta n − 1 = ${n - 1}.`
+      metodo: METODOS.PRIM, objetivo, T: [], dentro: [inicio], descartadas: [], tabla: [],
+      mensaje: `Se empieza por el vértice ${inicio}. En cada paso entra la arista ${PALABRAS[objetivo].elegida} que sale del árbol hacia un vértice que todavía no está en él (entre iguales, la escrita antes). Hacen falta n − 1 = ${n - 1}.`
     })];
     const T = [];
     vueltas.forEach((v, i) => {
@@ -115,7 +125,7 @@
       const otras = v.candidatas.filter((c) => c !== v.elegida);
       const empate = otras.filter((c) => c.peso === v.elegida.peso);
       pasos.push(crearPaso(TIPOS_PASO.CALCULO, {
-        metodo: METODOS.PRIM, T: nombres(T), dentro, desde: v.dentro.slice(), nuevo: v.nuevo,
+        metodo: METODOS.PRIM, objetivo, T: nombres(T), dentro, desde: v.dentro.slice(), nuevo: v.nuevo,
         candidatas: nombres(v.candidatas), actual: v.elegida.nombre,
         descartadas: nombres(internas(dentro, T)), tabla: tabla(i + 1),
         calculo: v.candidatas.map((c) => ({
@@ -123,13 +133,13 @@
         })),
         tituloCalculo: `Salen de ${llaves(v.dentro)}`,
         mensaje: `Desde ${llaves(v.dentro)} ${v.candidatas.length === 1 ? 'sale solo' : 'salen'} ${lista(v.candidatas.map(conPeso))}. `
-          + (otras.length ? `La más liviana es ${etiqueta(v.elegida)}, peso ${v.elegida.peso}${empate.length ? ` (empata con ${lista(empate.map(etiqueta))}; va la escrita antes)` : ''}. ` : '')
+          + (otras.length ? `La ${PALABRAS[objetivo].elegida} es ${etiqueta(v.elegida)}, peso ${v.elegida.peso}${empate.length ? ` (empata con ${lista(empate.map(etiqueta))}; va la escrita antes)` : ''}. ` : '')
           + `Entra, y con ella el vértice ${v.nuevo}: ${T.length} de ${n - 1} aristas.`
       }));
     });
     const dentro = grafo.vertices.slice();
     return pasos.concat(conclusion(grafo, arbol, {
-      metodo: METODOS.PRIM, dentro, descartadas: nombres(internas(dentro, arbol)), tabla: tabla(vueltas.length), antes: ''
+      metodo: METODOS.PRIM, objetivo, dentro, descartadas: nombres(internas(dentro, arbol)), tabla: tabla(vueltas.length), antes: ''
     }));
   }
 
@@ -137,7 +147,8 @@
   function conclusion(grafo, arbol, { antes, ...comun }) {
     const total = expansion.peso(arbol);
     const dado = comun.metodo === METODOS.DADO;
-    const minimo = expansion.peso(expansion.kruskal(grafo).arbol);
+    const { nombre, Nombre, ninguno, fuera } = PALABRAS[comun.objetivo];
+    const optimo = expansion.peso(expansion.kruskal(grafo, comun.objetivo).arbol);
     const otro = expansion.otroDelMismoPeso(grafo, arbol);
     const suma = arbol.length > 1 ? `${arbol.map((a) => a.peso).join(' + ')} = ${total}` : String(total);
     const propiedades = [
@@ -146,15 +157,15 @@
         detalle: `toca los ${grafo.vertices.length} vértices con n − 1 = ${arbol.length} aristas, sin ciclos`
       },
       ...(dado ? [{
-        nombre: 'Mínimo', valor: total === minimo,
-        detalle: total === minimo ? `ningún árbol de expansión pesa menos de ${minimo}` : `pesa ${total}, y el mínimo pesa ${minimo}`
+        nombre: Nombre, valor: total === optimo,
+        detalle: total === optimo ? `ningún árbol de expansión pesa ${ninguno} de ${optimo}` : `pesa ${total}, y el ${nombre} pesa ${optimo}`
       }] : []),
       {
-        nombre: 'Único', valor: dado && total !== minimo ? null : !otro,
-        detalle: dado && total !== minimo ? 'no es mínimo'
+        nombre: 'Único', valor: dado && total !== optimo ? null : !otro,
+        detalle: dado && total !== optimo ? `no es ${nombre}`
           : otro
             ? `cambiando ${etiqueta(otro.sale)} por ${etiqueta(otro.entra)}, las dos de peso ${otro.entra.peso}, sale otro del mismo peso`
-            : 'toda arista de fuera pesa más que las del camino que reemplazaría'
+            : `toda arista de fuera pesa ${fuera} que las del camino que reemplazaría`
       }
     ];
     const delArbol = { ...comun, T: nombres(arbol), total, suma, propiedades };
@@ -164,13 +175,13 @@
         { etiqueta: 'Aristas', expresion: arbol.map(etiqueta).join(', '), resultado: String(arbol.length), activa: false },
         { etiqueta: 'Peso', expresion: suma, resultado: String(total), activa: true }
       ],
-      tituloCalculo: dado ? 'Árbol de expansión' : 'Árbol de expansión mínimo',
+      tituloCalculo: dado ? 'Árbol de expansión' : `Árbol de expansión ${nombre}`,
       mensaje: dado
-        ? `Peso del árbol: ${suma}. ${total === minimo ? 'Es mínimo' : `No es mínimo: el mínimo pesa ${minimo}`}${total === minimo && otro ? ', y no es el único' : ''}.`
-        : `${antes}Árbol de expansión mínimo: ${llaves(arbol.map(etiqueta))}, peso ${suma}.`
+        ? `Peso del árbol: ${suma}. ${total === optimo ? `Es ${nombre}` : `No es ${nombre}: el ${nombre} pesa ${optimo}`}${total === optimo && otro ? ', y no es el único' : ''}.`
+        : `${antes}Árbol de expansión ${nombre}: ${llaves(arbol.map(etiqueta))}, peso ${suma}.`
           + (otro ? ` No es el único: con ${etiqueta(otro.entra)} en lugar de ${etiqueta(otro.sale)} pesa lo mismo.` : '')
     });
-    return [paso, ...pasosDeRamasYCuerdas(grafo, arbol, delArbol)];
+    return [paso, ...pasosDeRamasYCuerdas(grafo, arbol, delArbol), ...pasosDeCentro(grafo, arbol, delArbol)];
   }
 
   // Como en el documento de apoyo: «se identifican las ramas y el rango»;
@@ -189,7 +200,7 @@
         tituloCalculo: 'Ramas y rango',
         mensaje: `Ramas: las aristas del árbol, ${llaves(nombres(ramas))}. Rango = n − 1 = ${n} − 1 = ${rango}, el número de ramas.`
       }),
-      crearPaso(TIPOS_PASO.CONSTRUIDO, {
+      crearPaso(TIPOS_PASO.CALCULO, {
         ...conRamas, fase: 'cuerdas', cuerdas: nombres(cuerdas), nulidad, m, n,
         calculo: [
           { etiqueta: 'Ramas', expresion: llaves(nombres(ramas)), resultado: String(rango), activa: false },
@@ -202,6 +213,57 @@
           : `El grafo ya es un árbol: no le quedan aristas fuera, así que no tiene cuerdas. Nulidad = m − n + 1 = ${m} − ${n} + 1 = 0.`
       })
     ];
+  }
+
+  // La matriz de distancias del árbol y lo que se lee de ella, un concepto
+  // por paso, con los mismos nombres y columnas que en Floyd (CLAUDE.md 5.12).
+  function pasosDeCentro(grafo, arbol, delArbol) {
+    const { matriz, conceptos, union, esBicentro, caminoDiametro } = expansion.distanciasEnArbol(grafo, arbol);
+    const { ramas, cuerdas, rango, nulidad } = expansion.ramasYCuerdas(grafo, arbol);
+    const { excentricidades, radio, diametro, centro, mediana, distanciaMinima, parDiametro } = conceptos;
+    const nombreCentro = esBicentro ? 'Bicentro' : 'Centro';
+    const lineas = [];
+    const pasos = [];
+    const anotar = (tipo, mostrar, linea, mensaje, extra = {}) => {
+      lineas.push(linea);
+      pasos.push(crearPaso(tipo, {
+        ...delArbol, fase: 'centro',
+        ramas: nombres(ramas), cuerdas: nombres(cuerdas), rango, nulidad,
+        matriz: matriz.map((fila) => fila.slice()),
+        tituloMatriz: 'Distancias en el árbol',
+        conceptos: { ...conceptos, esBicentro, mostrar: mostrar.slice() },
+        calculo: lineas.map((l, i) => ({ ...l, activa: i === lineas.length - 1 })),
+        tituloCalculo: 'Sobre el árbol',
+        mensaje,
+        ...extra
+      }));
+    };
+    const mostrar = ['distancia', 'excentricidad'];
+    anotar(TIPOS_PASO.CALCULO, mostrar,
+      { etiqueta: 'Excentricidad', expresion: 'mayor valor de su fila', resultado: '' },
+      'Distancias sobre el árbol: entre dos vértices hay un solo camino, y la distancia es la suma de sus pesos (Floyd da la misma matriz). '
+        + `Excentricidad, el mayor valor de cada fila: ${excentricidades.join(', ')}.`);
+    mostrar.push('radio', 'diametro');
+    anotar(TIPOS_PASO.CALCULO, mostrar,
+      { etiqueta: 'Radio · diámetro', expresion: `mín y máx de ${excentricidades.join(', ')}`, resultado: `${radio} · ${diametro}` },
+      `Radio, la excentricidad más pequeña: ${radio}. Diámetro, la más grande: ${diametro}, entre ${parDiametro[0]} y ${parDiametro[1]}.`,
+      { resaltar: { tipo: 'diametro', vertices: parDiametro }, caminoDiametro: nombres(caminoDiametro) });
+    mostrar.push('centro');
+    anotar(TIPOS_PASO.CALCULO, mostrar,
+      { etiqueta: nombreCentro, expresion: `excentricidad = ${radio}`, resultado: llaves(centro) },
+      esBicentro
+        ? `Bicentro: dos vértices tienen la excentricidad mínima, ${lista(centro)}, y la rama ${union.nombre} los une.`
+        : centro.length === 1
+          ? `Centro: un solo vértice tiene la excentricidad mínima, ${centro[0]}. No hay bicentro.`
+          : `Centro: ${lista(centro)} tienen la excentricidad mínima. Son más de dos por las aristas de peso 0, así que no hay bicentro.`,
+      { resaltar: { tipo: 'centro', vertices: centro } });
+    mostrar.push('mediana');
+    anotar(TIPOS_PASO.CONSTRUIDO, mostrar,
+      { etiqueta: 'Mediana', expresion: `distancia = ${distanciaMinima}`, resultado: llaves(mediana) },
+      `Mediana: ${mediana.length === 1 ? 'el vértice' : 'los vértices'} de distancia mínima, ${lista(mediana)}. `
+        + `Sobre el árbol: radio ${radio}, diámetro ${diametro}, ${nombreCentro.toLowerCase()} ${llaves(centro)} y mediana ${llaves(mediana)}.`,
+      { resaltar: { tipo: 'mediana', vertices: mediana } });
+    return pasos;
   }
 
   window.CC2 = window.CC2 || {};

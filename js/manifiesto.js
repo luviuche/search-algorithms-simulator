@@ -29,6 +29,8 @@
     'dominio/grafo.js',
     'dominio/coloreado.js',
     'dominio/operaciones.js',
+    'dominio/combinaciones.js',
+    'dominio/transformaciones.js',
     'dominio/conjuntos.js',
     'dominio/pareamientos.js',
     'dominio/expansion.js',
@@ -59,6 +61,8 @@
     'algoritmos/representacion.js',
     'algoritmos/coloreado.js',
     'algoritmos/operaciones.js',
+    'algoritmos/combinaciones.js',
+    'algoritmos/transformaciones.js',
     'algoritmos/conjuntos.js',
     'algoritmos/pareamientos.js',
     'algoritmos/expansion.js',
@@ -87,6 +91,7 @@
     'vista/dibujos/bloques.js',
     'vista/dibujos/indices.js',
     'vista/dibujos/bosque.js',
+    'vista/dibujos/grafos-libres.js',
     'vista/dibujos/grafo.js',
     'vista/pantallas/tema-busqueda.js'
   ];

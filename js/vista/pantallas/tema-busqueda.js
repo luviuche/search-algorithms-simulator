@@ -1271,7 +1271,7 @@
         const alcance = parametro.soloConTratamiento
           ? ` data-solo-con-tratamiento="${parametro.soloConTratamiento}"`
           : parametro.soloCon
-            ? ` data-solo-con-parametro="${parametro.soloCon.parametro}" data-solo-con-valor="${parametro.soloCon.valor}"`
+            ? ` data-solo-con-parametro="${parametro.soloCon.parametro}" data-solo-con-valor="${[].concat(parametro.soloCon.valor).join(' ')}"`
             : '';
         return `
         <label class="texto-nivel-3"${alcance}>${parametro.etiqueta}
@@ -1338,7 +1338,7 @@
       function sincronizarCamposDeParametros() {
         for (const campo of camposDeOtroParametro) {
           const control = contenedor.querySelector(`[name="${campo.dataset.soloConParametro}"]`);
-          campo.hidden = !control || control.value !== campo.dataset.soloConValor;
+          campo.hidden = !control || !campo.dataset.soloConValor.split(' ').includes(control.value);
         }
       }
       if (camposDeOtroParametro.length) {
@@ -1484,7 +1484,8 @@
     // Si un parámetro va con esta estructura: los de `soloCon`, solo cuando
     // el otro parámetro —leído antes— tiene ese valor.
     function aplica(parametro, parametros) {
-      return !parametro.soloCon || parametros[parametro.soloCon.parametro] === parametro.soloCon.valor;
+      return !parametro.soloCon
+        || [].concat(parametro.soloCon.valor).includes(parametros[parametro.soloCon.parametro]);
     }
 
     function leerParametros(datos, tamano) {

@@ -1,5 +1,5 @@
 (function () {
-  // Árbol de expansión mínimo (CLAUDE.md 5.18). Se vio en clase con Prim y
+  // Árbol de expansión mínimo o máximo (CLAUDE.md 5.18). Se vio en clase con Prim y
   // Kruskal, sin hojas del docente (dicho por el usuario, 2026-11-09): el
   // paso a paso lo define esta aplicación, y las pruebas se anclan a la
   // figura 12 del documento de apoyo, que es un grafo ponderado del docente.
@@ -7,6 +7,8 @@
   //   árbol de expansión  subgrafo conexo y sin ciclos con todos los vértices;
   //                       tiene n − 1 aristas
   //   mínimo              el de menor peso total
+  //   máximo              el de mayor peso total: los mismos métodos con el
+  //                       orden al revés (pedido del usuario, 2026-11-24)
   //   Kruskal             las aristas de menor a mayor peso; entra la que une
   //                       dos componentes distintos, y la que cerraría un
   //                       ciclo se descarta
@@ -28,6 +30,13 @@
   // seguirlo, el árbol también se puede escribir (`DADO`).
 
   const METODOS = Object.freeze({ KRUSKAL: 'kruskal', PRIM: 'prim', DADO: 'dado' });
+  const OBJETIVOS = Object.freeze({ MINIMO: 'minimo', MAXIMO: 'maximo' });
+
+  // El orden en que se prefieren las aristas: por peso, hacia donde diga el
+  // objetivo, y entre iguales la escrita antes —en los dos sentidos—.
+  const porPeso = (objetivo) => (objetivo === OBJETIVOS.MAXIMO
+    ? (x, y) => y.peso - x.peso || x.orden - y.orden
+    : (x, y) => x.peso - y.peso || x.orden - y.orden);
 
   // Con 10 vértices caben 45 aristas, y la lista ordenada de Kruskal todavía
   // entra al lado del grafo.
@@ -141,11 +150,11 @@
     return buscar(desde, null, []);
   }
 
-  // Kruskal: las aristas de menor a mayor peso —las de igual peso, en el
-  // orden escrito— y cada una entra si une dos componentes. Se detiene al
+  // Kruskal: las aristas de menor a mayor peso —o al revés, para el máximo;
+  // las de igual peso, en el orden escrito— y cada una entra si une dos componentes. Se detiene al
   // tener n − 1: las que quedan ya no hace falta mirarlas.
-  function kruskal(grafo) {
-    const orden = grafo.aristas.slice().sort((x, y) => x.peso - y.peso || x.orden - y.orden);
+  function kruskal(grafo, objetivo = OBJETIVOS.MINIMO) {
+    const orden = grafo.aristas.slice().sort(porPeso(objetivo));
     const arbol = [];
     const decisiones = [];
     for (const a of orden) {
@@ -163,16 +172,16 @@
   }
 
   // Prim: desde `inicio`, en cada vuelta las candidatas son las aristas con
-  // un extremo en el árbol y el otro fuera; entra la más liviana, y entre
-  // iguales la escrita antes.
-  function prim(grafo, inicio = grafo.vertices[0]) {
+  // un extremo en el árbol y el otro fuera; entra la más liviana
+  // —la más pesada, para el máximo—, y entre iguales la escrita antes.
+  function prim(grafo, inicio = grafo.vertices[0], objetivo = OBJETIVOS.MINIMO) {
     const dentro = [inicio];
     const arbol = [];
     const vueltas = [];
     while (dentro.length < grafo.vertices.length) {
       const candidatas = grafo.aristas
         .filter((a) => dentro.includes(a.origen) !== dentro.includes(a.destino))
-        .sort((x, y) => x.peso - y.peso || x.orden - y.orden);
+        .sort(porPeso(objetivo));
       const [elegida] = candidatas;
       const nuevo = dentro.includes(elegida.origen) ? elegida.destino : elegida.origen;
       vueltas.push({ dentro: dentro.slice(), candidatas, elegida, nuevo });
@@ -184,8 +193,9 @@
 
   const peso = (aristas) => aristas.reduce((suma, a) => suma + a.peso, 0);
 
-  // **¿Es el único árbol mínimo?** Lo es si toda arista de fuera pesa más que
-  // cada arista del camino que une sus extremos en el árbol. Si pesa igual
+  // **¿Es el único árbol óptimo?** Lo es si toda arista de fuera pesa más que
+  // cada arista del camino que une sus extremos en el árbol (en el máximo,
+  // menos). Si pesa igual
   // que alguna, se pueden cambiar y sale otro del mismo peso.
   function otroDelMismoPeso(grafo, arbol) {
     for (const a of grafo.aristas) {
@@ -228,10 +238,28 @@
     return { ramas, cuerdas, rango: n - 1, nulidad: m - n + 1, n, m };
   }
 
+  // **Centro y bicentro se calculan sobre el árbol** (decisión del usuario,
+  // 2026-11-24). Los conceptos son los de Floyd (`dominio.grafo.conceptos`),
+  // leídos de la matriz de distancias del árbol: entre dos vértices hay un
+  // solo camino, así que su distancia es la suma de los pesos de ese camino
+  // —la misma matriz que da Floyd—. Hay bicentro cuando el centro son dos
+  // vértices, que en un árbol con pesos positivos son siempre adyacentes; con
+  // pesos 0 el centro puede tener más, y entonces es un centro, dicho así.
+  function distanciasEnArbol(grafo, arbol) {
+    const { vertices } = grafo;
+    const matriz = vertices.map((v) => vertices.map((w) => peso(caminoEn(arbol, v, w))));
+    const conceptos = window.CC2.dominio.grafo.conceptos(matriz, vertices);
+    const { centro, parDiametro } = conceptos;
+    const union = centro.length === 2
+      ? arbol.find((a) => centro.includes(a.origen) && centro.includes(a.destino)) || null : null;
+    const caminoDiametro = parDiametro ? caminoEn(arbol, ...parDiametro) : [];
+    return { matriz, conceptos, union, esBicentro: Boolean(union), caminoDiametro };
+  }
+
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
   window.CC2.dominio.expansion = {
-    METODOS, VERTICES_MAXIMOS, leerGrafo, comoTexto, etiqueta, componentes, caminoEn, kruskal, prim, peso, otroDelMismoPeso,
-    leerArbol, ramasYCuerdas
+    METODOS, OBJETIVOS, VERTICES_MAXIMOS, leerGrafo, comoTexto, etiqueta, componentes, caminoEn, kruskal, prim, peso, otroDelMismoPeso,
+    leerArbol, ramasYCuerdas, distanciasEnArbol
   };
 })();

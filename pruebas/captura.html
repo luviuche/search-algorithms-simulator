@@ -537,10 +537,11 @@
     }
 
     // Árbol de expansión mínimo: ?vista=expansion&metodo=kruskal|prim
-    // &inicio=…&aristas=…, por omisión la figura 12 del documento de apoyo.
+    // &objetivo=minimo|maximo&inicio=…&aristas=…, por omisión la figura 12 del documento de apoyo.
     function prepararExpansion() {
-      const formularios = entrarATema('Árbol de expansión mínimo — Prim y Kruskal');
+      const formularios = entrarATema('Árbol de expansión — Prim y Kruskal');
       enviar(formularios[0], {
+        objetivo: parametros.get('objetivo') || 'minimo',
         metodo: parametros.get('metodo') || 'kruskal',
         aristas: parametros.get('aristas') || '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
         inicio: parametros.get('inicio') || '',
@@ -596,6 +597,21 @@
         return;
       }
       enviar(formularios[0], valores);
+      avanzar(pasosAAvanzar(40));
+    }
+
+    // Operaciones sobre un grafo: ?vista=transformaciones&operacion=…&aristas=…
+    // con el dato en `&vertice=`, `&vecinos=`, `&arista=` o `&fusion=`.
+    function prepararTransformaciones() {
+      const formularios = entrarATema('Operaciones sobre un grafo');
+      enviar(formularios[0], {
+        operacion: parametros.get('operacion') || 'fusionar-vertices',
+        aristas: parametros.get('aristas') || '1 2\n2 3\n3 4\n4 1\n1 3',
+        vertice: parametros.get('vertice') || '5',
+        vecinos: parametros.get('vecinos') || '1 3',
+        arista: parametros.get('arista') || '1 2',
+        fusion: parametros.get('fusion') || '2 4'
+      });
       avanzar(pasosAAvanzar(40));
     }
 
@@ -663,6 +679,7 @@
       if (vista === 'representacion') return prepararRepresentacion();
       if (vista === 'coloreado') return prepararColoreado();
       if (vista === 'operaciones') return prepararOperaciones();
+      if (vista === 'transformaciones') return prepararTransformaciones();
       if (vista === 'conjuntos') return prepararConjuntos();
       if (vista === 'pareamientos') return prepararPareamientos();
       if (vista === 'expansion') return prepararExpansion();

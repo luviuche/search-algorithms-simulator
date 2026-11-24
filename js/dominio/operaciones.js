@@ -25,7 +25,9 @@
   // letras**, en cualquiera de los dos grafos (pedido del usuario,
   // 2026-10-26): por eso aquí no hay nombre de arista delante, como en los
   // otros temas.
-  function leerOperando(texto, nombre) {
+  //
+  // Las operaciones que no son productos admiten más vértices (`maximo`).
+  function leerOperando(texto, nombre, maximo = VERTICES_MAXIMOS) {
     const renglones = String(texto || '').split(/\r?\n|;/).map((r) => r.trim()).filter(Boolean);
     if (renglones.length === 0) {
       return { valido: false, mensaje: `${nombre}: escriba al menos una arista o un vértice, por ejemplo «1 2».` };
@@ -53,8 +55,9 @@
       vertices.add(v);
       aristas.push([u, v]);
     }
-    if (vertices.size > VERTICES_MAXIMOS) {
-      return { valido: false, mensaje: `${nombre} tiene ${vertices.size} vértices; caben hasta ${VERTICES_MAXIMOS}, porque el resultado tiene el producto de los dos.` };
+    if (vertices.size > maximo) {
+      const porque = maximo === VERTICES_MAXIMOS ? ', porque el resultado tiene el producto de los dos' : '';
+      return { valido: false, mensaje: `${nombre} tiene ${vertices.size} vértices; caben hasta ${maximo}${porque}.` };
     }
     return { valido: true, grafo: { vertices: [...vertices].sort(ordenNatural), aristas } };
   }
@@ -141,5 +144,5 @@
 
   window.CC2 = window.CC2 || {};
   window.CC2.dominio = window.CC2.dominio || {};
-  window.CC2.dominio.operaciones = { OPERACIONES, VERTICES_MAXIMOS, leerOperando, comoTexto, operar, cuenta, adyacentes, par };
+  window.CC2.dominio.operaciones = { OPERACIONES, VERTICES_MAXIMOS, leerOperando, comoTexto, operar, cuenta, adyacentes, par, ordenNatural };
 })();

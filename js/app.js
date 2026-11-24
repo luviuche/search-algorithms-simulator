@@ -84,8 +84,9 @@
         { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y sus conceptos', tema: 'floyd', disponible: true },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Producto cartesiano, tensorial y composición', tema: 'operaciones', disponible: true },
-        { id: 'grafos-expansion', titulo: 'Árbol de expansión mínimo — Prim y Kruskal', descripcion: 'El árbol de menor peso que une todos los vértices', tema: 'expansion', disponible: true },
+        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Unión, intersección, sumas, productos y composición', tema: 'operaciones', disponible: true },
+        { id: 'grafos-transformaciones', titulo: 'Operaciones sobre un grafo', descripcion: 'Insertar, borrar, fusionar y complemento', tema: 'transformaciones', disponible: true },
+        { id: 'grafos-expansion', titulo: 'Árbol de expansión — Prim y Kruskal', descripcion: 'El de menor o mayor peso que une todos los vértices', tema: 'expansion', disponible: true },
         { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
@@ -1410,16 +1411,24 @@
       })()
     },
 
-    // Operaciones entre grafos (CLAUDE.md 5.15): producto cartesiano G₁ × G₂,
-    // producto tensorial G₁ ⊗ G₂ y composición G₁[G₂]. Dos grafos simples y
-    // no dirigidos, de hasta 4 vértices cada uno, con números o letras.
+    // Operaciones entre grafos (CLAUDE.md 5.15): los productos —cartesiano
+    // G₁ × G₂, tensorial G₁ ⊗ G₂ y composición G₁[G₂]—, de hasta 4 vértices
+    // por grafo, y las que reúnen dos grafos que comparten vértices —unión,
+    // intersección, diferencia, suma anillo y suma—, de hasta 6. Grafos
+    // simples y no dirigidos, con números o letras.
     operaciones: (() => {
       const { OPERACIONES } = dominio.operaciones;
+      const { COMBINACIONES } = dominio.combinaciones;
+      const reune = (operacion) => dominio.combinaciones.es(operacion);
+      const de = (operacion) => (reune(operacion) ? algoritmos.combinaciones : algoritmos.operaciones);
+      const leer = (texto, nombre, operacion) => (reune(operacion)
+        ? dominio.combinaciones.leer(texto, nombre)
+        : dominio.operaciones.leerOperando(texto, nombre));
       const operandos = (estructura) => {
         const p = estructura && estructura.parametros;
         if (!p) return null;
-        const g1 = dominio.operaciones.leerOperando(p.aristas1, 'G₁');
-        const g2 = dominio.operaciones.leerOperando(p.aristas2, 'G₂');
+        const g1 = leer(p.aristas1, 'G₁', p.operacion);
+        const g2 = leer(p.aristas2, 'G₂', p.operacion);
         return g1.valido && g2.valido ? { g1: g1.grafo, g2: g2.grafo, operacion: p.operacion } : null;
       };
       const tamano = (g) => `${g.vertices.length} v · ${g.aristas.length} a`;
@@ -1429,18 +1438,24 @@
         tipo: 'texto-largo',
         renglones: 4,
         marcador,
-        ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${dominio.operaciones.VERTICES_MAXIMOS} vértices.`,
-        validar: (entrada) => {
-          const lectura = dominio.operaciones.leerOperando(entrada, nombre);
-          return lectura.valido
-            ? { valido: true, valor: dominio.operaciones.comoTexto(lectura.grafo) }
-            : { valido: false, mensaje: lectura.mensaje };
+        ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${dominio.combinaciones.VERTICES_MAXIMOS} vértices, o ${dominio.operaciones.VERTICES_MAXIMOS} en los productos.`,
+        validar: (entrada, { parametros }) => {
+          const { operacion } = parametros;
+          const lectura = leer(entrada, nombre, operacion);
+          if (!lectura.valido) return { valido: false, mensaje: lectura.mensaje };
+          // La suma pide que no compartan vértices: se mira al leer G₂.
+          if (numero === 2 && reune(operacion)) {
+            const g1 = leer(parametros.aristas1, 'G₁', operacion);
+            const impedimento = g1.valido && dominio.combinaciones.impedimento(g1.grafo, lectura.grafo, operacion);
+            if (impedimento) return { valido: false, mensaje: impedimento };
+          }
+          return { valido: true, valor: dominio.operaciones.comoTexto(lectura.grafo) };
         }
       });
       return {
         // La descripción larga va en el encabezado del tema; el menú lleva una
         // corta (2026-10-28).
-        descripcion: 'Producto cartesiano, producto tensorial y composición de dos grafos',
+        descripcion: 'Unión, intersección, diferencia, suma, suma anillo, productos y composición de dos grafos',
         orientacion: 'grafo',
         operaciones: true,
         calculo: true,
@@ -1464,44 +1479,50 @@
         mensajeDerivacion: 'Operación iniciada.',
         mensajeCreacion: (estructura) => {
           const { g1, g2, operacion } = operandos(estructura);
-          return `${algoritmos.operaciones.TITULOS[operacion]} ${algoritmos.operaciones.SIMBOLOS[operacion]}: G₁ con ${tamano(g1)}, G₂ con ${tamano(g2)}.`;
+          return `${de(operacion).TITULOS[operacion]} ${de(operacion).SIMBOLOS[operacion]}: G₁ con ${tamano(g1)}, G₂ con ${tamano(g2)}.`;
         },
         detalleReciente: (estructura) => {
           const { g1, g2, operacion } = operandos(estructura);
-          return `${algoritmos.operaciones.SIMBOLOS[operacion]} · ${g1.vertices.length} y ${g2.vertices.length} vértices`;
+          return `${de(operacion).SIMBOLOS[operacion]} · ${g1.vertices.length} y ${g2.vertices.length} vértices`;
         },
         alCrear: ({ estructura }) => {
           const { g1, g2, operacion } = operandos(estructura);
-          return algoritmos.operaciones.recorrer(g1, g2, operacion);
+          return de(operacion).recorrer(g1, g2, operacion);
         },
         conservarAlFinal: ['operacion', 'g1', 'g2', 'resultado', 'hechas', 'nuevasDesde', 'usa', 'paresResaltados',
-          'cuenta', 'calculo', 'tituloCalculo'],
+          'combinacion', 'verticesNuevos', 'conjuntos', 'cuenta', 'calculo', 'tituloCalculo'],
         nombreArchivo: (estructura) => {
           const { g1, g2, operacion } = operandos(estructura);
           return `operacion-${operacion}-${g1.vertices.length}x${g2.vertices.length}`;
         },
         vistaPrevia: (datos) => {
-          const g1 = dominio.operaciones.leerOperando(datos.get('aristas1'), 'G₁');
-          const g2 = dominio.operaciones.leerOperando(datos.get('aristas2'), 'G₂');
+          const operacion = String(datos.get('operacion'));
+          const g1 = leer(datos.get('aristas1'), 'G₁', operacion);
+          const g2 = leer(datos.get('aristas2'), 'G₂', operacion);
           if (!g1.valido && !g2.valido) return null;
-          return { g1: g1.valido ? g1.grafo : null, g2: g2.valido ? g2.grafo : null, operacion: String(datos.get('operacion')) };
+          return { g1: g1.valido ? g1.grafo : null, g2: g2.valido ? g2.grafo : null, operacion };
         },
         parametros: [
           {
             nombre: 'operacion',
             etiqueta: 'Operación',
             opciones: [
+              { valor: COMBINACIONES.UNION, etiqueta: 'Unión  G₁ ∪ G₂' },
+              { valor: COMBINACIONES.INTERSECCION, etiqueta: 'Intersección  G₁ ∩ G₂' },
+              { valor: COMBINACIONES.DIFERENCIA, etiqueta: 'Diferencia  G₁ − G₂' },
+              { valor: COMBINACIONES.SUMA_ANILLO, etiqueta: 'Suma anillo  G₁ ⊕ G₂' },
+              { valor: COMBINACIONES.SUMA, etiqueta: 'Suma  G₁ + G₂' },
               { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ × G₂' },
               { valor: OPERACIONES.TENSORIAL, etiqueta: 'Producto tensorial  G₁ ⊗ G₂' },
               { valor: OPERACIONES.COMPOSICION, etiqueta: 'Composición  G₁[G₂]' }
             ],
-            ayuda: 'El resultado tiene un vértice por cada par (u, v), u de G₁ y v de G₂.',
-            validar: (entrada) => (Object.values(OPERACIONES).includes(entrada)
+            ayuda: 'Dos vértices con el mismo nombre son el mismo; en los productos, los vértices son los pares (u, v).',
+            validar: (entrada) => (Object.values(OPERACIONES).includes(entrada) || reune(entrada)
               ? { valido: true, valor: entrada }
               : { valido: false, mensaje: 'Elija la operación.' })
           },
           operando('G₁', 1, '1 2\n2 3'),
-          operando('G₂', 2, 'a b')
+          operando('G₂', 2, '2 3\n3 4')
         ],
         casillasRelevantes: () => [],
         describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
@@ -1527,7 +1548,9 @@
             etiqueta: 'Vértices',
             valor: ({ estructura }) => {
               const o = operandos(estructura);
-              return o ? String(o.g1.vertices.length * o.g2.vertices.length) : '—';
+              if (!o) return '—';
+              if (reune(o.operacion)) return String(dominio.combinaciones.combinar(o.g1, o.g2, o.operacion).vertices.length);
+              return String(o.g1.vertices.length * o.g2.vertices.length);
             }
           },
           {
@@ -1539,6 +1562,161 @@
               return paso.hechas === total && paso.cuenta ? String(total) : `${paso.hechas} de ${total}`;
             }
           }
+        ]
+      };
+    })(),
+
+    // Operaciones sobre un solo grafo (CLAUDE.md 5.19): insertar y borrar un
+    // vértice o una arista, fusionar vértices, contraer una arista y el
+    // complemento. Grafo simple y no dirigido, hasta 8 vértices.
+    transformaciones: (() => {
+      const modelo = dominio.transformaciones;
+      const { TRANSFORMACIONES: T, VERTICES_MAXIMOS } = modelo;
+      const { NOMBRES } = algoritmos.transformaciones;
+      const grafoDe = (estructura) => {
+        const p = estructura && estructura.parametros;
+        return p && p.aristas ? modelo.leer(p.aristas).grafo : null;
+      };
+      const con = (...operaciones) => ({ parametro: 'operacion', valor: operaciones });
+      const datosDe = (estructura) => {
+        const p = estructura.parametros;
+        const par = (texto) => String(texto).split(' ');
+        switch (p.operacion) {
+          case T.INSERTAR_VERTICE: return { vertice: p.vertice, vecinos: p.vecinos ? p.vecinos.split(' ') : [] };
+          case T.BORRAR_VERTICE: return { vertice: p.vertice };
+          case T.FUSIONAR_VERTICES: return { par: par(p.fusion) };
+          case T.COMPLEMENTO: return {};
+          default: return { par: par(p.arista) };
+        }
+      };
+      // Un dato se valida contra el grafo, que va antes en el formulario.
+      const contraElGrafo = (leer) => (entrada, { parametros }) => {
+        const lectura = modelo.leer(parametros.aristas);
+        if (!lectura.valido) return { valido: true, valor: '' };
+        const dato = leer(entrada, lectura.grafo, parametros.operacion);
+        if (!dato.valido) return dato;
+        return { valido: true, valor: dato.vertice || (dato.par || dato.vecinos).join(' ') };
+      };
+      return {
+        descripcion: 'Insertar y borrar vértices y aristas, fusionar vértices, contraer aristas y complemento',
+        orientacion: 'grafo',
+        transformaciones: true,
+        leerGrafo: modelo.leer,
+        calculo: true,
+        calculoPrescindible: true,
+        tituloCalculo: 'Operación',
+        calculoSoloEnOperacion: true,
+        sinTamano: true,
+        sinLongitud: true,
+        sinOperaciones: true,
+        sinClaves: true,
+        tamano: () => ({ n: 1, l: 1 }),
+        nombreEstructura: 'operación',
+        tituloConfiguracion: 'Grafo',
+        mensajeReinicio: 'Operación borrada: queda G como se escribió.',
+        mensajeLienzoVacio: {
+          titulo: 'Escriba las aristas del grafo',
+          indicacion: 'Una por renglón, en el panel de la derecha'
+        },
+        mensajeDerivacion: 'Operación iniciada.',
+        mensajeCreacion: (estructura) => {
+          const grafo = grafoDe(estructura);
+          const { operacion } = estructura.parametros;
+          return `${NOMBRES[operacion]}: G con ${grafo.vertices.length} vértices y ${grafo.aristas.length} aristas.`;
+        },
+        detalleReciente: (estructura) => {
+          const { operacion } = estructura.parametros;
+          return operacion === T.COMPLEMENTO
+            ? `Complemento · ${grafoDe(estructura).vertices.length} vértices`
+            : algoritmos.transformaciones.simbolo(operacion, datosDe(estructura));
+        },
+        alCrear: ({ estructura }) => algoritmos.transformaciones.recorrer(
+          grafoDe(estructura), estructura.parametros.operacion, datosDe(estructura)
+        ),
+        conservarAlFinal: ['transformacion', 'g', 'universo', 'fundido', 'nombreResultado', 'parcial', 'marcas', 'cuenta',
+          'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => `${estructura.parametros.operacion}-${grafoDe(estructura).vertices.length}v`,
+        vistaPrevia: (datos) => {
+          const lectura = modelo.leer(datos.get('aristas'));
+          return lectura.valido ? lectura.grafo : null;
+        },
+        parametros: [
+          {
+            nombre: 'operacion',
+            etiqueta: 'Operación',
+            opciones: Object.values(T).map((valor) => ({ valor, etiqueta: NOMBRES[valor] })),
+            validar: (entrada) => (Object.values(T).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija la operación.' })
+          },
+          {
+            nombre: 'aristas',
+            etiqueta: 'Aristas de G',
+            tipo: 'texto-largo',
+            renglones: 6,
+            marcador: '1 2\n2 3\n3 4',
+            ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${VERTICES_MAXIMOS} vértices.`,
+            validar: (entrada) => {
+              const lectura = modelo.leer(entrada);
+              return lectura.valido
+                ? { valido: true, valor: dominio.operaciones.comoTexto(lectura.grafo) }
+                : { valido: false, mensaje: lectura.mensaje };
+            }
+          },
+          {
+            nombre: 'vertice',
+            etiqueta: 'Vértice',
+            soloCon: con(T.INSERTAR_VERTICE, T.BORRAR_VERTICE),
+            marcador: '5',
+            ayuda: 'Al insertar, uno que no esté en G; al borrar, uno que esté.',
+            validar: contraElGrafo(modelo.leerVertice)
+          },
+          {
+            nombre: 'vecinos',
+            etiqueta: 'Se une con',
+            soloCon: con(T.INSERTAR_VERTICE),
+            marcador: '1 3',
+            ayuda: 'Vértices de G, separados por espacios. Vacío, queda aislado.',
+            validar: contraElGrafo(modelo.leerVecinos)
+          },
+          {
+            nombre: 'arista',
+            etiqueta: 'Arista',
+            soloCon: con(T.INSERTAR_ARISTA, T.BORRAR_ARISTA, T.CONTRAER_ARISTA),
+            marcador: '1 2',
+            ayuda: 'Sus dos vértices.',
+            validar: contraElGrafo(modelo.leerPar)
+          },
+          {
+            nombre: 'fusion',
+            etiqueta: 'Vértices que se fusionan',
+            soloCon: con(T.FUSIONAR_VERTICES),
+            marcador: '2 4',
+            ayuda: 'Dos vértices de G, adyacentes o no.',
+            validar: contraElGrafo(modelo.leerPar)
+          }
+        ],
+        casillasRelevantes: () => [],
+        describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
+        metricas: [
+          {
+            id: 'v',
+            etiqueta: '|V|',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.vertices.length) : '—';
+            }
+          },
+          {
+            id: 'a',
+            etiqueta: '|A|',
+            valor: ({ estructura }) => {
+              const grafo = grafoDe(estructura);
+              return grafo ? String(grafo.aristas.length) : '—';
+            }
+          },
+          { id: 'v2', etiqueta: '|V′|', valor: ({ paso }) => (paso && paso.parcial ? String(paso.parcial.vertices.length) : '—') },
+          { id: 'a2', etiqueta: '|A′|', valor: ({ paso }) => (paso && paso.parcial ? String(paso.parcial.aristas.length) : '—') }
         ]
       };
     })(),
@@ -1857,20 +2035,29 @@
       };
     })(),
 
-    // Árbol de expansión mínimo (CLAUDE.md 5.18): Prim o Kruskal sobre un
+    // Árbol de expansión mínimo o máximo (CLAUDE.md 5.18): Prim o Kruskal sobre un
     // grafo ponderado y conexo, con vértices número o letra. Sin hojas del
     // docente: el paso a paso es de esta aplicación.
     expansion: (() => {
-      const { METODOS, VERTICES_MAXIMOS } = dominio.expansion;
+      const { METODOS, OBJETIVOS, VERTICES_MAXIMOS } = dominio.expansion;
       const leer = (texto) => dominio.expansion.leerGrafo(texto);
       const grafoDe = (estructura) => {
         const p = estructura && estructura.parametros;
         return p && p.aristas ? leer(p.aristas).grafo : null;
       };
       const nombreDe = (metodo) => (metodo === METODOS.PRIM ? 'Prim' : metodo === METODOS.DADO ? 'árbol escrito' : 'Kruskal');
+      const objetivoDe = (estructura) => estructura.parametros.objetivo || OBJETIVOS.MINIMO;
+      const nombreObjetivo = (estructura) => (objetivoDe(estructura) === OBJETIVOS.MAXIMO ? 'máximo' : 'mínimo');
       const conCuerdas = (paso) => Boolean(paso && paso.nulidad !== undefined);
+      // Con las distancias del árbol, las cuatro casillas dicen sus conceptos.
+      const conCentro = (paso) => Boolean(paso && paso.conceptos);
+      // Sin espacio tras la coma: con él, un bicentro se partía en dos
+      // renglones en el panel de 340 px.
+      const conjunto = (vertices) => `{${vertices.join(',')}}`;
+      // Cada valor aparece con su paso, no antes.
+      const siSeVe = (paso, cual, texto) => (paso.conceptos.mostrar.includes(cual) ? texto : '—');
       return {
-        descripcion: 'Prim y Kruskal: el árbol de menor peso que toca todos los vértices de un grafo conexo, con sus ramas, cuerdas, rango y nulidad',
+        descripcion: 'Prim y Kruskal: el árbol de menor o de mayor peso que toca todos los vértices de un grafo conexo, con sus ramas y cuerdas, y su centro o bicentro',
         orientacion: 'grafo',
         expansion: true,
         leerGrafo: leer,
@@ -1895,23 +2082,39 @@
         mensajeCreacion: (estructura) => {
           const grafo = grafoDe(estructura);
           return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas`
-            + `${grafo.conPesos ? '' : ', sin pesos (cada arista vale 1)'}. Método: ${nombreDe(estructura.parametros.metodo)}.`;
+            + `${grafo.conPesos ? '' : ', sin pesos (cada arista vale 1)'}. Árbol ${nombreObjetivo(estructura)}, método: ${nombreDe(estructura.parametros.metodo)}.`;
         },
-        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${nombreDe(estructura.parametros.metodo)}`,
+        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${nombreObjetivo(estructura)} · ${nombreDe(estructura.parametros.metodo)}`,
         alCrear: ({ estructura }) => {
           const { metodo, inicio, arbol } = estructura.parametros;
           return algoritmos.expansion.recorrer(grafoDe(estructura), {
-            metodo, inicio, arbol: String(arbol || '').split(/\s+/).filter(Boolean)
+            metodo, inicio, objetivo: objetivoDe(estructura), arbol: String(arbol || '').split(/\s+/).filter(Boolean)
           });
         },
-        conservarAlFinal: ['metodo', 'T', 'dentro', 'descartadas', 'tabla', 'total', 'suma', 'propiedades',
-          'ramas', 'rango', 'cuerdas', 'nulidad', 'fase', 'calculo', 'tituloCalculo'],
-        nombreArchivo: (estructura) => `expansion-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
+        conservarAlFinal: ['metodo', 'objetivo', 'T', 'dentro', 'descartadas', 'tabla', 'total', 'suma', 'propiedades',
+          'ramas', 'rango', 'cuerdas', 'nulidad', 'matriz', 'tituloMatriz', 'conceptos', 'fase', 'calculo', 'tituloCalculo'],
+        nombreArchivo: (estructura) => `expansion-${objetivoDe(estructura)}-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
         vistaPrevia: (datos) => {
           const lectura = leer(datos.get('aristas'));
           return lectura.valido ? lectura.grafo : null;
         },
         parametros: [
+          {
+            nombre: 'objetivo',
+            etiqueta: 'Árbol',
+            opciones: [
+              { valor: OBJETIVOS.MINIMO, etiqueta: 'De expansión mínimo' },
+              { valor: OBJETIVOS.MAXIMO, etiqueta: 'De expansión máximo' }
+            ],
+            ayuda: 'El máximo usa los mismos métodos, prefiriendo la arista de mayor peso.',
+            // Vacío en los archivos guardados antes de que existiera el máximo.
+            validar: (entrada) => {
+              const valor = entrada || OBJETIVOS.MINIMO;
+              return Object.values(OBJETIVOS).includes(valor)
+                ? { valido: true, valor }
+                : { valido: false, mensaje: 'Elija árbol mínimo o máximo.' };
+            }
+          },
           {
             nombre: 'metodo',
             etiqueta: 'Método',
@@ -1920,7 +2123,7 @@
               { valor: METODOS.PRIM, etiqueta: 'Prim' },
               { valor: METODOS.DADO, etiqueta: 'Árbol escrito' }
             ],
-            ayuda: 'Kruskal revisa las aristas de menor a mayor peso; Prim hace crecer el árbol desde un vértice. Con cualquiera, al final, las ramas y las cuerdas.',
+            ayuda: 'Kruskal revisa las aristas por orden de peso; Prim hace crecer el árbol desde un vértice. Con cualquiera, al final, las ramas, las cuerdas y el centro o bicentro.',
             validar: (entrada) => (Object.values(METODOS).includes(entrada)
               ? { valido: true, valor: entrada }
               : { valido: false, mensaje: 'Elija Prim o Kruskal.' })
@@ -1976,7 +2179,9 @@
           {
             id: 'vertices',
             etiqueta: 'Vértices',
-            valor: ({ estructura }) => {
+            etiquetaSegun: ({ paso }) => (conCentro(paso) ? 'Radio' : 'Vértices'),
+            valor: ({ estructura, paso }) => {
+              if (conCentro(paso)) return siSeVe(paso, 'radio', String(paso.conceptos.radio));
               const grafo = grafoDe(estructura);
               return grafo ? String(grafo.vertices.length) : '—';
             }
@@ -1984,7 +2189,9 @@
           {
             id: 'aristas',
             etiqueta: 'Aristas',
-            valor: ({ estructura }) => {
+            etiquetaSegun: ({ paso }) => (conCentro(paso) ? 'Diámetro' : 'Aristas'),
+            valor: ({ estructura, paso }) => {
+              if (conCentro(paso)) return siSeVe(paso, 'diametro', String(paso.conceptos.diametro));
               const grafo = grafoDe(estructura);
               return grafo ? String(grafo.aristas.length) : '—';
             }
@@ -1993,16 +2200,18 @@
             id: 'tamano',
             etiqueta: 'Aristas en el árbol',
             // Con las ramas, el mismo número tiene nombre: el rango.
-            etiquetaSegun: ({ paso }) => (paso && paso.rango !== undefined ? 'Rango' : 'Aristas en el árbol'),
-            valor: ({ paso }) => (paso && paso.T ? String(paso.T.length) : '—')
+            etiquetaSegun: ({ paso }) => (conCentro(paso) ? (paso.conceptos.esBicentro && paso.conceptos.mostrar.includes('centro') ? 'Bicentro' : 'Centro')
+              : paso && paso.rango !== undefined ? 'Rango' : 'Aristas en el árbol'),
+            valor: ({ paso }) => (conCentro(paso) ? siSeVe(paso, 'centro', conjunto(paso.conceptos.centro)) : paso && paso.T ? String(paso.T.length) : '—')
           },
           {
             id: 'peso',
             etiqueta: 'Peso del árbol',
-            etiquetaSegun: ({ paso }) => (conCuerdas(paso) ? 'Nulidad' : 'Peso del árbol'),
+            etiquetaSegun: ({ paso }) => (conCentro(paso) ? 'Mediana' : conCuerdas(paso) ? 'Nulidad' : 'Peso del árbol'),
             valor: ({ estructura, paso }) => {
               const grafo = grafoDe(estructura);
               if (!paso || !paso.T || !grafo) return '—';
+              if (conCentro(paso)) return siSeVe(paso, 'mediana', conjunto(paso.conceptos.mediana));
               if (conCuerdas(paso)) return String(paso.nulidad);
               return String(grafo.aristas.filter((a) => paso.T.includes(a.nombre)).reduce((s, a) => s + a.peso, 0));
             }

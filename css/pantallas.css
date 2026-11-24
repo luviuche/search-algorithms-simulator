@@ -2169,6 +2169,15 @@ form.panel > .pantalla-tema__reproduccion {
 .matriz-grafo__concepto--encontrada { background: var(--estado-encontrada-relleno); color: var(--estado-encontrada-borde); }
 .matriz-grafo__concepto--evaluacion { background: var(--estado-evaluacion-relleno); color: var(--estado-evaluacion-borde); }
 
+/* Las distancias del árbol de expansión: hasta 10 × 10 junto al grafo. */
+.matriz-grafo--compacta .matriz-grafo__celda {
+  width: 44px;
+  height: 32px;
+  font-size: 15px;
+}
+
+.matriz-grafo--compacta .matriz-grafo__concepto { font-size: 15px; }
+
 /* ── Representación matricial (CLAUDE.md 5.13) ─────────────────────────── */
 .grafo__arista--rango { stroke: var(--estado-rango-borde); stroke-width: 3.5; }
 .grafo__punta--rango { fill: var(--estado-rango-borde); }
@@ -2616,6 +2625,73 @@ form.panel > .pantalla-tema__reproduccion {
 
 .operacion-grafos__leyenda svg {
   flex: none;
+}
+
+/* Unión, intersección, diferencia, suma anillo y suma: lo que está en los dos
+   grafos y lo que la suma agrega. */
+.grafo__arista--de-ambos { stroke: var(--tinta); stroke-width: 3; }
+.grafo__arista--de-nueva { stroke: var(--estado-ocupada-borde); stroke-width: 1.4; }
+
+.operacion-resultado {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+
+/* Los conjuntos escritos como en el cuaderno, V₁ = {1, 2, 3}, con lo que el
+   paso mira resaltado. */
+.operacion-conjuntos {
+  display: grid;
+  grid-template-columns: auto minmax(0, 340px);
+  gap: var(--espacio-1) var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-panel);
+  font-family: var(--fuente-mono);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.operacion-conjuntos__nombre {
+  color: var(--tinta-suave);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.operacion-conjuntos__elemento {
+  padding: 0 2px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.operacion-conjuntos__elemento--actual {
+  background: var(--estado-evaluacion-relleno);
+  box-shadow: inset 0 0 0 2px var(--estado-evaluacion-borde);
+}
+
+/* Apilados, la flecha de G a G′ apunta hacia abajo. */
+.estructura-grafo--apilada > .operacion-grafos__flecha {
+  transform: rotate(90deg);
+}
+
+/* El vértice fundido va en pastilla: «10,12» no cabe en el círculo. */
+.grafo__vertice rect {
+  fill: var(--estado-ocupada-relleno);
+  stroke: var(--estado-ocupada-borde);
+  stroke-width: 1.5;
+}
+
+.grafo__vertice--evaluacion rect {
+  fill: var(--estado-evaluacion-relleno);
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 3;
+}
+
+.grafo--operando .grafo__vertice text {
+  font-size: 16px;
 }
 
 .coloreo-formula .operacion-grafos__termino--g1 { color: var(--operando-g1); }

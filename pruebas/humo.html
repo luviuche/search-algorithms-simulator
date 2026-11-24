@@ -664,6 +664,8 @@
       representacionMatricial();
       coloreadoDeGrafos();
       operacionesEntreGrafos();
+      operacionesQueReunenGrafos();
+      operacionesSobreUnGrafo();
       conjuntosIndependientesYDominantes();
       pareamientosDeGrafos();
       arbolDeExpansionMinimo();
@@ -3742,6 +3744,135 @@
       }
     }
 
+    // Unión, intersección, diferencia, suma anillo y suma (CLAUDE.md 5.15): el
+    // triángulo 1–2–3 y el camino 2–3–4–5, y los más grandes que caben.
+    function operacionesQueReunenGrafos() {
+      registro.push('', '── Unión, intersección, diferencia, suma anillo y suma ──');
+      entrarATema('Operaciones entre grafos');
+      const formulario = document.querySelector('form.panel');
+      const escribir = (operacion, g1, g2) => {
+        formulario.querySelector('[name="operacion"]').value = operacion;
+        for (const [nombre, valor] of [['aristas1', g1], ['aristas2', g2]]) {
+          const campo = formulario.querySelector(`[name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      };
+      const crear = (...datos) => {
+        escribir(...datos);
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const triangulo = '1 2\n2 3\n1 3';
+      const camino = '3 2\n3 4\n4 5';
+      const enResultado = () => [...document.querySelectorAll('.grafo--resultado .grafo__arista')].map((a) => a.dataset.arista).join(' ');
+      const lugar = (selector, v) => {
+        const c = document.querySelector(`${selector} .grafo__vertice[data-vertice="${v}"] circle`);
+        return [Number(c.getAttribute('cx')), Number(c.getAttribute('cy'))];
+      };
+
+      escribir('union', triangulo, camino);
+      afirmar(document.querySelectorAll('.grafo--operando').length === 2, 'la vista previa son los dos grafos');
+      const [arriba, abajo] = [...document.querySelectorAll('.grafo--operando')].map((g) => g.querySelector('[data-vertice="3"] circle').getAttribute('cx'));
+      afirmar(arriba === abajo, `el 3 está en el mismo sitio en G₁ y en G₂ (${arriba} y ${abajo})`);
+
+      crear('union', triangulo, camino);
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__vertice').length === 5, 'unión: cinco vértices, los compartidos una vez');
+      for (let i = 0; i < 4; i++) control('siguiente').click();
+      afirmar(aviso().textContent.includes('ya entró desde G₁'), `la arista repetida se dice (${aviso().textContent.trim()})`);
+      afirmarGrafoCabe('unión, una arista');
+      agotarTraza(20);
+      afirmar(enResultado() === '1–2 2–3 1–3 3–4 4–5', `unión: ${enResultado()}`);
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista--de-ambos').length === 1, 'al terminar, la que está en los dos en su color');
+      afirmarGrafoCabe('unión, al terminar');
+
+      for (const [operacion, esperado] of [['interseccion', '2–3'], ['diferencia', '1–2 1–3'], ['suma-anillo', '1–2 1–3 3–4 4–5']]) {
+        control('editar-configuracion').click();
+        crear(operacion, triangulo, camino);
+        agotarTraza(20);
+        afirmar(enResultado() === esperado, `${operacion}: ${enResultado()}`);
+      }
+
+      control('editar-configuracion').click();
+      crear('suma', triangulo, camino);
+      afirmar(!!aviso() && aviso().textContent.includes('sin vértices en común'), 'la suma con vértices compartidos se rechaza');
+      const completo = (v) => v.flatMap((a, i) => v.slice(i + 1).map((b) => `${a} ${b}`)).join('\n');
+      crear('suma', completo(['1', '2', '3', '4', '5', '6']), completo(['a', 'b', 'c', 'd', 'e', 'f']));
+      agotarTraza(20);
+      afirmar(document.querySelectorAll('.grafo--resultado .grafo__arista').length === 66, 'suma de 6 y 6: 15 + 15 + 36 = 66 aristas');
+      afirmar(lugar('.grafo--resultado', '1')[0] < lugar('.grafo--resultado', 'a')[0], 'V₁ a la izquierda y V₂ a la derecha');
+      if (window.innerWidth >= 1200) afirmarGrafoCabe('suma de 6 y 6');
+      control('editar-configuracion').click();
+      crear('union', completo(['1', '2', '3', '4', '5', '6']), completo(['6', '7', '8', '9', '10', '11']));
+      agotarTraza(60);
+      if (window.innerWidth >= 1200) afirmarGrafoCabe('unión de dos completos de 6');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Operaciones sobre un grafo (CLAUDE.md 5.19): el cuadrado 1–2–3–4 con la
+    // diagonal 1–3, y el más grande que cabe.
+    function operacionesSobreUnGrafo() {
+      registro.push('', '── Operaciones sobre un grafo ──');
+      entrarATema('Operaciones sobre un grafo');
+      const formulario = document.querySelector('form.panel');
+      const cuadrado = '1 2\n2 3\n3 4\n4 1\n1 3';
+      const crear = (operacion, datos = {}, aristas = cuadrado) => {
+        const selector = formulario.querySelector('[name="operacion"]');
+        selector.value = operacion;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+        for (const [nombre, valor] of Object.entries({ aristas, ...datos })) formulario.querySelector(`[name="${nombre}"]`).value = valor;
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const aLaVista = () => ['vertice', 'vecinos', 'arista', 'fusion']
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+      const pedir = (operacion) => {
+        const selector = formulario.querySelector('[name="operacion"]');
+        selector.value = operacion;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+        return aLaVista();
+      };
+      const enResultado = () => [...document.querySelectorAll('.grafo--resultado .grafo__arista')].map((a) => a.dataset.arista).join(' ');
+
+      afirmar(pedir('insertar-vertice') === 'vertice vecinos' && pedir('borrar-vertice') === 'vertice' && pedir('contraer-arista') === 'arista'
+        && pedir('fusionar-vertices') === 'fusion' && pedir('complemento') === '', 'cada operación pide solo su dato');
+
+      crear('insertar-arista', { arista: '1 2' });
+      afirmar(!!aviso() && aviso().textContent.includes('ya está en G'), 'insertar una arista que ya está se rechaza');
+      const casos = [
+        ['insertar-vertice', { vertice: '5', vecinos: '1 3' }, '1–2 2–3 3–4 4–1 1–3 5–1 5–3'],
+        ['borrar-vertice', { vertice: '1' }, '2–3 3–4'],
+        ['insertar-arista', { arista: '4 2' }, '1–2 2–3 3–4 4–1 1–3 2–4'],
+        ['borrar-arista', { arista: '1 4' }, '1–2 2–3 3–4 1–3'],
+        ['fusionar-vertices', { fusion: '2 4' }, '1–3 2,4–1 2,4–3'],
+        ['contraer-arista', { arista: '1 3' }, '1,3–2 1,3–4'],
+        ['complemento', {}, '2–4']
+      ];
+      casos.forEach(([operacion, datos, esperado], i) => {
+        if (i > 0) control('editar-configuracion').click();
+        crear(operacion, datos);
+        control('siguiente').click();
+        afirmarGrafoCabe(`${operacion}, un paso`);
+        agotarTraza(20);
+        afirmar(enResultado() === esperado, `${operacion}: ${enResultado()}`);
+        afirmar(!!document.querySelector('.coloreo-formula'), `${operacion}: al terminar, |V′| y |A′|`);
+        afirmarGrafoCabe(`${operacion}, al terminar`);
+      });
+      control('editar-configuracion').click();
+      crear('complemento', {}, '1 2\n2 3\n3 4\n4 5\n5 6\n6 7\n7 8');
+      agotarTraza(20);
+      afirmar(enResultado().split(' ').length === 21, 'complemento del camino de 8: 28 − 7 = 21 aristas');
+      afirmarGrafoCabe('complemento de 8 vértices');
+
+      document.querySelector('.pantalla-tema__volver').click();
+      const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Operaciones sobre un grafo'));
+      afirmar(!!pastilla && pastilla.textContent.includes('Complemento'), `la reciente dice la operación (${pastilla ? pastilla.textContent : 'ninguna'})`);
+      if (pastilla) {
+        pastilla.click();
+        agotarTraza(20);
+        afirmar(enResultado().split(' ').length === 21, 'y al abrirla vuelve a hacerse, con el mismo resultado');
+        document.querySelector('.pantalla-tema__volver').click();
+      }
+    }
+
     // Conjuntos independientes y dominantes (CLAUDE.md 5.16): el ejemplo 2
     // del docente con su conjunto a, y la búsqueda en el grafo de 12
     // vértices, el más grande de sus hojas.
@@ -3841,8 +3972,8 @@
     }
 
     function arbolDeExpansionMinimo() {
-      registro.push('', '── Árbol de expansión mínimo ──');
-      entrarATema('Árbol de expansión mínimo — Prim y Kruskal');
+      registro.push('', '── Árbol de expansión ──');
+      entrarATema('Árbol de expansión — Prim y Kruskal');
       const formulario = document.querySelector('form.panel');
       // La figura 12 del documento de apoyo del docente.
       const figura12 = '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5';
@@ -3860,6 +3991,11 @@
       };
       const enArbol = () => document.querySelectorAll('.grafo__arista--emparejada').length;
       const seVe = (nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0;
+      const textoDelResumen = () => (document.querySelector('.pareamiento-resumen') || { textContent: '' }).textContent;
+      // Después de las cuerdas la traza sigue con las distancias del árbol.
+      const hastaLasCuerdas = () => {
+        for (let i = 0; i < 40 && !textoDelResumen().includes('Nulidad'); i++) control('siguiente').click();
+      };
 
       elegir('prim');
       afirmar(seVe('inicio') && !seVe('arbol'), 'con Prim se pide el vértice inicial');
@@ -3878,22 +4014,37 @@
       afirmar(enArbol() === 1 && document.querySelectorAll('.grafo__arista--en-camino').length === 1,
         `la primera que entra va resaltada (${enArbol()})`);
       if (window.innerWidth >= 1200) afirmarGrafoCabe('Kruskal, una arista');
-      agotarTraza(10);
-      agotarTraza(10);
+      hastaLasCuerdas();
       afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('Nulidad = m − n + 1 = 7 − 5 + 1 = 3'),
         `al terminar, cuatro ramas y nulidad 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
       afirmar(document.querySelectorAll('.grafo__arista--cuerda').length === 3, 'las tres cuerdas, en azul punteado');
-      afirmarGrafoCabe('Kruskal, conclusión');
+      afirmarGrafoCabe('Kruskal, cuerdas');
+      agotarTraza(10);
+      afirmar(textoDelResumen().includes('Centro = {3}') && textoDelResumen().includes('Mediana = {5}'),
+        `sobre el árbol, centro 3 y mediana 5 (${textoDelResumen()})`);
+      afirmar(document.querySelectorAll('.matriz-grafo tr').length === 6, 'con la matriz de distancias del árbol');
+      afirmarGrafoCabe('Kruskal, centro');
 
       control('editar-configuracion').click();
       crear('prim', figura12, '1');
       control('siguiente').click();
       afirmar(document.querySelectorAll('.grafo__arista--rango').length === 1,
         `Prim muestra en azul las candidatas que no entran (${document.querySelectorAll('.grafo__arista--rango').length})`);
-      agotarTraza(10);
+      hastaLasCuerdas();
       afirmar(enArbol() === 4 && document.querySelectorAll('.grafo__arista--cuerda').length === 3,
         'al terminar Prim, cuatro ramas y tres cuerdas');
       afirmarGrafoCabe('Prim, conclusión');
+
+      // El máximo del mismo grafo: 10 + 8 + 5 + 2 = 25.
+      const cambiarObjetivo = (valor) => { formulario.querySelector('[name="objetivo"]').value = valor; };
+      control('editar-configuracion').click();
+      cambiarObjetivo('maximo');
+      crear('kruskal', figura12);
+      agotarTraza(20);
+      const deMaximo = document.querySelector('.pareamiento-resumen').textContent;
+      afirmar(deMaximo.includes('= 25'), `el árbol máximo de la figura 12 pesa 25 (${deMaximo})`);
+      afirmarGrafoCabe('Kruskal, árbol máximo');
+      cambiarObjetivo('minimo');
 
       // El ejemplo del documento de apoyo: el grafo verde con el árbol a, b, e, f.
       control('editar-configuracion').click();
@@ -3901,7 +4052,7 @@
       afirmar(!!document.querySelector('.alerta') && document.querySelector('.alerta').textContent.includes('forman un ciclo'),
         'un árbol escrito con un ciclo se rechaza al crear');
       crear('dado', '1 2\n1 3\n2 3\n3 4\n2 4\n2 5\n4 5\n1 4', '', 'a b e f');
-      agotarTraza(10);
+      hastaLasCuerdas();
       const resumen = document.querySelector('.pareamiento-resumen').textContent;
       afirmar(resumen.includes('Ramas = {a, b, e, f}') && resumen.includes('Rango = 4')
         && resumen.includes('Cuerdas = {c, d, g, h}') && resumen.includes('Nulidad = 4'),
@@ -3912,12 +4063,22 @@
       // para caber.
       control('editar-configuracion').click();
       crear('kruskal', 'A B 4\nA H 8\nB H 11\nB C 8\nH I 7\nH G 1\nI G 6\nC I 2\nC F 4\nC D 7\nG F 2\nD F 14\nD E 9\nE F 10');
-      agotarTraza(20);
+      hastaLasCuerdas();
       afirmar(enArbol() === 8 && document.querySelectorAll('.expansion-tabla__fila--ciclo').length === 3,
         `nueve vértices: ocho en el árbol y tres ciclos (${enArbol()})`);
       // A 1024 × 650 (el proyector XGA, que ya no es requisito) sobran unos
       // 30 px aun a 0,5×, como el caso extremo de los conjuntos.
       if (window.innerWidth >= 1280) afirmarGrafoCabe('Kruskal con nueve vértices');
+      agotarTraza(20);
+      if (window.innerWidth >= 1280) afirmarGrafoCabe('distancias del árbol de nueve vértices');
+      // Un camino de cuatro vértices: dos en el centro.
+      control('editar-configuracion').click();
+      crear('kruskal', '1 2\n2 3\n3 4');
+      for (let i = 0; i < 40 && !textoDelResumen().includes('Radio'); i++) control('siguiente').click();
+      const metricas = [...document.querySelectorAll('.panel')].map((p) => p.textContent).find((t) => /Diámetro/.test(t)) || '';
+      afirmar(metricas !== '' && !metricas.includes('Bicentro'), `el bicentro no se adelanta a su paso (${metricas.trim().replace(/\s+/g, ' ')})`);
+      agotarTraza(20);
+      afirmar(textoDelResumen().includes('Bicentro = {2, 3}'), `el camino 1–2–3–4 tiene bicentro (${textoDelResumen()})`);
       document.querySelector('.pantalla-tema__volver').click();
     }
 
