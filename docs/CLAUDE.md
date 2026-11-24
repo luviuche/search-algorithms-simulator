@@ -288,7 +288,7 @@ Se revisó si convenía agrupar más temas, con un criterio: agrupar solo cuando
 - secuencial y binaria, internas o externas: lo que cambia es la búsqueda, y binaria tiene su propio dibujo;
 - los árboles: cada uno es una estructura distinta y hoy no tienen formulario.
 
-**Dijkstra y Bellman, cuando se construyan, irán en «Caminos mínimos»**, con el algoritmo a elegir, junto a Floyd. Y antes de construir «Conjuntos de corte y conectividad» hay que decidir qué parte vive ahí y cuál en la representación matricial, donde quedaron pendientes los circuitos y cortes en matriz.
+**Dijkstra y Bellman van en «Caminos mínimos»**, con el algoritmo a elegir, junto a Floyd (construidos el 2026-11-24, §5.20). Y antes de construir «Conjuntos de corte y conectividad» hay que decidir qué parte vive ahí y cuál en la representación matricial, donde quedaron pendientes los circuitos y cortes en matriz.
 - **Los títulos de grupo y subgrupo no llevan el margen del navegador**: `h3` y `h4` traían unos 40 px de aire vacío por subgrupo que nunca se anularon. El renglón, además, va más apretado (1 px de relleno vertical).
 - **El menú se dibuja al ancho de un portátil y se escala para llenar la ventana** (`escalarAlaVentana` en `menu.js`; opción A de la maqueta, elegida sobre una variante adaptable que cambiaba de diseño a los 1600 px y aun así dejaba media pantalla vacía). Letra, renglones y espacios crecen juntos, con `zoom` —que sí cambia el espacio ocupado, a diferencia de `transform`—, desde 1× en el portátil hasta un tope de 2×; se recalcula al cambiar la ventana. **Y también se achica, hasta 0,75×** (2026-10-06): con el piso en 1, por debajo de 1366 px el diseño se apretaba —a 1024 las descripciones quedaban una palabra por renglón, y a 1280, la pantalla de referencia con el zoom a 150 %, las de externas ocupaban hasta cinco—. 0,75 es lo que pide un proyector XGA (1024 / 1366). El `min-height` de la pantalla se divide por la escala, o `100vh` con zoom 1,4 mediría 140 vh. **Solo en el menú**: en las pantallas de tema, escalarlo todo le quitaría ancho a las estructuras anchas como índices. Se evaluó aparte y se descartó el 2026-10-04: el zoom del navegador hace ese escalado, y por tema (§6.9).
 
@@ -910,7 +910,7 @@ La opción B —apilar al lado los pasos de dentro, como en binaria interna— s
 
 **Métricas**: durante Floyd, comparaciones, cambios en D, vértices y aristas; con los conceptos, las mismas cuatro casillas pasan a radio, diámetro, centro y mediana (`etiquetaSegun`), para que el panel no cambie de tamaño.
 
-**Lo que el material dejó abierto** (para la representación matricial, no para este tema): errores en la adyacencia de vértices del docente (al 4 le falta el 1; en el caso dirigido 2, la fila 4 columna 3 debería ser −1), su lista de circuitos tiene 9 de los 12 del grafo, su matriz de conjuntos de corte tiene 10 filas —una no mínima— de 12, y sus «fundamentales» no son los del árbol que elige sino las caras del dibujo y los cortes que aíslan cada vértice. Preguntar antes de construir esa parte. Tampoco hay material de Dijkstra ni de Bellman.
+**Lo que el material dejó abierto** (para la representación matricial, no para este tema): errores en la adyacencia de vértices del docente (al 4 le falta el 1; en el caso dirigido 2, la fila 4 columna 3 debería ser −1), su lista de circuitos tiene 9 de los 12 del grafo, su matriz de conjuntos de corte tiene 10 filas —una no mínima— de 12, y sus «fundamentales» no son los del árbol que elige sino las caras del dibujo y los cortes que aíslan cada vértice. Preguntar antes de construir esa parte.
 
 ### 5.13 Representación matricial (2026-10-23)
 
@@ -1063,6 +1063,20 @@ Las métricas pasan a llamarse Rango y Nulidad. **Las aristas se nombran a, b, c
 **Al fusionar queda un grafo simple**: un lazo o una paralela se descarta y el paso lo dice. Es una recomendación de esta aplicación que el usuario aceptó mientras pregunta. **Dudas para el docente**: si fusionar aristas es contraerlas, y si al fusionar se conservan paralelas y lazos. Si se conservan, hay que cambiar `fusionar` —que ya clasifica cada arista en `pasa`, `paralela` o `lazo`— y el dibujo, que hoy no traza ni lazos ni paralelas.
 
 **Cada operación pide solo su dato**: `soloCon` de un parámetro admite desde aquí varios valores. El lienzo pone G y G′ lado a lado, con cada vértice en el mismo sitio, y G′ tal como va quedando.
+
+### 5.20 Caminos mínimos — Dijkstra y Bellman (2026-11-24)
+
+En el mismo tema que Floyd, que pasó a llamarse «Caminos mínimos», con el **algoritmo** como parámetro. La clave del tema sigue siendo `floyd`, y sin algoritmo —los archivos y recientes de antes— es Floyd. El material son las notas de clase (`NotasClase grafos.pdf`), y `pruebas/caminos.test.js` se ancla a su ejemplo —0→1:2, 0→2:4, 0→3:5, 1→3:1, 1→5:7, 2→4:6, 3→4:1, 4→5:1— y además compara los dos con Floyd en grafos al azar.
+
+**El grafo** (`dominio/caminos.js`, lector propio): «origen destino [peso]», hasta 8 vértices. Se numeran desde 0, como el docente, o con letras; por eso no lo lee `dominio/grafo.js`, donde una letra delante es el nombre de la arista. Sin inicio ni final escritos, van el primero y el último.
+
+**Función ordinal**: numera de 0 a n − 1. El 0 es un vértice al que no le llega ninguna arista, y cada siguiente, uno cuyos predecesores ya tienen número. El docente desempata leyendo el dibujo de izquierda a derecha y de arriba abajo; aquí el lugar sale del orden de los vértices, así que **va el primero en orden**, y el paso dice cuáles otros podían ir. Con un ciclo no se aplica: se rechaza al crear, diciendo el ciclo.
+
+**Bellman**: dirigido y sin ciclos, detrás de la función ordinal. λ₀ = 0 y λⱼ = min(λᵢ + vᵢⱼ), un paso por λ, con las sumas que se comparan. En las notas, 0, 2, 4, 3, 4, 5. Si el inicio no es el 0 de la función ordinal, lo que no se alcanza queda en ∞.
+
+**Dijkstra**: etiquetas [d, n], d la distancia acumulada y n el predecesor. Dos pasos por vértice: desde el que se acaba de hacer permanente se miran sus vecinos, y después la menor temporal se hace permanente (*). Acepta ciclos y grafos no dirigidos. En la tabla quedan todas las etiquetas, **las que se cambiaron y las que no mejoraron, tachadas**, como en las notas: 3 lleva [5, 0] tachada y 4 lleva [10, 2]. Temporal en naranja y permanente en azul, que son los colores del docente; la ruta, en verde.
+
+**Dudas para el docente**: cómo se desempata en Dijkstra —hoy, el primero en orden— y si sus vértices se hacen permanentes por la menor etiqueta o en el orden de su número. En las notas, 2 tiene [4, 0] y 3 tiene [3, 1], y [10, 2] aparece debajo de [4, 3], como si 2 se hubiera evaluado antes; con la menor etiqueta va antes el 3. Las etiquetas finales y las tachadas son las mismas.
 
 ---
 
@@ -1698,7 +1712,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —productos, composición, unión, intersección, diferencia y sumas— (§5.15, 2026-10-26 y 2026-11-24), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28), **los pareamientos** (§5.17, 2026-11-03), **el árbol de expansión** (§5.18, 2026-11-09) **y las operaciones sobre un grafo** (§5.19, 2026-11-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **Dijkstra y Bellman** (§5.20, 2026-11-24), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —productos, composición, unión, intersección, diferencia y sumas— (§5.15, 2026-10-26 y 2026-11-24), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28), **los pareamientos** (§5.17, 2026-11-03), **el árbol de expansión** (§5.18, 2026-11-09) **y las operaciones sobre un grafo** (§5.19, 2026-11-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
-> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's algorithm, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, and matchings are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's, Dijkstra's and Bellman's algorithms, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, and matchings are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -52,6 +52,7 @@ The user interface is in **Spanish**, the language of the course.
 | Topic | Status |
 |---|---|
 | Shortest paths with Floyd's algorithm, one step per (j, i) pair as in the professor's worked example, followed by each vertex's distance and eccentricity and the graph's radius, diameter, center and median | ✅ |
+| Shortest paths from a vertex: Dijkstra with temporary and permanent [d, n] labels, and Bellman after numbering the vertices of an acyclic digraph | ✅ |
 | Matrix representation: incidence, vertex adjacency and edge adjacency, directed or not, each filled one row per step next to its adjacency list | ✅ |
 | Graph coloring: vertices and edges colored in order with the first free color, the chromatic number and index, and the chromatic polynomial from the general formula | ✅ |
 | Operations between two graphs: cartesian product G₁ × G₂, tensor product G₁ ⊗ G₂ and composition G₁[G₂], built edge group by edge group on a grid of vertex pairs, with the edge count from each formula | ✅ |

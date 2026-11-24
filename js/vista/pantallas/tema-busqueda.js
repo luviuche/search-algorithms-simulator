@@ -1824,7 +1824,7 @@
         limpiarAlerta();
         mostrarAlerta('info', 'Estructura abierta: sus parámetros, listos para recorrer la derivación.');
         if (config.alCrear) {
-          reproducirOperacion(config.alCrear({ estructura }), config.mensajeDerivacion || 'Derivación iniciada.');
+          reproducirOperacion(config.alCrear({ estructura }), mensajeDerivacion(estructura));
         }
         fijarReciente();
         return;
@@ -1946,9 +1946,16 @@
       // ya determinan la estructura entera, y lo que queda por enseñar es la
       // cuenta que lleva hasta ella. Crear la estructura arranca su traza.
       if (config.alCrear) {
-        reproducirOperacion(config.alCrear({ estructura }), config.mensajeDerivacion || 'Derivación iniciada.');
+        reproducirOperacion(config.alCrear({ estructura }), mensajeDerivacion(estructura));
       }
       return estructura;
+    }
+
+    // Con varios algoritmos en un tema, lo que se anuncia depende del elegido.
+    function mensajeDerivacion(estructura) {
+      return typeof config.mensajeDerivacion === 'function'
+        ? config.mensajeDerivacion(estructura)
+        : (config.mensajeDerivacion || 'Derivación iniciada.');
     }
 
     // Reiniciar deja la pantalla como recién entrada al tema: la estructura

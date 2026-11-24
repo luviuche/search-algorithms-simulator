@@ -661,6 +661,7 @@
       tiraDeRecientesQueSeDesplaza();
       panelLateralDesvanecido();
       floyd();
+      dijkstraYBellman();
       representacionMatricial();
       coloreadoDeGrafos();
       operacionesEntreGrafos();
@@ -3520,7 +3521,7 @@
     // matrices de la hoja del docente; al final, los conceptos de la figura 12.
     function floyd() {
       registro.push('', '── Floyd ──');
-      entrarATema('Caminos mínimos — Floyd');
+      entrarATema('Caminos mínimos');
       const formulario = document.querySelector('form.panel');
       const escribir = (tipo, aristas) => {
         formulario.querySelector('[name="tipo"]').value = tipo;
@@ -3579,6 +3580,76 @@
       afirmar(distancias.join(' ') === '22 15 14 13 12', `la columna de distancias suma cada fila (${distancias.join(' ')})`);
       afirmarGrafoCabe('conceptos');
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Dijkstra y Bellman (CLAUDE.md 5.20): el ejemplo de las notas del
+    // docente, con sus etiquetas, sus λ y su ruta.
+    function dijkstraYBellman() {
+      registro.push('', '── Dijkstra y Bellman ──');
+      entrarATema('Caminos mínimos');
+      const formulario = document.querySelector('form.panel');
+      const notas = '0 1 2\n0 3 5\n0 2 4\n1 5 7\n1 3 1\n2 4 6\n3 4 1\n4 5 1';
+      const elegir = (algoritmo) => {
+        const selector = formulario.querySelector('[name="algoritmo"]');
+        selector.value = algoritmo;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const crear = (algoritmo, aristas, { tipo = 'dirigido', inicio = '', fin = '' } = {}) => {
+        elegir(algoritmo);
+        for (const [nombre, valor] of Object.entries({ aristas, tipo, inicio, fin })) formulario.querySelector(`[name="${nombre}"]`).value = valor;
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const aLaVista = () => ['tipo', 'inicio', 'fin']
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+      const etiqueta = (v) => document.querySelector(`.grafo__etiqueta[data-de="${v}"]`).textContent;
+      const verdes = () => [...document.querySelectorAll('.grafo__vertice--encontrada')].map((g) => g.dataset.vertice).join(' ');
+
+      afirmar(aLaVista() === 'tipo', `Floyd pide el tipo y nada más (${aLaVista()})`);
+      elegir('dijkstra');
+      afirmar(aLaVista() === 'tipo inicio fin', `Dijkstra, además, de dónde a dónde (${aLaVista()})`);
+      elegir('bellman');
+      afirmar(aLaVista() === 'inicio fin', `Bellman no pide el tipo: es dirigido (${aLaVista()})`);
+
+      crear('bellman', '0 1\n1 2\n2 0');
+      afirmar(!!aviso() && aviso().textContent.includes('no se aplica con ciclos'), 'Bellman rechaza un ciclo');
+
+      crear('dijkstra', notas);
+      afirmar(etiqueta('0') === '[0, –]*', `el inicio es permanente (${etiqueta('0')})`);
+      control('siguiente').click();
+      afirmar(etiqueta('3') === '[5, 0]' && document.querySelector('.grafo__etiqueta[data-de="3"]').classList.contains('grafo__etiqueta--temporal'),
+        `3 queda temporal [5, 0] (${etiqueta('3')})`);
+      afirmarGrafoCabe('Dijkstra, un paso');
+      agotarTraza(30);
+      afirmar(['1', '2', '3', '4', '5'].map(etiqueta).join(' ') === '[2, 0]* [4, 0]* [3, 1]* [4, 3]* [5, 4]*', 'las etiquetas de las notas');
+      afirmar([...document.querySelectorAll('.caminos-etiqueta--tachada')].map((e) => e.textContent).join(' ') === '[5, 0] [10, 2] [9, 1]', 'y las tachadas');
+      afirmar(verdes() === '0 1 3 4 5' && document.querySelectorAll('.grafo__arista--encontrada').length === 4, `la ruta en verde (${verdes()})`);
+      afirmarGrafoCabe('Dijkstra, al terminar');
+
+      control('editar-configuracion').click();
+      crear('bellman', notas);
+      afirmar(etiqueta('0') === '0', 'la función ordinal numera desde 0');
+      // Con el paso 2: en el primero, el aviso acaba de aparecer y el lienzo se
+      // reacomoda después (`ResizeObserver`).
+      control('siguiente').click();
+      afirmarGrafoCabe('función ordinal');
+      agotarTraza(30);
+      afirmar(['0', '1', '2', '3', '4', '5'].map(etiqueta).join(' ') === 'λ₀ = 0 λ₁ = 2 λ₂ = 4 λ₃ = 3 λ₄ = 4 λ₅ = 5', 'las λ de las notas');
+      afirmar(verdes() === '0 1 3 4 5', `y su ruta (${verdes()})`);
+      afirmarGrafoCabe('Bellman, al terminar');
+
+      // El más grande: 8 vértices, todas las aristas.
+      const ocho = 'ABCDEFGH'.split('');
+      const todas = ocho.flatMap((a, i) => ocho.slice(i + 1).map((b, k) => `${a} ${b} ${(k + 1) * 7}`)).join('\n');
+      for (const algoritmo of ['dijkstra', 'bellman']) {
+        control('editar-configuracion').click();
+        crear(algoritmo, todas, { tipo: 'no-dirigido' });
+        agotarTraza(60);
+        // En un proyector XGA una lista de ocho sumas no cabe: se desplaza.
+        if (window.innerWidth >= 1200) afirmarGrafoCabe(`${algoritmo}, 8 vértices y 28 aristas`);
+      }
+      document.querySelector('.pantalla-tema__volver').click();
+      const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Bellman A → H'));
+      afirmar(!!pastilla, 'la reciente dice el algoritmo y de dónde a dónde');
     }
 
     // Representación matricial (CLAUDE.md 5.13): la matriz y su estructura

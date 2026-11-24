@@ -81,7 +81,7 @@
         // los caminos mínimos y los conceptos que se leen de ellos. El docente
         // pone los conceptos en un tema aparte; viven aquí mientras tanto, y
         // separarlos es mover su parte de la traza a otro tema.
-        { id: 'grafos-floyd', titulo: 'Caminos mínimos — Floyd', descripcion: 'Distancias entre todos los pares, y sus conceptos', tema: 'floyd', disponible: true },
+        { id: 'grafos-floyd', titulo: 'Caminos mínimos', descripcion: 'Floyd, Dijkstra y Bellman con función ordinal', tema: 'floyd', disponible: true },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
         { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Unión, intersección, sumas, productos y composición', tema: 'operaciones', disponible: true },
@@ -1068,16 +1068,55 @@
       ]
     },
 
-    // Caminos mínimos — Floyd, con los conceptos que se leen de su matriz
-    // (CLAUDE.md 5.12). Es el primer tema de grafos, y se arma como índices:
+    // Caminos mínimos. Floyd, con los conceptos que se leen de su matriz
+    // (CLAUDE.md 5.12), y desde el 2026-11-24 Dijkstra y Bellman (5.20), con el
+    // algoritmo a elegir; la clave del tema sigue siendo la de Floyd, que es
+    // la de los archivos guardados.
+    // Es el primer tema de grafos, y se arma como índices:
     // el grafo **sale de los parámetros** —el tipo y las aristas escritas—, y
     // crearlo arranca la traza. Así guardar, abrir y las recientes funcionan
     // sin nada propio: lo que se guarda son las aristas.
-    floyd: {
+    floyd: (() => {
+      const { ALGORITMOS } = dominio.caminos;
+      const { TIPOS } = dominio.grafo;
+      const NOMBRES = { [ALGORITMOS.FLOYD]: 'Floyd', [ALGORITMOS.DIJKSTRA]: 'Dijkstra', [ALGORITMOS.BELLMAN]: 'Bellman' };
+      // Vacío en los archivos guardados cuando solo estaba Floyd.
+      const algoritmoDe = (parametros) => (parametros && parametros.algoritmo) || ALGORITMOS.FLOYD;
+      const deUnVertice = (estructura) => Boolean(estructura) && algoritmoDe(estructura.parametros) !== ALGORITMOS.FLOYD;
+      // Floyd lee el grafo de siempre; los otros dos, desde 0 o con letras.
+      // Bellman es dirigido siempre.
+      const leer = (texto, parametros) => {
+        const algoritmo = algoritmoDe(parametros);
+        if (algoritmo === ALGORITMOS.FLOYD) return dominio.grafo.leerGrafo(texto, parametros.tipo || TIPOS.NO_DIRIGIDO);
+        return dominio.caminos.leerGrafo(texto, algoritmo === ALGORITMOS.BELLMAN ? TIPOS.DIRIGIDO : parametros.tipo);
+      };
+      const grafoDe = (estructura) => {
+        const p = estructura && estructura.parametros;
+        return p && p.aristas ? leer(p.aristas, p).grafo : null;
+      };
+      // El inicio y el fin, contra el grafo. Vacíos: el primero y el último,
+      // que en Bellman son los de la función ordinal.
+      const extremo = (entrada, parametros, porOmision) => {
+        const lectura = leer(parametros.aristas, parametros);
+        if (!lectura.valido) return { valido: true, valor: '' };
+        const texto = String(entrada || '').trim();
+        const { vertices } = lectura.grafo;
+        if (!texto) {
+          const enOrden = algoritmoDe(parametros) === ALGORITMOS.BELLMAN ? dominio.caminos.funcionOrdinal(lectura.grafo).orden : vertices;
+          return { valido: true, valor: porOmision(enOrden) };
+        }
+        return vertices.includes(texto)
+          ? { valido: true, valor: texto }
+          : { valido: false, mensaje: `El vértice «${texto}» no está en el grafo (${vertices.join(', ')}).` };
+      };
+      const soloDeUno = { parametro: 'algoritmo', valor: [ALGORITMOS.DIJKSTRA, ALGORITMOS.BELLMAN] };
+      return {
       // La descripción larga va en el encabezado del tema; el menú lleva una
       // corta (2026-10-28).
-      descripcion: 'Distancias entre todos los pares, y el centro, el radio y la mediana que salen de ellas',
+      descripcion: 'Floyd, entre todos los pares, con el centro, el radio y la mediana; Dijkstra y Bellman, desde un vértice',
       orientacion: 'grafo',
+      deUnVertice,
+      leerGrafo: leer,
       calculo: true,
       tituloCalculo: 'Comparaciones',
       calculoSoloEnOperacion: true,
@@ -1090,29 +1129,100 @@
       tituloConfiguracion: 'Grafo',
       // Las aristas son parámetros y se quedan: vaciar devuelve la matriz a
       // la inicial, como antes de recorrer Floyd.
-      mensajeReinicio: 'Floyd reiniciado: la matriz vuelve a la inicial.',
+      mensajeReinicio: (estructura) => (deUnVertice(estructura)
+        ? `${NOMBRES[algoritmoDe(estructura.parametros)]} reiniciado: el grafo queda sin marcar.`
+        : 'Floyd reiniciado: la matriz vuelve a la inicial.'),
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para recorrer Floyd',
+        titulo: 'Escriba las aristas del grafo para hallar sus caminos mínimos',
         indicacion: 'Una por renglón, en el panel de la derecha'
       },
-      mensajeDerivacion: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
+      mensajeDerivacion: (estructura) => ({
+        [ALGORITMOS.FLOYD]: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
+        [ALGORITMOS.DIJKSTRA]: 'Dijkstra iniciado: la menor etiqueta temporal se hace permanente.',
+        [ALGORITMOS.BELLMAN]: 'Función ordinal iniciada; después, Bellman.'
+      })[algoritmoDe(estructura.parametros)],
       mensajeCreacion: (estructura) => {
-        const grafo = grafoDeLaEstructura(estructura);
+        const grafo = grafoDe(estructura);
         return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas, `
           + `${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}, `
-          + `${grafo.conPesos ? 'con pesos' : 'sin pesos (cada arista vale 1)'}.`;
+          + `${grafo.conPesos ? 'con pesos' : 'sin pesos (cada arista vale 1)'}.`
+          + (deUnVertice(estructura) ? ` ${NOMBRES[estructura.parametros.algoritmo]} de ${estructura.parametros.inicio} a ${estructura.parametros.fin}.` : '');
       },
-      detalleReciente: (estructura) => describirGrafo(grafoDeLaEstructura(estructura)),
-      alCrear: ({ estructura }) => algoritmos.floyd.recorrer(grafoDeLaEstructura(estructura)),
+      detalleReciente: (estructura) => {
+        const p = estructura.parametros;
+        return deUnVertice(estructura)
+          ? `${NOMBRES[p.algoritmo]} ${p.inicio} → ${p.fin} · ${grafoDe(estructura).vertices.length} vértices`
+          : describirGrafo(grafoDe(estructura));
+      },
+      alCrear: ({ estructura }) => (deUnVertice(estructura)
+        ? algoritmos.caminos.recorrer(grafoDe(estructura), estructura.parametros)
+        : algoritmos.floyd.recorrer(grafoDe(estructura))),
       // La matriz y los conceptos se dibujan desde el paso: el final los
       // hereda, con las líneas de los conceptos, pero sin resaltar nada.
-      conservarAlFinal: ['matriz', 'conceptos', 'calculo', 'tituloCalculo', 'fase', 'cambios'],
+      conservarAlFinal: ['matriz', 'conceptos', 'calculo', 'tituloCalculo', 'fase', 'cambios',
+        'caminos', 'algoritmo', 'etiquetas', 'estados', 'marcadas', 'tabla', 'ruta', 'inicio', 'fin', 'suma', 'distancia',
+        'permanentes', 'numerados', 'evaluados'],
       nombreArchivo: (estructura) => {
-        const grafo = grafoDeLaEstructura(estructura);
-        return `floyd-${grafo.vertices.length}v-${grafo.tipo}`;
+        const grafo = grafoDe(estructura);
+        return `${algoritmoDe(estructura.parametros)}-${grafo.vertices.length}v-${grafo.tipo}`;
       },
-      vistaPrevia: vistaPreviaDeGrafo,
-      parametros: [PARAMETRO_TIPO_DE_GRAFO, PARAMETRO_ARISTAS],
+      vistaPrevia: (datos) => {
+        const lectura = leer(datos.get('aristas'), { algoritmo: datos.get('algoritmo'), tipo: String(datos.get('tipo') || TIPOS.NO_DIRIGIDO) });
+        return lectura.valido ? lectura.grafo : null;
+      },
+      parametros: [
+        {
+          nombre: 'algoritmo',
+          etiqueta: 'Algoritmo',
+          opciones: [
+            { valor: ALGORITMOS.FLOYD, etiqueta: 'Floyd' },
+            { valor: ALGORITMOS.DIJKSTRA, etiqueta: 'Dijkstra' },
+            { valor: ALGORITMOS.BELLMAN, etiqueta: 'Función ordinal y Bellman' }
+          ],
+          ayuda: 'Floyd, entre todos los pares. Dijkstra y Bellman, desde un vértice; Bellman pide un grafo dirigido sin ciclos.',
+          validar: (entrada) => {
+            const valor = entrada || ALGORITMOS.FLOYD;
+            return NOMBRES[valor] ? { valido: true, valor } : { valido: false, mensaje: 'Elija el algoritmo.' };
+          }
+        },
+        { ...PARAMETRO_TIPO_DE_GRAFO, soloCon: { parametro: 'algoritmo', valor: [ALGORITMOS.FLOYD, ALGORITMOS.DIJKSTRA] } },
+        {
+          ...PARAMETRO_ARISTAS,
+          ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices: en Floyd, numerados desde 1; en Dijkstra y Bellman, desde 0 o con letras.`,
+          validar: (entrada, { parametros }) => {
+            const lectura = leer(entrada, parametros);
+            if (!lectura.valido) return { valido: false, mensaje: lectura.mensaje };
+            if (parametros.algoritmo === ALGORITMOS.FLOYD) return { valido: true, valor: dominio.grafo.comoTexto(lectura.grafo) };
+            if (parametros.algoritmo === ALGORITMOS.BELLMAN) {
+              const { ciclo } = dominio.caminos.funcionOrdinal(lectura.grafo);
+              if (ciclo) return { valido: false, mensaje: `La función ordinal no se aplica con ciclos, y hay uno: ${ciclo.join(' → ')}. Dijkstra sí los acepta.` };
+            }
+            return { valido: true, valor: dominio.caminos.comoTexto(lectura.grafo) };
+          }
+        },
+        {
+          nombre: 'inicio',
+          etiqueta: 'Vértice inicial',
+          soloCon: soloDeUno,
+          marcador: '0',
+          ayuda: 'Vacío, el primero; en Bellman, el 0 de la función ordinal.',
+          validar: (entrada, { parametros }) => extremo(entrada, parametros, (orden) => orden[0])
+        },
+        {
+          nombre: 'fin',
+          etiqueta: 'Vértice final',
+          soloCon: soloDeUno,
+          marcador: '5',
+          ayuda: 'Hasta dónde va la ruta. Vacío, el último.',
+          validar: (entrada, { parametros }) => {
+            const otros = (orden) => orden.filter((v) => v !== parametros.inicio);
+            const dato = extremo(entrada, parametros, (orden) => otros(orden)[otros(orden).length - 1]);
+            return dato.valido && dato.valor && dato.valor === parametros.inicio
+              ? { valido: false, mensaje: `El inicio y el final son el mismo vértice, ${dato.valor}.` }
+              : dato;
+          }
+        }
+      ],
       casillasRelevantes: () => [],
       describirCasilla: ({ ocupada }) => ({ estado: ocupada ? 'ocupada' : 'vacia' }),
       // Mientras corre Floyd, lo que cuesta; con los conceptos, sus cuatro
@@ -1121,18 +1231,40 @@
       metricas: (() => {
         const conConceptos = (paso) => Boolean(paso && paso.conceptos);
         const conjunto = (vertices) => `{${vertices.join(', ')}}`;
+        // Dijkstra y Bellman: lo que va hecho y, al final, la distancia.
+        const avance = (paso, estructura) => {
+          const total = grafoDe(estructura).vertices.length;
+          if (!paso || !paso.caminos) return '—';
+          const hechos = paso.fase === 'dijkstra' ? paso.permanentes.length : paso.fase === 'ordinal' ? paso.numerados : paso.evaluados;
+          return `${hechos} de ${total}`;
+        };
         return [
           {
             id: 'primera',
             etiqueta: 'Comparaciones',
-            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Radio' : 'Comparaciones'),
-            valor: ({ paso }) => (conConceptos(paso) ? String(paso.conceptos.radio) : String(paso ? paso.comparaciones || 0 : 0))
+            etiquetaSegun: ({ paso, estructura }) => {
+              if (deUnVertice(estructura)) {
+                if (algoritmoDe(estructura.parametros) === ALGORITMOS.DIJKSTRA) return 'Permanentes';
+                return paso && paso.fase === 'bellman' ? 'Evaluados' : 'Numerados';
+              }
+              return conConceptos(paso) ? 'Radio' : 'Comparaciones';
+            },
+            valor: ({ paso, estructura }) => {
+              if (deUnVertice(estructura)) return avance(paso, estructura);
+              return conConceptos(paso) ? String(paso.conceptos.radio) : String(paso ? paso.comparaciones || 0 : 0);
+            }
           },
           {
             id: 'segunda',
             etiqueta: 'Cambios en D',
-            etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Diámetro' : 'Cambios en D'),
-            valor: ({ paso }) => (conConceptos(paso) ? String(paso.conceptos.diametro) : String(paso ? paso.cambios || 0 : 0))
+            etiquetaSegun: ({ paso, estructura }) => {
+              if (deUnVertice(estructura)) return 'Distancia';
+              return conConceptos(paso) ? 'Diámetro' : 'Cambios en D';
+            },
+            valor: ({ paso, estructura }) => {
+              if (deUnVertice(estructura)) return paso && paso.ruta !== undefined ? (paso.ruta ? String(paso.distancia) : '∞') : '—';
+              return conConceptos(paso) ? String(paso.conceptos.diametro) : String(paso ? paso.cambios || 0 : 0);
+            }
           },
           {
             id: 'tercera',
@@ -1140,7 +1272,7 @@
             etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Centro' : 'Vértices'),
             valor: ({ paso, estructura }) => {
               if (conConceptos(paso)) return conjunto(paso.conceptos.centro);
-              const grafo = grafoDeLaEstructura(estructura);
+              const grafo = grafoDe(estructura);
               return grafo ? String(grafo.vertices.length) : '—';
             }
           },
@@ -1150,13 +1282,14 @@
             etiquetaSegun: ({ paso }) => (conConceptos(paso) ? 'Mediana' : 'Aristas'),
             valor: ({ paso, estructura }) => {
               if (conConceptos(paso)) return conjunto(paso.conceptos.mediana);
-              const grafo = grafoDeLaEstructura(estructura);
+              const grafo = grafoDe(estructura);
               return grafo ? String(grafo.aristas.length) : '—';
             }
           }
         ];
       })()
-    },
+      };
+    })(),
 
     // Representación matricial (CLAUDE.md 5.13): la matriz de incidencia, de
     // adyacencia de vértices o de adyacencia de aristas, con su estructura de

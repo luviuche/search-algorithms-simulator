@@ -27,19 +27,19 @@
 
     // El grafo de la estructura, leído de su parámetro. Se guarda leído y se
     // vuelve a leer solo si el texto cambió.
-    let leido = { texto: null, tipo: null, grafo: null };
+    let leido = { texto: null, tipo: null, algoritmo: null, grafo: null };
     function grafoDeLaEstructura() {
       const p = (estado.estructura && estado.estructura.parametros) || {};
       if (!p.aristas) return null;
-      if (leido.texto !== p.aristas || leido.tipo !== p.tipo) {
+      if (leido.texto !== p.aristas || leido.tipo !== p.tipo || leido.algoritmo !== p.algoritmo) {
         // Sin tipo —el coloreado no lo pide— es no dirigido, como en app.js.
         // Un tema puede leer su grafo a su manera: pareamientos, con vértices
-        // letra.
+        // letra; los caminos mínimos, según el algoritmo.
         const lectura = config.leerGrafo
-          ? config.leerGrafo(p.aristas)
+          ? config.leerGrafo(p.aristas, p)
           : dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO,
             config.verticesMaximos ? { verticesMaximos: config.verticesMaximos } : undefined);
-        leido = { texto: p.aristas, tipo: p.tipo, grafo: lectura.valido ? lectura.grafo : null };
+        leido = { texto: p.aristas, tipo: p.tipo, algoritmo: p.algoritmo, grafo: lectura.valido ? lectura.grafo : null };
       }
       return leido.grafo;
     }
@@ -98,6 +98,11 @@
         // La arista de i a j, si la hay: es D_ij cuando todavía vale lo que
         // vale la arista, y el primer tramo del camino que se prueba.
         aristas = (a) => (unen(a, vi, vj, grafo) ? 'evaluacion' : undefined);
+      }
+      // Dijkstra y Bellman: lo que el paso diga de cada vértice y arista.
+      if (paso.caminos) {
+        for (const [vertice, estadoVertice] of Object.entries(paso.estados)) vertices.set(vertice, estadoVertice);
+        aristas = (a) => paso.marcadas[a.nombre];
       }
       // Representación matricial: la fila que se llena en azul —un vértice o
       // una arista— y lo que lleva 1 o −1 en ella en naranja, igual que en la
@@ -646,6 +651,106 @@
       return tarjeta;
     }
 
+    // ── Dijkstra y Bellman (CLAUDE.md 5.20) ───────────────────────────────
+    // Junto a cada vértice, lo que el docente escribe a su lado: la etiqueta
+    // [d, n], el número de la función ordinal o su λ. Hacia afuera del grafo,
+    // que por dentro es donde llegan las aristas, y el dibujo crece lo que
+    // haga falta para abarcarlas.
+    const ANCHO_LETRA = 9.2;
+    function agregarEtiquetas(dibujo, grafo, paso) {
+      const { mapa, ancho, alto, centro } = posiciones(grafo.vertices);
+      const caja = { x0: 0, y0: 0, x1: ancho, y1: alto };
+      for (const [vertice, { texto, clase }] of Object.entries(paso.etiquetas)) {
+        const { x, y } = mapa.get(vertice);
+        const dx = x - centro.x;
+        const dy = y - centro.y;
+        const largo = Math.hypot(dx, dy) || 1;
+        const px = x + (dx / largo) * (RADIO + 8);
+        const py = y + (dy / largo) * (RADIO + 15);
+        const ancla = dx / largo > 0.3 ? 'start' : dx / largo < -0.3 ? 'end' : 'middle';
+        svg('text', {
+          x: px, y: py, class: `grafo__etiqueta grafo__etiqueta--${clase}`, 'data-de': vertice,
+          'text-anchor': ancla, 'dominant-baseline': 'central'
+        }, dibujo).textContent = texto;
+        const w = texto.length * ANCHO_LETRA;
+        const desde = ancla === 'start' ? px : ancla === 'end' ? px - w : px - w / 2;
+        caja.x0 = Math.min(caja.x0, desde - 4);
+        caja.x1 = Math.max(caja.x1, desde + w + 4);
+        caja.y0 = Math.min(caja.y0, py - 14);
+        caja.y1 = Math.max(caja.y1, py + 14);
+      }
+      dibujo.setAttribute('viewBox', `${caja.x0} ${caja.y0} ${caja.x1 - caja.x0} ${caja.y1 - caja.y0}`);
+      dibujo.setAttribute('width', caja.x1 - caja.x0);
+      dibujo.setAttribute('height', caja.y1 - caja.y0);
+      return dibujo;
+    }
+
+    function crearTablaDeCaminos({ cabecera, filas }) {
+      const tabla = document.createElement('table');
+      tabla.className = 'coloreo-tabla caminos-tabla';
+      const encabezado = document.createElement('tr');
+      for (const texto of cabecera) {
+        const th = document.createElement('th');
+        th.scope = 'col';
+        th.textContent = texto;
+        encabezado.appendChild(th);
+      }
+      tabla.appendChild(encabezado);
+      for (const fila of filas) {
+        const tr = document.createElement('tr');
+        if (fila.actual) tr.className = 'coloreo-tabla__fila--actual';
+        for (const celda of fila.celdas) {
+          const td = document.createElement('td');
+          if (!Array.isArray(celda)) td.textContent = celda;
+          else {
+            for (const e of celda) {
+              const el = document.createElement(e.tachada ? 's' : 'span');
+              el.className = `caminos-etiqueta caminos-etiqueta--${e.tachada ? 'tachada' : e.clase}`;
+              el.textContent = e.texto + (e.clase === 'permanente' && !e.tachada ? '*' : '');
+              td.appendChild(el);
+            }
+          }
+          tr.appendChild(td);
+        }
+        tabla.appendChild(tr);
+      }
+      return tabla;
+    }
+
+    function crearRuta(paso) {
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'coloreo-formula';
+      const renglones = paso.ruta
+        ? [`Ruta: ${paso.ruta.join(' → ')}`, `d(${paso.inicio}, ${paso.fin}) = ${paso.suma}${paso.distancia}`]
+        : [`De ${paso.inicio} a ${paso.fin} no hay camino`];
+      renglones.forEach((texto, i) => {
+        const p = document.createElement('p');
+        p.textContent = texto;
+        if (i === 1) p.className = 'coloreo-formula__resultado';
+        tarjeta.appendChild(p);
+      });
+      return tarjeta;
+    }
+
+    function renderizarCaminos(paso) {
+      const grafo = grafoDeLaEstructura();
+      dom.estructuraEl.className = 'estructura-grafo';
+      dom.estructuraEl.removeAttribute('style');
+      dom.estructuraEl.innerHTML = '';
+      if (!grafo) return;
+      const dibujo = crearGrafo(grafo, paso);
+      dom.estructuraEl.appendChild(dibujo);
+      if (paso && paso.caminos) {
+        agregarEtiquetas(dibujo, grafo, paso);
+        const columna = document.createElement('div');
+        columna.className = 'estructura-grafo__columna';
+        columna.appendChild(crearTablaDeCaminos(paso.tabla));
+        if (paso.ruta !== undefined) columna.appendChild(crearRuta(paso));
+        dom.estructuraEl.appendChild(columna);
+      }
+      ajustarGrafo();
+    }
+
     // ── Operaciones entre grafos (CLAUDE.md 5.15) ─────────────────────────
     // Los dos operandos chicos a la izquierda, con el símbolo entre ellos, y
     // el resultado en una cuadrícula: una fila por vértice de G₁ y una
@@ -1163,6 +1268,11 @@
         renderizarOperacion(paso);
         return;
       }
+      // Floyd dibuja su matriz; los otros dos, etiquetas y tabla.
+      if (config.deUnVertice && config.deUnVertice(estado.estructura)) {
+        renderizarCaminos(paso);
+        return;
+      }
       if (config.transformaciones) {
         const deUno = grafoDeLaEstructura();
         dom.estructuraEl.className = 'estructura-grafo';
@@ -1228,7 +1338,9 @@
       if (!caja.isConnected || !caja.firstChild) return;
       if (dom.escenario) dom.escenario.classList.remove('lienzo__escenario--sin-calculo');
       const factor = encajar(caja);
-      if (config.calculoPrescindible && dom.escenario && factor < ENCOGIMIENTO_SIN_CALCULO) {
+      // Dijkstra y Bellman sí lo sueltan: su panel repite la tabla.
+      const prescindible = config.calculoPrescindible || (config.deUnVertice && config.deUnVertice(estado.estructura));
+      if (prescindible && dom.escenario && factor < ENCOGIMIENTO_SIN_CALCULO) {
         dom.escenario.classList.add('lienzo__escenario--sin-calculo');
         encajar(caja);
       }
@@ -1245,7 +1357,7 @@
       // tabla al lado de las conclusiones —con 12 vértices, en un proyector
       // XGA, es la única que cabe—.
       const disposiciones = ['', 'estructura-grafo--apilada']
-        .concat(config.representacionDe || config.coloreado || config.operaciones || config.transformaciones || config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--extendida'] : [])
+        .concat(config.representacionDe || config.coloreado || config.operaciones || config.transformaciones || config.deUnVertice || config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--extendida'] : [])
         .concat(config.conjuntos || config.pareamientos || config.expansion ? ['estructura-grafo--apilada estructura-grafo--extendida'] : [])
         // El árbol de expansión suma la lista de Kruskal partida en dos.
         .concat(config.expansion ? ['estructura-grafo--partida', 'estructura-grafo--apilada estructura-grafo--partida',

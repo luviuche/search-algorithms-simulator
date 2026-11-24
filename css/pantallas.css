@@ -2073,6 +2073,43 @@ form.panel > .pantalla-tema__reproduccion {
 .grafo__vertice text.grafo__papel--j { fill: var(--estado-evaluacion-borde); }
 .grafo__vertice text.grafo__papel--i { fill: var(--estado-rango-borde); }
 
+/* Dijkstra y Bellman: lo escrito junto al vértice. Temporal en naranja y
+   permanente en azul, como en las notas del docente; el número de la función
+   ordinal que todavía no es λ, apagado. */
+.grafo__etiqueta {
+  font-family: var(--fuente-mono);
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--tinta-suave);
+  paint-order: stroke;
+  stroke: var(--superficie-hundida);
+  stroke-width: 4px;
+}
+
+.grafo__etiqueta--temporal { fill: var(--estado-evaluacion-borde); }
+.grafo__etiqueta--permanente { fill: var(--estado-rango-borde); }
+
+/* Un vértice de un grafo denso junta siete etiquetas, o siete sumas: en un
+   renglón, la tabla no cabía. */
+.caminos-tabla td {
+  padding-block: var(--espacio-1);
+}
+
+.caminos-tabla td:nth-child(2) {
+  max-width: 300px;
+  white-space: normal;
+}
+
+.caminos-etiqueta {
+  display: inline-block;
+  margin-right: var(--espacio-3);
+  white-space: nowrap;
+}
+
+.caminos-etiqueta--temporal { color: var(--estado-evaluacion-borde); font-weight: 700; }
+.caminos-etiqueta--permanente { color: var(--estado-rango-borde); font-weight: 700; }
+.caminos-etiqueta--tachada { color: var(--tinta-suave); }
+
 /* Antes de crear el grafo, la vista previa: lo mismo, sin matriz. */
 .estructura-grafo--previa .grafo {
   opacity: .9;
