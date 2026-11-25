@@ -32,6 +32,7 @@
     'dominio/combinaciones.js',
     'dominio/transformaciones.js',
     'dominio/caminos.js',
+    'dominio/envolvente.js',
     'dominio/conjuntos.js',
     'dominio/pareamientos.js',
     'dominio/expansion.js',
@@ -65,6 +66,7 @@
     'algoritmos/combinaciones.js',
     'algoritmos/transformaciones.js',
     'algoritmos/caminos.js',
+    'algoritmos/envolvente.js',
     'algoritmos/conjuntos.js',
     'algoritmos/pareamientos.js',
     'algoritmos/expansion.js',
@@ -94,6 +96,7 @@
     'vista/dibujos/indices.js',
     'vista/dibujos/bosque.js',
     'vista/dibujos/grafos-libres.js',
+    'vista/dibujos/envolvente.js',
     'vista/dibujos/grafo.js',
     'vista/pantallas/tema-busqueda.js'
   ];

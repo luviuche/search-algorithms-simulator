@@ -759,6 +759,7 @@
     const operaciones = dominio.operaciones;
     const combinaciones = dominio.combinaciones;
     const libres = window.CC2.vista.dibujos.grafosLibres({ svg, trazoEntre, abarcarCurvas, posiciones });
+    const envolventes = window.CC2.vista.dibujos.envolventes({ svg, crearConjuntos: libres.crearConjuntos });
     function operandosDeLaEstructura() {
       const p = (estado.estructura && estado.estructura.parametros) || {};
       if (combinaciones.es(p.operacion)) {
@@ -1221,6 +1222,15 @@
         ajustarGrafo();
         return;
       }
+      // Las envolventes van en el tema de pareamientos: puntos y no grafo.
+      if (config.deEnvolvente && config.deEnvolvente(estado.estructura)) {
+        dom.estructuraEl.className = 'estructura-grafo';
+        dom.estructuraEl.removeAttribute('style');
+        dom.estructuraEl.innerHTML = '';
+        envolventes.llenar(dom.estructuraEl, config.puntosDe(estado.estructura), paso);
+        ajustarGrafo();
+        return;
+      }
       if (config.pareamientos) {
         const grafo = grafoDeLaEstructura();
         dom.estructuraEl.className = 'estructura-grafo';
@@ -1395,7 +1405,8 @@
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       // En las operaciones, la vista previa son los dos operandos.
-      if (config.operaciones && combinaciones.es(grafo.operacion)) libres.llenarCombinacion(dom.estructuraEl, grafo, null);
+      if (grafo.puntos) envolventes.llenar(dom.estructuraEl, grafo.puntos, null);
+      else if (config.operaciones && combinaciones.es(grafo.operacion)) libres.llenarCombinacion(dom.estructuraEl, grafo, null);
       else if (config.operaciones) dom.estructuraEl.appendChild(crearOperandos(grafo, null));
       else if (config.transformaciones) libres.llenarTransformacion(dom.estructuraEl, grafo, null);
       else dom.estructuraEl.appendChild(crearGrafo(grafo, null));

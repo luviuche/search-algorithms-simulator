@@ -91,10 +91,8 @@
         { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
         { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
         { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Independiente máximo y dominante mínimo', tema: 'conjuntos', disponible: true },
-        // Las envolventes convexas entrarán en este mismo tema cuando se vean
-        // en clase (decisión del usuario, 2026-11-03), y entonces vuelve a
-        // llamarse «Pareamientos y envolventes».
-        { id: 'grafos-pareamientos', titulo: 'Pareamientos', descripcion: 'Caminos M-aumentados hasta el pareamiento máximo', tema: 'pareamientos', disponible: true }
+        // Dos temas en uno (decisión del usuario, 2026-11-03).
+        { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: 'Pareamiento máximo y envolvente convexa', tema: 'pareamientos', disponible: true }
       ]
     }
   ];
@@ -2002,9 +2000,16 @@
 
     // Pareamientos (CLAUDE.md 5.17): comprobar un pareamiento, o llegar al
     // máximo invirtiendo caminos M-aumentados, como las hojas 9 y 10. Hasta
-    // 12 vértices, con números o letras.
+    // 12 vértices, con números o letras. Y las envolventes convexas (5.21), de
+    // hasta 16 puntos: no comparten nada con el pareamiento más que el tema.
     pareamientos: (() => {
       const { MODOS, VERTICES_MAXIMOS } = dominio.pareamientos;
+      const plano = dominio.envolvente;
+      const esEnvolvente = (modo) => modo === plano.MODO;
+      const deEnvolvente = (estructura) => Boolean(estructura) && esEnvolvente(estructura.parametros.modo);
+      const puntosDe = (estructura) => plano.leerPuntos(estructura.parametros.puntos).puntos;
+      const tituloDe = (estructura) => algoritmos.envolvente.TITULOS[estructura.parametros.metodo];
+      const soloPareamiento = { parametro: 'modo', valor: Object.values(MODOS) };
       const leer = (texto) => dominio.pareamientos.leerGrafo(texto);
       const grafoDe = (estructura) => {
         const p = estructura && estructura.parametros;
@@ -2015,9 +2020,11 @@
         .map((r) => dominio.pareamientos.leerNombres(r, grafo, 'Camino').nombres || []);
       const alTerminar = (paso) => Boolean(paso && paso.propiedades);
       return {
-        descripcion: 'Comprobar un pareamiento, o llegar al máximo invirtiendo caminos M-aumentados',
+        descripcion: 'Comprobar un pareamiento o llegar al máximo, y hallar la envolvente convexa de un conjunto de puntos',
         orientacion: 'grafo',
         pareamientos: true,
+        deEnvolvente,
+        puntosDe,
         leerGrafo: leer,
         nombresDeAristas: true,
         calculo: true,
@@ -2032,19 +2039,25 @@
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'grafo',
         tituloConfiguracion: 'Grafo',
-        mensajeReinicio: 'Pareamiento borrado: el grafo queda sin marcar.',
+        mensajeReinicio: (estructura) => (deEnvolvente(estructura)
+          ? 'Envolvente borrada: quedan los puntos.'
+          : 'Pareamiento borrado: el grafo queda sin marcar.'),
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo',
+          titulo: 'Escriba las aristas del grafo, o los puntos',
           indicacion: 'Una por renglón, en el panel de la derecha'
         },
-        mensajeDerivacion: 'Pareamiento iniciado.',
+        mensajeDerivacion: (estructura) => (deEnvolvente(estructura) ? `${tituloDe(estructura)} iniciado.` : 'Pareamiento iniciado.'),
         mensajeCreacion: (estructura) => {
+          if (deEnvolvente(estructura)) return `Conjunto de ${puntosDe(estructura).length} puntos. Método: ${tituloDe(estructura)}.`;
           const grafo = grafoDe(estructura);
           return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas.`;
         },
-        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${
-          estructura.parametros.modo === MODOS.COMPROBAR ? 'comprobar M' : 'pareamiento máximo'}`,
+        detalleReciente: (estructura) => (deEnvolvente(estructura)
+          ? `${puntosDe(estructura).length} puntos · ${tituloDe(estructura)}`
+          : `${grafoDe(estructura).vertices.length} vértices · ${
+            estructura.parametros.modo === MODOS.COMPROBAR ? 'comprobar M' : 'pareamiento máximo'}`),
         alCrear: ({ estructura }) => {
+          if (deEnvolvente(estructura)) return algoritmos.envolvente.recorrer(puntosDe(estructura), estructura.parametros.metodo);
           const grafo = grafoDe(estructura);
           const { modo, pareamiento, caminos } = estructura.parametros;
           return algoritmos.pareamientos.recorrer(grafo, {
@@ -2052,9 +2065,16 @@
           });
         },
         conservarAlFinal: ['modo', 'M', 'tabla', 'filasLlenas', 'propiedades', 'nu', 'vs', 'vl', 'al',
+          'envolvente', 'metodo', 'vertical', 'segmentos', 'estados', 'conjuntos', 'medidas', 'extremos', 'descartados', 'perimetro',
           'calculo', 'tituloCalculo'],
-        nombreArchivo: (estructura) => `pareamiento-${estructura.parametros.modo}-${grafoDe(estructura).vertices.length}v`,
+        nombreArchivo: (estructura) => (deEnvolvente(estructura)
+          ? `envolvente-${estructura.parametros.metodo}-${puntosDe(estructura).length}p`
+          : `pareamiento-${estructura.parametros.modo}-${grafoDe(estructura).vertices.length}v`),
         vistaPrevia: (datos) => {
+          if (esEnvolvente(datos.get('modo'))) {
+            const lectura = plano.leerPuntos(datos.get('puntos'));
+            return lectura.valido ? { puntos: lectura.puntos } : null;
+          }
           const lectura = leer(datos.get('aristas'));
           return lectura.valido ? lectura.grafo : null;
         },
@@ -2064,15 +2084,42 @@
             etiqueta: 'Qué hacer',
             opciones: [
               { valor: MODOS.MAXIMO, etiqueta: 'Llegar al pareamiento máximo' },
-              { valor: MODOS.COMPROBAR, etiqueta: 'Comprobar un pareamiento M' }
+              { valor: MODOS.COMPROBAR, etiqueta: 'Comprobar un pareamiento M' },
+              { valor: plano.MODO, etiqueta: 'Hallar la envolvente convexa' }
             ],
-            ayuda: 'El máximo se alcanza invirtiendo caminos M-aumentados, hasta que no quede ninguno.',
-            validar: (entrada) => (Object.values(MODOS).includes(entrada)
+            ayuda: 'El máximo se alcanza invirtiendo caminos M-aumentados. La envolvente, de un conjunto de puntos.',
+            validar: (entrada) => (Object.values(MODOS).includes(entrada) || esEnvolvente(entrada)
               ? { valido: true, valor: entrada }
               : { valido: false, mensaje: 'Elija qué hacer.' })
           },
           {
+            nombre: 'metodo',
+            etiqueta: 'Método',
+            soloCon: { parametro: 'modo', valor: plano.MODO },
+            opciones: Object.values(plano.METODOS).map((valor) => ({ valor, etiqueta: algoritmos.envolvente.TITULOS[valor] })),
+            ayuda: 'Todos llegan a los mismos extremos, por caminos distintos.',
+            validar: (entrada) => (Object.values(plano.METODOS).includes(entrada)
+              ? { valido: true, valor: entrada }
+              : { valido: false, mensaje: 'Elija el método.' })
+          },
+          {
+            nombre: 'puntos',
+            etiqueta: 'Puntos',
+            soloCon: { parametro: 'modo', valor: plano.MODO },
+            tipo: 'texto-largo',
+            renglones: 8,
+            marcador: 'A 0 0\nB 4 0\nC 4 4\nD 0 4\nE 1 2',
+            ayuda: `Uno por renglón: su nombre, si se quiere, y sus coordenadas x, y. De 3 a ${plano.PUNTOS_MAXIMOS} puntos.`,
+            validar: (entrada) => {
+              const lectura = plano.leerPuntos(entrada);
+              return lectura.valido
+                ? { valido: true, valor: plano.comoTexto(lectura.puntos) }
+                : { valido: false, mensaje: lectura.mensaje };
+            }
+          },
+          {
             ...PARAMETRO_ARISTAS,
+            soloCon: soloPareamiento,
             renglones: 7,
             marcador: 'a 1 2\nb 2 3\nc 3 4',
             ayuda: `Una por renglón: su nombre, si se quiere, y sus dos vértices, números o letras. Hasta ${VERTICES_MAXIMOS} vértices.`,
@@ -2086,6 +2133,7 @@
           {
             nombre: 'pareamiento',
             etiqueta: 'Pareamiento M',
+            soloCon: soloPareamiento,
             marcador: 'b',
             ayuda: 'Sus aristas. Al llegar al máximo es el inicial, y se puede dejar vacío.',
             // Va después de las aristas: se valida contra el grafo.
@@ -2135,7 +2183,9 @@
           {
             id: 'vertices',
             etiqueta: 'Vértices',
+            etiquetaSegun: ({ estructura }) => (deEnvolvente(estructura) ? 'Puntos' : 'Vértices'),
             valor: ({ estructura }) => {
+              if (deEnvolvente(estructura)) return String(puntosDe(estructura).length);
               const grafo = grafoDe(estructura);
               return grafo ? String(grafo.vertices.length) : '—';
             }
@@ -2143,7 +2193,13 @@
           {
             id: 'aristas',
             etiqueta: 'Aristas',
-            valor: ({ estructura }) => {
+            // En Graham, lo de la pila no es extremo hasta terminar.
+            etiquetaSegun: ({ estructura, paso }) => {
+              if (!deEnvolvente(estructura)) return 'Aristas';
+              return estructura.parametros.metodo === plano.METODOS.GRAHAM && paso && !paso.medidas ? 'En la pila' : 'Extremos';
+            },
+            valor: ({ estructura, paso }) => {
+              if (deEnvolvente(estructura)) return paso && paso.envolvente ? String(paso.extremos) : '—';
               const grafo = grafoDe(estructura);
               return grafo ? String(grafo.aristas.length) : '—';
             }
@@ -2151,13 +2207,21 @@
           {
             id: 'tamano',
             etiqueta: 'Aristas en M',
-            valor: ({ paso }) => (paso && paso.M ? String(paso.M.length) : '—')
+            etiquetaSegun: ({ estructura }) => (deEnvolvente(estructura) ? 'Descartados' : 'Aristas en M'),
+            valor: ({ estructura, paso }) => {
+              if (deEnvolvente(estructura)) return paso && paso.envolvente ? String(paso.descartados) : '—';
+              return paso && paso.M ? String(paso.M.length) : '—';
+            }
           },
           {
             id: 'cuarta',
             etiqueta: 'Vértices libres',
-            etiquetaSegun: ({ paso }) => (alTerminar(paso) ? 'Núm. de matching' : 'Vértices libres'),
+            etiquetaSegun: ({ estructura, paso }) => {
+              if (deEnvolvente(estructura)) return 'Perímetro';
+              return alTerminar(paso) ? 'Núm. de matching' : 'Vértices libres';
+            },
             valor: ({ estructura, paso }) => {
+              if (deEnvolvente(estructura)) return paso && paso.perimetro ? paso.perimetro : '—';
               if (!paso || !paso.M) return '—';
               if (alTerminar(paso)) return String(paso.nu);
               const grafo = grafoDe(estructura);

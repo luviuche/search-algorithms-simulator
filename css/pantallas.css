@@ -2110,6 +2110,36 @@ form.panel > .pantalla-tema__reproduccion {
 .caminos-etiqueta--permanente { color: var(--estado-rango-borde); font-weight: 700; }
 .caminos-etiqueta--tachada { color: var(--tinta-suave); }
 
+/* Envolventes convexas (CLAUDE.md 5.21). */
+.envolvente__eje {
+  stroke: var(--borde);
+  stroke-width: 1.2;
+}
+
+.envolvente__division {
+  stroke: var(--tinta-suave);
+  stroke-width: 1.5;
+  stroke-dasharray: 8 6;
+}
+
+.envolvente__punto text {
+  font-size: 15px;
+}
+
+.envolvente__punto--chico text {
+  paint-order: stroke;
+  stroke: var(--superficie-hundida);
+  stroke-width: 4px;
+}
+
+.envolvente-medidas {
+  font-size: 15px;
+}
+
+.envolvente-medidas span {
+  color: var(--tinta-suave);
+}
+
 /* Antes de crear el grafo, la vista previa: lo mismo, sin matriz. */
 .estructura-grafo--previa .grafo {
   opacity: .9;

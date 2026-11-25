@@ -525,8 +525,24 @@
 
     // Pareamientos: ?vista=pareamientos&ejemplo=…&modo=…&m=…&caminos=…, por
     // omisión el ejemplo de las hojas 9 y 10 con sus tres caminos.
+    // Envolventes convexas: ?vista=envolvente&metodo=divide|quickhull|graham|
+    // jarvis, por omisión los puntos de la pág. 6 (o `&ejemplo=pagina7`).
+    function prepararEnvolvente() {
+      const formularios = entrarATema('Pareamientos y envolventes');
+      const ejemplos = {
+        pagina6: 'A 14 50\nB 52 61\nC 0 31\nD 47 45\nE 70 49\nF 18 27\nG 9 12\nH 34 13\nI 48 21\nJ 74 29\nK 55 11\nL 25 1\nM 70 6',
+        pagina7: 'a 0 30\nb 25 42\nc 39 41\nd 14 23\ne 30 21\nf 0.5 15\ng 49 21\nh 6 4\ni 18 0\nJ 39 6'
+      };
+      enviar(formularios[0], {
+        modo: 'envolvente',
+        metodo: parametros.get('metodo') || 'divide',
+        puntos: parametros.get('puntos') || ejemplos[parametros.get('ejemplo') || 'pagina6']
+      });
+      avanzar(pasosAAvanzar(60));
+    }
+
     function prepararPareamientos() {
-      const formularios = entrarATema('Pareamientos');
+      const formularios = entrarATema('Pareamientos y envolventes');
       const ejemplos = {
         hoja9: 'a I E\nb I M\nc M E\nd M S\ne E G\nf F G\ng S G\nh S L\ni S A\nj G A\nk L A',
         hoja5: 'a 1 2\nb 1 3\nc 2 3\nd 2 4\ne 3 5\nf 4 5\ng 4 6'
@@ -697,6 +713,7 @@
       if (vista === 'transformaciones') return prepararTransformaciones();
       if (vista === 'conjuntos') return prepararConjuntos();
       if (vista === 'pareamientos') return prepararPareamientos();
+      if (vista === 'envolvente') return prepararEnvolvente();
       if (vista === 'expansion') return prepararExpansion();
       if (vista === 'abrir-archivo') return prepararAbrirArchivo();
       if (vista === 'eliminar-binaria') return prepararEliminacion('Búsqueda binaria');

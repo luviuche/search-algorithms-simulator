@@ -669,6 +669,7 @@
       operacionesSobreUnGrafo();
       conjuntosIndependientesYDominantes();
       pareamientosDeGrafos();
+      envolventesConvexas();
       arbolDeExpansionMinimo();
       controlDeVelocidad();
     }
@@ -3985,11 +3986,71 @@
       document.querySelector('.pantalla-tema__volver').click();
     }
 
+    // Envolventes convexas (CLAUDE.md 5.21): los puntos de las páginas 6 y 7
+    // del docente, con los cuatro métodos.
+    function envolventesConvexas() {
+      registro.push('', '── Envolventes convexas ──');
+      entrarATema('Pareamientos y envolventes');
+      const formulario = document.querySelector('form.panel');
+      const pagina6 = 'A 14 50\nB 52 61\nC 0 31\nD 47 45\nE 70 49\nF 18 27\nG 9 12\nH 34 13\nI 48 21\nJ 74 29\nK 55 11\nL 25 1\nM 70 6';
+      const pagina7 = 'a 0 30\nb 25 42\nc 39 41\nd 14 23\ne 30 21\nf 0.5 15\ng 49 21\nh 6 4\ni 18 0\nJ 39 6';
+      const modo = formulario.querySelector('[name="modo"]');
+      const elegir = (valor) => {
+        modo.value = valor;
+        modo.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const crear = (metodo, puntos) => {
+        elegir('envolvente');
+        formulario.querySelector('[name="metodo"]').value = metodo;
+        const campo = formulario.querySelector('[name="puntos"]');
+        campo.value = puntos;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+        formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      };
+      const aLaVista = () => ['metodo', 'puntos', 'aristas', 'pareamiento', 'caminos']
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+      const verdes = () => [...document.querySelectorAll('.grafo__vertice--encontrada')].map((g) => g.dataset.vertice).sort().join(' ');
+      const cierre = () => document.querySelectorAll('.grafo--plano .grafo__arista--encontrada').length;
+
+      elegir('envolvente');
+      afirmar(aLaVista() === 'metodo puntos', `la envolvente pide el método y los puntos (${aLaVista()})`);
+      elegir('maximo');
+      afirmar(aLaVista() === 'aristas pareamiento caminos', `y el pareamiento, lo suyo (${aLaVista()})`);
+
+      crear('divide', 'A 0 0\nB 1 1\nC 2 2');
+      afirmar(!!aviso() && aviso().textContent.includes('misma recta'), 'puntos en línea se rechazan');
+      afirmar(document.querySelectorAll('.envolvente__punto').length === 0, 'y no se dibujan como conjunto');
+
+      crear('divide', pagina6);
+      afirmar(document.querySelectorAll('.envolvente__punto').length === 13 && !!document.querySelector('.envolvente__division'),
+        'divide y vencerás: trece puntos y la recta que divide');
+      for (let i = 0; i < 3; i++) control('siguiente').click();
+      afirmarGrafoCabe('divide y vencerás, al unir');
+      agotarTraza(20);
+      afirmar(verdes() === 'A B C E G J L M' && cierre() === 8, `los extremos de la pág. 6 (${verdes()})`);
+      afirmar(document.querySelectorAll('.envolvente-medidas p').length === 4, 'con perímetro, área, diámetro y anchura');
+      afirmarGrafoCabe('envolvente, al terminar');
+
+      for (const metodo of ['quickhull', 'graham', 'jarvis']) {
+        control('editar-configuracion').click();
+        crear(metodo, pagina7);
+        control('siguiente').click();
+        control('siguiente').click();
+        afirmarGrafoCabe(`${metodo}, tercer paso`);
+        agotarTraza(60);
+        afirmar(verdes() === 'J a b c f g h i' && cierre() === 8, `${metodo}: los extremos de la pág. 7 (${verdes()})`);
+        afirmarGrafoCabe(`${metodo}, al terminar`);
+      }
+      document.querySelector('.pantalla-tema__volver').click();
+      const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('10 puntos · Jarvis'));
+      afirmar(!!pastilla, 'la reciente dice cuántos puntos y el método');
+    }
+
     // Pareamientos (CLAUDE.md 5.17): las hojas 9 y 10 con sus tres caminos, y
     // comprobar uno de la hoja 5.
     function pareamientosDeGrafos() {
       registro.push('', '── Pareamientos ──');
-      entrarATema('Pareamientos');
+      entrarATema('Pareamientos y envolventes');
       const formulario = document.querySelector('form.panel');
       const aristasHoja = 'a I E\nb I M\nc M E\nd M S\ne E G\nf F G\ng S G\nh S L\ni S A\nj G A\nk L A';
       const elegir = (modo) => {

@@ -1009,7 +1009,7 @@ Aquí **dos vértices con el mismo nombre son el mismo**, y 2–1 es la arista 1
 
 ### 5.17 Pareamientos (2026-11-03)
 
-**Sexto tema de grafos**, con las hojas manuscritas de `docs/Inf. Pareamientos 29-10-26/`: numeradas del 1 al 10, y **la 8 no existe, el docente se la salta** (dicho por el usuario). Él cita a Morales, Gómez y Cáceres (2016). **Las envolventes convexas entrarán en este mismo tema** cuando se vean en clase (decisión del usuario, «dos temas en uno»), como otra opción del formulario, y el renglón volverá a llamarse «Pareamientos y envolventes». Hoy se llama «Pareamientos» para no prometer lo que no está. Su material es `docs/ENVOLVENTES 03-11-26.pdf`: geometría de puntos en el plano, sin relación con el pareamiento. Los puntos se escribirán «A 3 7», con divide y vencerás y QuickHull a elegir, y Graham y Jarvis después; sus pseudocódigos mecanografiados no funcionan como están escritos (Graham con `i < n-1` deja fuera el último punto).
+**Sexto tema de grafos**, con las hojas manuscritas de `docs/Inf. Pareamientos 29-10-26/`: numeradas del 1 al 10, y **la 8 no existe, el docente se la salta** (dicho por el usuario). Él cita a Morales, Gómez y Cáceres (2016). **Las envolventes convexas van en este mismo tema** (decisión del usuario, «dos temas en uno»), como otra opción del formulario, y el renglón se llama «Pareamientos y envolventes» desde que se construyeron (2026-11-24, §5.21).
 
 **Los conceptos** (`dominio/pareamientos.js`): pareamiento M (aristas sin vértices en común), maximal o inextensible (no le cabe ninguna arista más), máximo (el de más aristas, ν(G) o número de matching), vértice saturado y libre, aristas emparejadas y libres, camino M-alternado, camino M-aumentado (alternado, de libre a libre) y perfecto (satura todos; las hojas también lo llaman óptimo). **«Completo» queda fuera** (decisión del usuario): la hoja 3 dice «no deja ninguna arista expuesta», que no puede ser (debe ser vértice), el docente anotó «Revisar otro concepto», la definición que sigue es la de bipartitos, y la hoja 10 lo aplica a un grafo con el triángulo I-M-E.
 
@@ -1077,6 +1077,26 @@ En el mismo tema que Floyd, que pasó a llamarse «Caminos mínimos», con el **
 **Dijkstra**: etiquetas [d, n], d la distancia acumulada y n el predecesor. Dos pasos por vértice: desde el que se acaba de hacer permanente se miran sus vecinos, y después la menor temporal se hace permanente (*). Acepta ciclos y grafos no dirigidos. En la tabla quedan todas las etiquetas, **las que se cambiaron y las que no mejoraron, tachadas**, como en las notas: 3 lleva [5, 0] tachada y 4 lleva [10, 2]. Temporal en naranja y permanente en azul, que son los colores del docente; la ruta, en verde.
 
 **Dudas para el docente**: cómo se desempata en Dijkstra —hoy, el primero en orden— y si sus vértices se hacen permanentes por la menor etiqueta o en el orden de su número. En las notas, 2 tiene [4, 0] y 3 tiene [3, 1], y [10, 2] aparece debajo de [4, 3], como si 2 se hubiera evaluado antes; con la menor etiqueta va antes el 3. Las etiquetas finales y las tachadas son las mismas.
+
+### 5.21 Envolventes convexas (2026-11-24)
+
+En el tema de pareamientos, como otra opción de «Qué hacer» (§5.17). El material es `ENVOLVENTES 03-11-26.pdf`, 14 páginas: divide y vencerás y QuickHull a mano, y Graham, QuickHull, incremental y Jarvis en pseudocódigo. Construidos: **divide y vencerás, QuickHull, Graham y Jarvis**. El **incremental no está construido**.
+
+**Los puntos** (`dominio/envolvente.js`): uno por renglón, «A 3 7», o «3 7» y el nombre lo pone el orden. De 3 a 16, con coordenadas de −99 a 99 y hasta dos decimales. Se rechazan dos en el mismo lugar y todos en una recta. **Un punto sobre un lado no es extremo**: la definición del docente pide todos los demás al mismo lado de una recta. Al final se dice aparte, «En el borde».
+
+**Los métodos** (`algoritmos/envolvente.js`):
+- **Divide y vencerás**, como la pág. 6: se divide con una recta vertical, se hallan los extremos de cada mitad, se unen por arriba y por abajo, y se dice cuáles dejan de ser extremos. La recta va lo más cerca de la mitad que no deje puntos sobre ella.
+- **QuickHull**, como la pág. 7: los extremos en y, x, −y y −x, el cuadrilátero (o triángulo o segmento, si alguno se repite), lo que queda dentro se descarta, y en cada región el más lejano a su lado es extremo. La pág. 8 trae otra variante —empezar por el más lejano— que no se construyó.
+- **Graham**: el de menor ordenada, orden angular y una pila, un paso por prueba de giro. En el pseudocódigo, `i < n-1` deja fuera el último punto y mete el índice en vez del punto: se construyó el algoritmo, no el texto.
+- **Jarvis**: desde el más abajo, rodeando en sentido antihorario. El pseudocódigo pide «todos a la derecha», que es el sentido contrario al «positivo» de su propio párrafo: aquí quedan a la izquierda.
+
+Al terminar, los extremos en sentido antihorario desde el más a la izquierda, los internos, y lo que él define: cierre convexo (perímetro), área, diámetro y anchura. **Las parejas antípodas no están**.
+
+**Las pruebas** (`pruebas/envolvente.test.js`): las hojas no traen coordenadas, así que se midieron sobre sus dibujos. La pág. 6 da sus mismos S₁, S₂, extremos de cada mitad y de la envolvente; sus internos dicen «D, F, H, I, J» por D, F, H, I, K (J ya es extremo). En la pág. 7, a y f salen casi a la misma altura de −x y él toma a; su dibujo se midió con a apenas más afuera. Además, los cuatro métodos se comparan con la definición de extremo en nubes al azar.
+
+**Cómo se dibuja** (`vista/dibujos/envolvente.js`): los puntos en sus coordenadas, con la misma escala en x y en y, y los ejes si pasan por entre ellos. Naranja lo que se mira, verde lo que es de la envolvente, gris lo descartado. Si dos quedan muy juntos, todos se dibujan chicos con el nombre al lado.
+
+**Dudas para el docente**: si hay que construir el incremental y las parejas antípodas, y si QuickHull es el de la pág. 7 o el de la pág. 8.
 
 ---
 
@@ -1712,7 +1732,7 @@ Pendiente conocido, no bloqueante: `css/impresion.css` no está construido, y na
 
 ### Fase 2 — solo visible en el menú, sin implementar
 
-La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **Dijkstra y Bellman** (§5.20, 2026-11-24), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —productos, composición, unión, intersección, diferencia y sumas— (§5.15, 2026-10-26 y 2026-11-24), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28), **los pareamientos** (§5.17, 2026-11-03), **el árbol de expansión** (§5.18, 2026-11-09) **y las operaciones sobre un grafo** (§5.19, 2026-11-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
+La categoría de grafos, **salvo Floyd y los conceptos** (§5.12, 2026-10-22), **Dijkstra y Bellman** (§5.20, 2026-11-24), **la representación matricial** sin circuitos ni cortes (§5.13, 2026-10-23) **el coloreado** (§5.14, 2026-10-24), **las operaciones entre grafos** —productos, composición, unión, intersección, diferencia y sumas— (§5.15, 2026-10-26 y 2026-11-24), **los conjuntos independientes y dominantes** (§5.16, 2026-10-28), **los pareamientos** (§5.17, 2026-11-03), **las envolventes convexas** (§5.21, 2026-11-24), **el árbol de expansión** (§5.18, 2026-11-09) **y las operaciones sobre un grafo** (§5.19, 2026-11-24). Las búsquedas externas ya están todas construidas: §5.7, §5.8, §5.10 y §5.11. Se muestran en el catálogo del menú, marcadas "En desarrollo", y responden al clic con un aviso de "en construcción" en vez de quedar mudas. Su presencia comunica el alcance del curso.
 
 **Búsqueda secuencial externa está construida** (§5.8, 2026-09-11): el docente confirmó la forma del archivo —`B = √N` truncado, `r = N/√N` redondeado al más cercano, un bloque más si no alcanza, y el último con el sobrante— y que el llenado es ordenado. Queda una sola duda abierta, que solo afecta al contador: si recorrer el bloque que contiene la clave suma **otro** acceso o si ya estaba contado por la comparación contra su último registro.
 

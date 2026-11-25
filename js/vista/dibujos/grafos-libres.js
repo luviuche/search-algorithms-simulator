@@ -275,7 +275,7 @@
       caja.appendChild(columna);
     }
 
-    return { llenarCombinacion, llenarTransformacion };
+    return { llenarCombinacion, llenarTransformacion, crearConjuntos };
   }
 
   window.CC2 = window.CC2 || {};

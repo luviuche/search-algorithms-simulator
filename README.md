@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
-> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's, Dijkstra's and Bellman's algorithms, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, and matchings are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's, Dijkstra's and Bellman's algorithms, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, matchings and convex hulls are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -60,9 +60,10 @@ The user interface is in **Spanish**, the language of the course.
 | Operations on a single graph: insert or delete a vertex or an edge, merge two vertices, contract an edge, and the complement | ✅ |
 | Independent and dominating sets: check a given set step by step as in the professor's sheets, or search for the maximum independent set and the minimum dominating, independent dominating, total and connected dominating sets | ✅ |
 | Matchings: reach a maximum matching by inverting augmenting paths, chosen by the app or written by hand as in the professor's sheets, or check a given matching edge by edge | ✅ |
+| Convex hulls of a set of points: divide and conquer and QuickHull as in the professor's sheets, Graham and Jarvis, with perimeter, area, diameter and width | ✅ |
 | Minimum or maximum spanning tree with Kruskal (edges by weight, accepted or rejected for closing a cycle) or Prim (from a chosen vertex, the lightest edge leaving the tree, or the heaviest for the maximum), with the total weight and whether another tree weighs the same; then its branches and rank, chords and nullity, also for a tree written by hand | ✅ |
 | Circuits and cut sets in matrix form | 🚧 Planned |
-| Definitions, traversals, Euler and Hamilton circuits, convex hulls | 🚧 Planned |
+| Definitions, traversals, Euler and Hamilton circuits | 🚧 Planned |
 
 ## Running it
 
