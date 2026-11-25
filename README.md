@@ -2,7 +2,7 @@
 
 **An interactive, step-by-step simulator of search algorithms and data structures, built for the course _Ciencias de la Computación II_ (Systems Engineering, Universidad Distrital Francisco José de Caldas).**
 
-> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's, Dijkstra's and Bellman's algorithms, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, matchings and convex hulls are built; the rest of the unit is listed in the menu as "in development" (see [Roadmap](#roadmap)).
+> 🚧 **Work in progress.** Every search topic in the menu is built and usable. The graphs unit is under way: shortest paths with Floyd's, Dijkstra's and Bellman's algorithms, matrix representation, graph coloring, operations between two graphs and on a single graph, independent and dominating sets, matchings and convex hulls are built; the rest of the unit is not built yet (see [Roadmap](#roadmap)).
 
 In class, a search algorithm is usually explained on a whiteboard, one frame at a time. This simulator makes that explanation reproducible. You create a data structure, insert keys, then search for or delete them, and **watch the algorithm walk through the structure one step at a time**. A counter keeps track of every comparison and every access.
 
@@ -10,12 +10,14 @@ Deleting a key is taught as the same lesson as searching for it: the key is firs
 
 The user interface is in **Spanish**, the language of the course.
 
-![Inserting key 1028 into a hash table with quadratic probing: the side panel works out the address and each probe, and the key lands in cell 1](docs/captura.png)
+![Inserting key 1028 into a hash table with quadratic probing: the toolbar on top, the address worked out next to the table, the log on the right and the counters at the bottom](docs/captura.png)
 
 ---
 
 ## What you can do
 
+- **Find a topic by its picture.** The menu goes by levels, Searches and Graphs, and every block draws the structure it teaches.
+- **Work from a toolbar with tabs** (File, Create, Operations, View), where every action has an icon, a word and a tooltip.
 - **Create a structure** by choosing its size `n` and key length `l`. Some topics also ask for extra parameters, such as the collision strategy or the digit positions to truncate.
 - **Insert, search and delete keys.** Each operation becomes a trace that plays back like a video: play, pause, step forward, step back, and change the speed.
 - **See the whole calculation, not just the result.** In the hashing topic, a side panel works out each address line by line (`7412 mod 10 = 2`, `2 + 1 = 3`). The same panel lists every probe that a collision strategy makes (`9 + 2² = 13 − 12 → 1`).

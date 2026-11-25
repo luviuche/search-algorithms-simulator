@@ -99,6 +99,10 @@ function volcar({ ruta, consulta = '', ancho = 1500, alto = 950, presupuesto = 3
   return correr([
     `--window-size=${ancho},${alto + margenDeLaVentana()}`,
     `--virtual-time-budget=${presupuesto}`,
+    // Con las animaciones de Windows apagadas el navegador reporta movimiento
+    // reducido, y las pruebas de animación fallaban sin que hubiera defecto
+    // (2026-11-25).
+    '--force-prefers-no-reduced-motion',
     '--dump-dom',
     urlDe(ruta, consulta)
   ], { capturarSalida: true });
@@ -123,7 +127,7 @@ function fotografiar({ ruta, consulta = '', destino, ancho = 1500, alto = 950, p
     `--window-size=${ancho},${alto}`,
     `--virtual-time-budget=${presupuesto}`,
     `--screenshot=${absoluto}`,
-    ...(quieto ? ['--force-prefers-reduced-motion'] : []),
+    quieto ? '--force-prefers-reduced-motion' : '--force-prefers-no-reduced-motion',
     urlDe(ruta, consulta)
   ]);
   if (!fs.existsSync(absoluto)) {

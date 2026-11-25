@@ -30,17 +30,18 @@
         {
           id: 'internas',
           titulo: 'Búsquedas internas',
+          corto: 'Internas',
           descripcion: 'La estructura completa cabe en memoria',
           hijos: [
-            { id: 'lineal', titulo: 'Búsqueda secuencial', descripcion: 'Recorrido lineal, clave por clave', tema: 'secuencial', disponible: true },
-            { id: 'binaria', titulo: 'Búsqueda binaria', descripcion: 'División sobre arreglo ordenado', tema: 'binaria', disponible: true },
+            { id: 'lineal', titulo: 'Búsqueda secuencial', corto: 'Secuencial', descripcion: 'Recorrido lineal, clave por clave', tema: 'secuencial', disponible: true },
+            { id: 'binaria', titulo: 'Búsqueda binaria', corto: 'Binaria', descripcion: 'División sobre arreglo ordenado', tema: 'binaria', disponible: true },
             // **Las cinco funciones hash son un solo tema**, y la función se
             // elige al crear, como el tratamiento de colisiones (opción E del
             // menú, elegida por el usuario el 2026-10-28): comparten la tabla,
             // `n`, `l` y los tratamientos, y solo cambia cómo se calcula la
             // dirección. Con cuatro renglones menos el índice cabe en dos
             // partes iguales, Búsquedas y Grafos.
-            { id: 'transformacion', titulo: 'Búsqueda por transformación de claves', descripcion: 'Las cinco funciones hash, a elegir', tema: 'hash', disponible: true },
+            { id: 'transformacion', titulo: 'Búsqueda por transformación de claves', corto: 'Transformación de claves', descripcion: 'Las cinco funciones hash, a elegir', tema: 'hash', disponible: true },
             {
               id: 'residuo',
               // Nombres y orden del docente (traídos por el usuario,
@@ -49,12 +50,13 @@
               // es la palabra con la que el tema se encuentra en cualquier
               // otro sitio.
               titulo: 'Árboles de búsqueda por residuo',
+              corto: 'Árboles por residuo',
               descripcion: 'El camino de la clave se recorre bit a bit, o por bloques de bits',
               hijos: [
-                { id: 'arbol-digital', titulo: 'Árbol de búsqueda digital', descripcion: 'Inserción bit a bit', tema: 'arbol-digital', disponible: true },
-                { id: 'residuos', titulo: 'Árbol de búsqueda por residuos', descripcion: 'Claves solo en las hojas · trie', tema: 'residuos', disponible: true },
-                { id: 'residuos-multiples', titulo: 'Árbol de búsqueda por residuos múltiples', descripcion: 'Ramificación por bloques de bits', tema: 'residuos-multiples', disponible: true },
-                { id: 'huffman', titulo: 'Árbol de Huffman', descripcion: 'La forma del árbol la dan las frecuencias', tema: 'huffman', disponible: true }
+                { id: 'arbol-digital', titulo: 'Árbol de búsqueda digital', corto: 'Digital', descripcion: 'Inserción bit a bit', tema: 'arbol-digital', disponible: true },
+                { id: 'residuos', titulo: 'Árbol de búsqueda por residuos', corto: 'Residuos', descripcion: 'Claves solo en las hojas · trie', tema: 'residuos', disponible: true },
+                { id: 'residuos-multiples', titulo: 'Árbol de búsqueda por residuos múltiples', corto: 'Múltiples', descripcion: 'Ramificación por bloques de bits', tema: 'residuos-multiples', disponible: true },
+                { id: 'huffman', titulo: 'Árbol de Huffman', corto: 'Huffman', descripcion: 'La forma del árbol la dan las frecuencias', tema: 'huffman', disponible: true }
               ]
             }
           ]
@@ -62,12 +64,13 @@
         {
           id: 'externas',
           titulo: 'Búsquedas externas',
+          corto: 'Externas',
           descripcion: 'La estructura no cabe completa en memoria',
           hijos: [
-            { id: 'externa-secuencial', titulo: 'Búsqueda secuencial externa', descripcion: 'El archivo se lee bloque por bloque', tema: 'secuencial-externa', disponible: true },
-            { id: 'externa-binaria', titulo: 'Búsqueda binaria externa', descripcion: 'Se parte el archivo por la mitad, bloque por bloque', tema: 'binaria-externa', disponible: true },
-            { id: 'indices', titulo: 'Índices primarios, secundarios y multinivel', descripcion: 'La estructura sale de los parámetros del archivo', tema: 'indices', disponible: true },
-            { id: 'cubetas', titulo: 'Otras búsquedas dinámicas', descripcion: 'Cubetas con expansión y reducción dinámica de n', tema: 'cubetas', disponible: true }
+            { id: 'externa-secuencial', titulo: 'Búsqueda secuencial externa', corto: 'Secuencial', descripcion: 'El archivo se lee bloque por bloque', tema: 'secuencial-externa', disponible: true },
+            { id: 'externa-binaria', titulo: 'Búsqueda binaria externa', corto: 'Binaria', descripcion: 'Se parte el archivo por la mitad, bloque por bloque', tema: 'binaria-externa', disponible: true },
+            { id: 'indices', titulo: 'Índices primarios, secundarios y multinivel', corto: 'Índices', descripcion: 'La estructura sale de los parámetros del archivo', tema: 'indices', disponible: true },
+            { id: 'cubetas', titulo: 'Otras búsquedas dinámicas', corto: 'Dinámicas', descripcion: 'Cubetas con expansión y reducción dinámica de n', tema: 'cubetas', disponible: true }
           ]
         }
       ]
@@ -76,23 +79,41 @@
       id: 'grafos',
       titulo: 'Grafos',
       descripcion: 'Vértices, aristas, y los recorridos y propiedades que se derivan de ellos',
+      // Agrupados en submódulos desde el 2026-11-25. Los no construidos siguen
+      // aquí —`disponible: false`— y no se dibujan: la entrega no muestra lo
+      // que no está (decisión del usuario).
       hijos: [
-        // El primero que se construye (2026-10-22): lo que se vio en clase,
-        // los caminos mínimos y los conceptos que se leen de ellos. El docente
-        // pone los conceptos en un tema aparte; viven aquí mientras tanto, y
-        // separarlos es mover su parte de la traza a otro tema.
-        { id: 'grafos-floyd', titulo: 'Caminos mínimos', descripcion: 'Floyd, Dijkstra y Bellman con función ordinal', tema: 'floyd', disponible: true },
+        {
+          id: 'caminos',
+          titulo: 'Caminos y árboles',
+          hijos: [
+            { id: 'grafos-floyd', titulo: 'Caminos mínimos', descripcion: 'Floyd, Dijkstra y Bellman con función ordinal', tema: 'floyd', disponible: true },
+            { id: 'grafos-expansion', titulo: 'Árbol de expansión — Prim y Kruskal', corto: 'Árbol de expansión', descripcion: 'El de menor o mayor peso que une todos los vértices', tema: 'expansion', disponible: true },
+            { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false }
+          ]
+        },
+        {
+          id: 'operaciones',
+          titulo: 'Operaciones',
+          hijos: [
+            { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', corto: 'Entre grafos', descripcion: 'Unión, intersección, sumas, productos y composición', tema: 'operaciones', disponible: true },
+            { id: 'grafos-transformaciones', titulo: 'Operaciones sobre un grafo', corto: 'Sobre un grafo', descripcion: 'Insertar, borrar, fusionar y complemento', tema: 'transformaciones', disponible: true }
+          ]
+        },
+        // Un solo tema: el bloque lo abre directo, sin una página en medio.
+        { id: 'grafos-matricial', titulo: 'Representación matricial', corto: 'Matrices', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
+        {
+          id: 'coloreados',
+          titulo: 'Coloreado y conjuntos',
+          hijos: [
+            { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', corto: 'Coloreado', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
+            { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', corto: 'Conjuntos', descripcion: 'Independiente máximo y dominante mínimo', tema: 'conjuntos', disponible: true },
+            // Dos temas en uno (decisión del usuario, 2026-11-03).
+            { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', corto: 'Pareamientos', descripcion: 'Pareamiento máximo y envolvente convexa', tema: 'pareamientos', disponible: true }
+          ]
+        },
         { id: 'grafos-def', titulo: 'Definiciones, recorridos e isomorfismo', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-euler', titulo: 'Circuitos de Euler y Hamilton', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-operaciones', titulo: 'Operaciones entre grafos', descripcion: 'Unión, intersección, sumas, productos y composición', tema: 'operaciones', disponible: true },
-        { id: 'grafos-transformaciones', titulo: 'Operaciones sobre un grafo', descripcion: 'Insertar, borrar, fusionar y complemento', tema: 'transformaciones', disponible: true },
-        { id: 'grafos-expansion', titulo: 'Árbol de expansión — Prim y Kruskal', descripcion: 'El de menor o mayor peso que une todos los vértices', tema: 'expansion', disponible: true },
-        { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false },
-        { id: 'grafos-matricial', titulo: 'Representación matricial', descripcion: 'Incidencia y adyacencia, en matriz y en lista', tema: 'representacion', disponible: true },
-        { id: 'grafos-coloreado', titulo: 'Coloreado y particionamiento', descripcion: 'Primer color libre y polinomio cromático', tema: 'coloreado', disponible: true },
-        { id: 'grafos-conjuntos', titulo: 'Conjuntos independientes y dominantes', descripcion: 'Independiente máximo y dominante mínimo', tema: 'conjuntos', disponible: true },
-        // Dos temas en uno (decisión del usuario, 2026-11-03).
-        { id: 'grafos-pareamientos', titulo: 'Pareamientos y envolventes', descripcion: 'Pareamiento máximo y envolvente convexa', tema: 'pareamientos', disponible: true }
+        { id: 'grafos-corte', titulo: 'Conjuntos de corte y conectividad', descripcion: '', tema: null, disponible: false }
       ]
     }
   ];
@@ -284,6 +305,7 @@
       // ni niveles, sino columnas separadas con su rótulo arriba.
       orientacion: 'bloques',
       etiquetaTamano: 'Registros del archivo (N)',
+      tamanoCorto: 'Registros (N)',
       // El panel del cálculo, junto a la estructura: aquí no desarrolla una
       // dirección sino la comparación en curso —contra qué registro, de qué
       // bloque, y qué se concluye—, que es la cuenta que este algoritmo hace.
@@ -403,9 +425,11 @@
   const PARAMETRO_TIPO_DE_GRAFO = {
     nombre: 'tipo',
     etiqueta: 'Tipo de grafo',
+    corta: 'Tipo',
+    botones: 'chicos',
     opciones: [
-      { valor: 'dirigido', etiqueta: 'Dirigido' },
-      { valor: 'no-dirigido', etiqueta: 'No dirigido' }
+      { valor: 'dirigido', etiqueta: 'Dirigido', icono: 'dirigido', ayuda: 'Cada arista vale en un sentido.' },
+      { valor: 'no-dirigido', etiqueta: 'No dirigido', icono: 'no-dirigido', ayuda: 'Cada arista vale para los dos sentidos.' }
     ],
     ayuda: 'En un no dirigido, cada arista vale para los dos sentidos.',
     validar: (entrada) => (Object.values(dominio.grafo.TIPOS).includes(entrada)
@@ -826,11 +850,11 @@
     // la conversión. Como el tratamiento, vale para toda la estructura.
     hash: (() => {
       const FUNCIONES = {
-        modulo: { etiqueta: 'Módulo', ayuda: 'Dirección por residuo de n.', direccionDe: algoritmos.hash.modulo.direccionModulo },
-        cuadrado: { etiqueta: 'Cuadrado', ayuda: 'Cifras centrales del cuadrado de la clave.', direccionDe: algoritmos.hash.cuadrado.direccionCuadrado },
-        truncamiento: { etiqueta: 'Truncamiento', ayuda: 'Selección de dígitos de la clave.', direccionDe: algoritmos.hash.truncamiento.direccionTruncamiento },
-        plegamiento: { etiqueta: 'Plegamiento', ayuda: 'Suma o producto de las particiones de la clave.', direccionDe: algoritmos.hash.plegamiento.direccionPlegamiento },
-        bases: { etiqueta: 'Conversión de bases', ayuda: 'Las cifras de la clave leídas en otra base.', direccionDe: algoritmos.hash.bases.direccionBases }
+        modulo: { etiqueta: 'Módulo', cifra: 'k mod n', ayuda: 'Dirección por residuo de n.', direccionDe: algoritmos.hash.modulo.direccionModulo },
+        cuadrado: { etiqueta: 'Cuadrado', cifra: 'k²', ayuda: 'Cifras centrales del cuadrado de la clave.', direccionDe: algoritmos.hash.cuadrado.direccionCuadrado },
+        truncamiento: { etiqueta: 'Truncamiento', cifra: '1·3·', ayuda: 'Selección de dígitos de la clave.', direccionDe: algoritmos.hash.truncamiento.direccionTruncamiento },
+        plegamiento: { etiqueta: 'Plegamiento', cifra: '12+34', ayuda: 'Suma o producto de las particiones de la clave.', direccionDe: algoritmos.hash.plegamiento.direccionPlegamiento },
+        bases: { etiqueta: 'Conversión de bases', cifra: '345₇', ayuda: 'Las cifras de la clave leídas en otra base.', direccionDe: algoritmos.hash.bases.direccionBases }
       };
       const nombreDe = (estructura) => FUNCIONES[estructura.parametros.funcion].etiqueta;
       const tema = temaHash({
@@ -840,7 +864,8 @@
             nombre: 'funcion',
             etiqueta: 'Función hash',
             primero: true,
-            opciones: Object.entries(FUNCIONES).map(([valor, f]) => ({ valor, etiqueta: f.etiqueta })),
+            botones: 'grandes',
+            opciones: Object.entries(FUNCIONES).map(([valor, f]) => ({ valor, etiqueta: f.etiqueta, ayuda: f.ayuda, cifra: f.cifra })),
             ayuda: 'Como el tratamiento de colisiones, se elige al crear y vale para toda la estructura.',
             enBitacora: (valor) => `función ${FUNCIONES[valor].etiqueta.toLowerCase()}`,
             validar: (entrada) => (FUNCIONES[entrada]
@@ -854,6 +879,8 @@
           {
             nombre: 'posiciones',
             etiqueta: 'Posiciones a tomar',
+            corta: 'Posiciones',
+            grupo: 'Dirección y colisiones',
             soloCon: { parametro: 'funcion', valor: 'truncamiento' },
             tipo: 'texto',
             marcador: '1, 3',
@@ -870,10 +897,12 @@
           {
             nombre: 'operacion',
             etiqueta: 'Operación entre grupos',
+            corta: 'Operación',
+            grupo: 'Dirección y colisiones',
             soloCon: { parametro: 'funcion', valor: 'plegamiento' },
             opciones: [
-              { valor: algoritmos.hash.plegamiento.OPERACIONES.SUMAR, etiqueta: 'Sumar' },
-              { valor: algoritmos.hash.plegamiento.OPERACIONES.MULTIPLICAR, etiqueta: 'Multiplicar' }
+              { valor: algoritmos.hash.plegamiento.OPERACIONES.SUMAR, etiqueta: 'Sumar', cifra: '+' },
+              { valor: algoritmos.hash.plegamiento.OPERACIONES.MULTIPLICAR, etiqueta: 'Multiplicar', cifra: '×' }
             ],
             ayuda: 'Los grupos se combinan con esta operación; del total se toman las últimas cifras.',
             validar: (entrada) => algoritmos.hash.plegamiento.validarOperacion(entrada)
@@ -883,6 +912,8 @@
           {
             nombre: 'base',
             etiqueta: 'Base de conversión',
+            corta: 'Base',
+            grupo: 'Dirección y colisiones',
             soloCon: { parametro: 'funcion', valor: 'bases' },
             tipo: 'numero',
             marcador: String(algoritmos.hash.bases.BASE_POR_DEFECTO),
@@ -941,8 +972,7 @@
       nombreEstructura: 'estructura',
       mensajeReinicio: 'Estructura vaciada: sin parámetros.',
       mensajeLienzoVacio: {
-        titulo: 'Dé los parámetros del archivo para construir la estructura',
-        indicacion: 'Elija sus medidas en el panel de la derecha'
+        titulo: 'Dé los parámetros del archivo para construir la estructura'
       },
       mensajeDerivacion: 'Derivación iniciada: de los parámetros a la estructura.',
       mensajeCreacion: (estructura) => {
@@ -970,6 +1000,8 @@
         {
           nombre: 'r',
           etiqueta: 'Registros del archivo (r)',
+          corta: 'Registros (r)',
+          grupo: 'Archivo',
           tipo: 'numero',
           marcador: '500000',
           ayuda: 'Cuántos registros guarda el archivo de datos.',
@@ -978,6 +1010,8 @@
         {
           nombre: 'B',
           etiqueta: 'Tamaño del bloque (B)',
+          corta: 'Bloque (B)',
+          grupo: 'Archivo',
           tipo: 'numero',
           marcador: '4096',
           ayuda: 'En bytes. Es lo que se lee del disco de una vez, y de ahí salen los dos factores de bloqueo.',
@@ -986,6 +1020,8 @@
         {
           nombre: 'R',
           etiqueta: 'Longitud del registro de datos (R)',
+          corta: 'Registro (R)',
+          grupo: 'Archivo',
           tipo: 'numero',
           marcador: '120',
           ayuda: 'En bytes. Con B da cuántos registros caben en un bloque.',
@@ -996,6 +1032,8 @@
         {
           nombre: 'Ri',
           etiqueta: 'Longitud del registro índice (Ri)',
+          corta: 'Índice (Ri)',
+          grupo: 'Archivo',
           tipo: 'numero',
           marcador: '15',
           ayuda: 'En bytes. Es menor que R —solo lleva el valor y un puntero—, y por eso el índice cunde más.',
@@ -1006,9 +1044,11 @@
         {
           nombre: 'tipo',
           etiqueta: 'Tipo de índice',
+          corta: 'Tipo',
+          botones: 'chicos',
           opciones: [
-            { valor: 'primario', etiqueta: 'Primario — una entrada por bloque' },
-            { valor: 'secundario', etiqueta: 'Secundario — una entrada por registro' }
+            { valor: 'primario', etiqueta: 'Primario — una entrada por bloque', corta: 'Primario', icono: 'primario' },
+            { valor: 'secundario', etiqueta: 'Secundario — una entrada por registro', corta: 'Secundario', icono: 'secundario' }
           ],
           ayuda: 'El primario es disperso porque el archivo está ordenado por ese campo; el secundario, denso.',
           validar: (entrada) => dominio.indices.validarTipo(entrada)
@@ -1016,9 +1056,10 @@
         {
           nombre: 'niveles',
           etiqueta: 'Niveles',
+          botones: 'chicos',
           opciones: [
-            { valor: 'un-nivel', etiqueta: 'Un nivel' },
-            { valor: 'multinivel', etiqueta: 'Multinivel' }
+            { valor: 'un-nivel', etiqueta: 'Un nivel', icono: 'un-nivel' },
+            { valor: 'multinivel', etiqueta: 'Multinivel', icono: 'multinivel' }
           ],
           ayuda: 'El multinivel indexa el índice, y otra vez, hasta que un nivel cabe en un solo bloque.',
           validar: (entrada) => dominio.indices.validarNiveles(entrada)
@@ -1124,15 +1165,13 @@
       sinClaves: true,
       tamano: () => ({ n: 1, l: 1 }),
       nombreEstructura: 'grafo',
-      tituloConfiguracion: 'Grafo',
       // Las aristas son parámetros y se quedan: vaciar devuelve la matriz a
       // la inicial, como antes de recorrer Floyd.
       mensajeReinicio: (estructura) => (deUnVertice(estructura)
         ? `${NOMBRES[algoritmoDe(estructura.parametros)]} reiniciado: el grafo queda sin marcar.`
         : 'Floyd reiniciado: la matriz vuelve a la inicial.'),
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para hallar sus caminos mínimos',
-        indicacion: 'Una por renglón, en el panel de la derecha'
+        titulo: 'Escriba las aristas del grafo para hallar sus caminos mínimos'
       },
       mensajeDerivacion: (estructura) => ({
         [ALGORITMOS.FLOYD]: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
@@ -1172,10 +1211,11 @@
         {
           nombre: 'algoritmo',
           etiqueta: 'Algoritmo',
+          botones: 'grandes',
           opciones: [
-            { valor: ALGORITMOS.FLOYD, etiqueta: 'Floyd' },
-            { valor: ALGORITMOS.DIJKSTRA, etiqueta: 'Dijkstra' },
-            { valor: ALGORITMOS.BELLMAN, etiqueta: 'Función ordinal y Bellman' }
+            { valor: ALGORITMOS.FLOYD, etiqueta: 'Floyd', icono: 'floyd', ayuda: 'Entre todos los pares de vértices.' },
+            { valor: ALGORITMOS.DIJKSTRA, etiqueta: 'Dijkstra', icono: 'dijkstra', ayuda: 'Desde un vértice; acepta ciclos.' },
+            { valor: ALGORITMOS.BELLMAN, etiqueta: 'Función ordinal y Bellman', corta: 'Bellman', icono: 'bellman', ayuda: 'Desde un vértice; pide un grafo dirigido sin ciclos.' }
           ],
           ayuda: 'Floyd, entre todos los pares. Dijkstra y Bellman, desde un vértice; Bellman pide un grafo dirigido sin ciclos.',
           validar: (entrada) => {
@@ -1201,6 +1241,8 @@
         {
           nombre: 'inicio',
           etiqueta: 'Vértice inicial',
+          corta: 'Inicial',
+          grupo: 'Ruta',
           soloCon: soloDeUno,
           marcador: '0',
           ayuda: 'Vacío, el primero; en Bellman, el 0 de la función ordinal.',
@@ -1209,6 +1251,8 @@
         {
           nombre: 'fin',
           etiqueta: 'Vértice final',
+          corta: 'Final',
+          grupo: 'Ruta',
           soloCon: soloDeUno,
           marcador: '5',
           ayuda: 'Hasta dónde va la ruta. Vacío, el último.',
@@ -1313,11 +1357,9 @@
       sinClaves: true,
       tamano: () => ({ n: 1, l: 1 }),
       nombreEstructura: 'grafo',
-      tituloConfiguracion: 'Grafo',
       mensajeReinicio: 'Matriz vaciada: sus filas vuelven a estar sin llenar.',
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para ver sus matrices',
-        indicacion: 'Una por renglón, en el panel de la derecha'
+        titulo: 'Escriba las aristas del grafo para ver sus matrices'
       },
       mensajeDerivacion: 'Llenado iniciado: una fila por paso.',
       mensajeCreacion: (estructura) => {
@@ -1352,10 +1394,11 @@
         {
           nombre: 'representacion',
           etiqueta: 'Representación',
+          botones: 'grandes',
           opciones: [
-            { valor: 'incidencia', etiqueta: 'Matriz de incidencia' },
-            { valor: 'adyacencia-vertices', etiqueta: 'Adyacencia de vértices' },
-            { valor: 'adyacencia-aristas', etiqueta: 'Adyacencia de aristas' }
+            { valor: 'incidencia', etiqueta: 'Matriz de incidencia', icono: 'incidencia' },
+            { valor: 'adyacencia-vertices', etiqueta: 'Adyacencia de vértices', icono: 'de-vertices' },
+            { valor: 'adyacencia-aristas', etiqueta: 'Adyacencia de aristas', icono: 'de-aristas' }
           ],
           ayuda: 'Cada una con su estructura de adyacencia al lado.',
           validar: (entrada) => (Object.values(dominio.grafo.REPRESENTACIONES).includes(entrada)
@@ -1365,9 +1408,11 @@
         {
           nombre: 'caso',
           etiqueta: 'Valores en un dirigido',
+          corta: 'Valores',
+          botones: 'chicos',
           opciones: [
-            { valor: '1', etiqueta: 'Caso 1: 1 y 0' },
-            { valor: '2', etiqueta: 'Caso 2: 1, −1 y 0' }
+            { valor: '1', etiqueta: 'Caso 1: 1 y 0', corta: '1 y 0', cifra: '1' },
+            { valor: '2', etiqueta: 'Caso 2: 1, −1 y 0', corta: '1, −1 y 0', cifra: '2' }
           ],
           ayuda: 'Para la adyacencia de un grafo dirigido, como en los ejemplos del docente. La incidencia dirigida lleva siempre 1 donde la arista sale y −1 donde llega.',
           validar: (entrada) => (entrada === '1' || entrada === '2'
@@ -1436,11 +1481,9 @@
       sinClaves: true,
       tamano: () => ({ n: 1, l: 1 }),
       nombreEstructura: 'grafo',
-      tituloConfiguracion: 'Grafo',
       mensajeReinicio: 'Coloreado borrado: el grafo vuelve a estar sin colores.',
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para colorearlo',
-        indicacion: 'Una por renglón, en el panel de la derecha'
+        titulo: 'Escriba las aristas del grafo para colorearlo'
       },
       mensajeDerivacion: 'Coloreado iniciado.',
       mensajeCreacion: (estructura) => {
@@ -1464,10 +1507,11 @@
         {
           nombre: 'modo',
           etiqueta: 'Qué colorear',
+          botones: 'grandes',
           opciones: [
-            { valor: 'vertices', etiqueta: 'Vértices' },
-            { valor: 'aristas', etiqueta: 'Aristas' },
-            { valor: 'polinomio', etiqueta: 'Polinomio cromático' }
+            { valor: 'vertices', etiqueta: 'Vértices', icono: 'de-vertices' },
+            { valor: 'aristas', etiqueta: 'Aristas', icono: 'de-aristas' },
+            { valor: 'polinomio', etiqueta: 'Polinomio cromático', cifra: 'P(λ)' }
           ],
           ayuda: 'En orden, cada uno con el primer color libre de R, N, A, V.',
           validar: (entrada) => (Object.values(dominio.coloreado.MODOS).includes(entrada)
@@ -1477,6 +1521,8 @@
         {
           nombre: 'lambda',
           etiqueta: 'Colores disponibles (λ)',
+          corta: 'λ',
+          grupo: 'Colores',
           tipo: 'numero',
           marcador: '3',
           ayuda: 'Para evaluar el polinomio: P(λ) cuenta las formas de colorear con λ colores.',
@@ -1601,11 +1647,9 @@
         sinClaves: true,
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'operación',
-        tituloConfiguracion: 'Grafos',
         mensajeReinicio: 'Operación borrada: quedan los dos grafos, sin resultado.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas de G₁ y de G₂ para operarlos',
-          indicacion: 'Una por renglón, en el panel de la derecha'
+          titulo: 'Escriba las aristas de G₁ y de G₂ para operarlos'
         },
         mensajeDerivacion: 'Operación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1637,15 +1681,16 @@
           {
             nombre: 'operacion',
             etiqueta: 'Operación',
+            botones: 'chicos',
             opciones: [
-              { valor: COMBINACIONES.UNION, etiqueta: 'Unión  G₁ ∪ G₂' },
-              { valor: COMBINACIONES.INTERSECCION, etiqueta: 'Intersección  G₁ ∩ G₂' },
-              { valor: COMBINACIONES.DIFERENCIA, etiqueta: 'Diferencia  G₁ − G₂' },
-              { valor: COMBINACIONES.SUMA_ANILLO, etiqueta: 'Suma anillo  G₁ ⊕ G₂' },
-              { valor: COMBINACIONES.SUMA, etiqueta: 'Suma  G₁ + G₂' },
-              { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ × G₂' },
-              { valor: OPERACIONES.TENSORIAL, etiqueta: 'Producto tensorial  G₁ ⊗ G₂' },
-              { valor: OPERACIONES.COMPOSICION, etiqueta: 'Composición  G₁[G₂]' }
+              { valor: COMBINACIONES.UNION, etiqueta: 'Unión  G₁ ∪ G₂', corta: 'Unión', cifra: '∪', ayuda: 'G₁ ∪ G₂' },
+              { valor: COMBINACIONES.INTERSECCION, etiqueta: 'Intersección  G₁ ∩ G₂', corta: 'Intersección', cifra: '∩', ayuda: 'G₁ ∩ G₂' },
+              { valor: COMBINACIONES.DIFERENCIA, etiqueta: 'Diferencia  G₁ − G₂', corta: 'Diferencia', cifra: '−', ayuda: 'G₁ − G₂' },
+              { valor: COMBINACIONES.SUMA_ANILLO, etiqueta: 'Suma anillo  G₁ ⊕ G₂', corta: 'Suma anillo', cifra: '⊕', ayuda: 'G₁ ⊕ G₂' },
+              { valor: COMBINACIONES.SUMA, etiqueta: 'Suma  G₁ + G₂', corta: 'Suma', cifra: '+', ayuda: 'G₁ + G₂' },
+              { valor: OPERACIONES.CARTESIANO, etiqueta: 'Producto cartesiano  G₁ × G₂', corta: 'Cartesiano', cifra: '×', ayuda: 'G₁ × G₂' },
+              { valor: OPERACIONES.TENSORIAL, etiqueta: 'Producto tensorial  G₁ ⊗ G₂', corta: 'Tensorial', cifra: '⊗', ayuda: 'G₁ ⊗ G₂' },
+              { valor: OPERACIONES.COMPOSICION, etiqueta: 'Composición  G₁[G₂]', corta: 'Composición', cifra: '[]', ayuda: 'G₁[G₂]' }
             ],
             ayuda: 'Dos vértices con el mismo nombre son el mismo; en los productos, los vértices son los pares (u, v).',
             validar: (entrada) => (Object.values(OPERACIONES).includes(entrada) || reune(entrada)
@@ -1743,11 +1788,9 @@
         sinClaves: true,
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'operación',
-        tituloConfiguracion: 'Grafo',
         mensajeReinicio: 'Operación borrada: queda G como se escribió.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo',
-          indicacion: 'Una por renglón, en el panel de la derecha'
+          titulo: 'Escriba las aristas del grafo'
         },
         mensajeDerivacion: 'Operación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1775,7 +1818,11 @@
           {
             nombre: 'operacion',
             etiqueta: 'Operación',
-            opciones: Object.values(T).map((valor) => ({ valor, etiqueta: NOMBRES[valor] })),
+            botones: 'chicos',
+            opciones: Object.values(T).map((valor) => ({
+              valor, etiqueta: NOMBRES[valor], icono: valor,
+              corta: valor === T.CONTRAER_ARISTA ? 'Contraer arista' : undefined
+            })),
             validar: (entrada) => (Object.values(T).includes(entrada)
               ? { valido: true, valor: entrada }
               : { valido: false, mensaje: 'Elija la operación.' })
@@ -1797,6 +1844,7 @@
           {
             nombre: 'vertice',
             etiqueta: 'Vértice',
+            grupo: 'Datos de la operación',
             soloCon: con(T.INSERTAR_VERTICE, T.BORRAR_VERTICE),
             marcador: '5',
             ayuda: 'Al insertar, uno que no esté en G; al borrar, uno que esté.',
@@ -1805,6 +1853,7 @@
           {
             nombre: 'vecinos',
             etiqueta: 'Se une con',
+            grupo: 'Datos de la operación',
             soloCon: con(T.INSERTAR_VERTICE),
             marcador: '1 3',
             ayuda: 'Vértices de G, separados por espacios. Vacío, queda aislado.',
@@ -1813,6 +1862,7 @@
           {
             nombre: 'arista',
             etiqueta: 'Arista',
+            grupo: 'Datos de la operación',
             soloCon: con(T.INSERTAR_ARISTA, T.BORRAR_ARISTA, T.CONTRAER_ARISTA),
             marcador: '1 2',
             ayuda: 'Sus dos vértices.',
@@ -1821,6 +1871,8 @@
           {
             nombre: 'fusion',
             etiqueta: 'Vértices que se fusionan',
+            corta: 'Vértices',
+            grupo: 'Datos de la operación',
             soloCon: con(T.FUSIONAR_VERTICES),
             marcador: '2 4',
             ayuda: 'Dos vértices de G, adyacentes o no.',
@@ -1890,11 +1942,9 @@
         sinClaves: true,
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'grafo',
-        tituloConfiguracion: 'Grafo',
         mensajeReinicio: 'Comprobación borrada: el grafo queda sin marcar.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo',
-          indicacion: 'Una por renglón, en el panel de la derecha'
+          titulo: 'Escriba las aristas del grafo'
         },
         mensajeDerivacion: 'Comprobación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1923,8 +1973,12 @@
           {
             nombre: 'modo',
             etiqueta: 'Qué hacer',
+            botones: 'chicos',
             opciones: Object.values(MODOS).map((valor) => ({
               valor,
+              corta: valor === MODOS.DOMINANTE_MINIMAL ? 'Dominante minimal' : `${NOMBRES[valor][0].toUpperCase()}${NOMBRES[valor].slice(1)}`,
+              cifra: valor === MODOS.COMPROBAR ? undefined : BUSQUEDAS[valor].simbolo.replace('(G)', ''),
+              icono: 'comprobar',
               etiqueta: valor === MODOS.COMPROBAR ? 'Comprobar un conjunto S′'
                 : `Buscar ${NOMBRES[valor].replace(/^dominante/, 'el dominante').replace(/^independiente/, 'el independiente')}  ${BUSQUEDAS[valor].simbolo}`
             })),
@@ -1947,6 +2001,8 @@
           {
             nombre: 'conjunto',
             etiqueta: 'Conjunto S′',
+            corta: 'S′',
+            grupo: 'Conjunto',
             marcador: '1 3',
             ayuda: 'Para comprobar: sus vértices, separados por espacios o comas. Al buscar no se usa.',
             // Va después de las aristas: se valida contra el grafo.
@@ -2038,13 +2094,11 @@
         sinClaves: true,
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'grafo',
-        tituloConfiguracion: 'Grafo',
         mensajeReinicio: (estructura) => (deEnvolvente(estructura)
           ? 'Envolvente borrada: quedan los puntos.'
           : 'Pareamiento borrado: el grafo queda sin marcar.'),
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo, o los puntos',
-          indicacion: 'Una por renglón, en el panel de la derecha'
+          titulo: 'Escriba las aristas del grafo, o los puntos'
         },
         mensajeDerivacion: (estructura) => (deEnvolvente(estructura) ? `${tituloDe(estructura)} iniciado.` : 'Pareamiento iniciado.'),
         mensajeCreacion: (estructura) => {
@@ -2082,10 +2136,11 @@
           {
             nombre: 'modo',
             etiqueta: 'Qué hacer',
+            botones: 'grandes',
             opciones: [
-              { valor: MODOS.MAXIMO, etiqueta: 'Llegar al pareamiento máximo' },
-              { valor: MODOS.COMPROBAR, etiqueta: 'Comprobar un pareamiento M' },
-              { valor: plano.MODO, etiqueta: 'Hallar la envolvente convexa' }
+              { valor: MODOS.MAXIMO, etiqueta: 'Llegar al pareamiento máximo', corta: 'Pareamiento máximo', icono: 'emparejar', ayuda: 'Invirtiendo caminos M-aumentados.' },
+              { valor: MODOS.COMPROBAR, etiqueta: 'Comprobar un pareamiento M', corta: 'Comprobar M', icono: 'comprobar' },
+              { valor: plano.MODO, etiqueta: 'Hallar la envolvente convexa', corta: 'Envolvente convexa', icono: 'envolvente', ayuda: 'De un conjunto de puntos del plano.' }
             ],
             ayuda: 'El máximo se alcanza invirtiendo caminos M-aumentados. La envolvente, de un conjunto de puntos.',
             validar: (entrada) => (Object.values(MODOS).includes(entrada) || esEnvolvente(entrada)
@@ -2096,7 +2151,8 @@
             nombre: 'metodo',
             etiqueta: 'Método',
             soloCon: { parametro: 'modo', valor: plano.MODO },
-            opciones: Object.values(plano.METODOS).map((valor) => ({ valor, etiqueta: algoritmos.envolvente.TITULOS[valor] })),
+            botones: 'chicos',
+            opciones: Object.values(plano.METODOS).map((valor) => ({ valor, etiqueta: algoritmos.envolvente.TITULOS[valor], icono: valor })),
             ayuda: 'Todos llegan a los mismos extremos, por caminos distintos.',
             validar: (entrada) => (Object.values(plano.METODOS).includes(entrada)
               ? { valido: true, valor: entrada }
@@ -2133,6 +2189,8 @@
           {
             nombre: 'pareamiento',
             etiqueta: 'Pareamiento M',
+            corta: 'M',
+            grupo: 'Pareamiento',
             soloCon: soloPareamiento,
             marcador: 'b',
             ayuda: 'Sus aristas. Al llegar al máximo es el inicial, y se puede dejar vacío.',
@@ -2269,11 +2327,9 @@
         sinClaves: true,
         tamano: () => ({ n: 1, l: 1 }),
         nombreEstructura: 'grafo',
-        tituloConfiguracion: 'Grafo',
         mensajeReinicio: 'Árbol borrado: el grafo queda sin marcar.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo, con su peso',
-          indicacion: 'Una por renglón, en el panel de la derecha'
+          titulo: 'Escriba las aristas del grafo, con su peso'
         },
         mensajeDerivacion: 'Árbol de expansión iniciado.',
         mensajeCreacion: (estructura) => {
@@ -2299,9 +2355,10 @@
           {
             nombre: 'objetivo',
             etiqueta: 'Árbol',
+            botones: 'chicos',
             opciones: [
-              { valor: OBJETIVOS.MINIMO, etiqueta: 'De expansión mínimo' },
-              { valor: OBJETIVOS.MAXIMO, etiqueta: 'De expansión máximo' }
+              { valor: OBJETIVOS.MINIMO, etiqueta: 'De expansión mínimo', corta: 'Mínimo', icono: 'menor' },
+              { valor: OBJETIVOS.MAXIMO, etiqueta: 'De expansión máximo', corta: 'Máximo', icono: 'mayor' }
             ],
             ayuda: 'El máximo usa los mismos métodos, prefiriendo la arista de mayor peso.',
             // Vacío en los archivos guardados antes de que existiera el máximo.
@@ -2315,10 +2372,11 @@
           {
             nombre: 'metodo',
             etiqueta: 'Método',
+            botones: 'grandes',
             opciones: [
-              { valor: METODOS.KRUSKAL, etiqueta: 'Kruskal' },
-              { valor: METODOS.PRIM, etiqueta: 'Prim' },
-              { valor: METODOS.DADO, etiqueta: 'Árbol escrito' }
+              { valor: METODOS.KRUSKAL, etiqueta: 'Kruskal', icono: 'kruskal', ayuda: 'Revisa las aristas por orden de peso.' },
+              { valor: METODOS.PRIM, etiqueta: 'Prim', icono: 'prim', ayuda: 'Hace crecer el árbol desde un vértice.' },
+              { valor: METODOS.DADO, etiqueta: 'Árbol escrito', icono: 'escribir', ayuda: 'Se dan sus ramas, por el nombre de sus aristas.' }
             ],
             ayuda: 'Kruskal revisa las aristas por orden de peso; Prim hace crecer el árbol desde un vértice. Con cualquiera, al final, las ramas, las cuerdas y el centro o bicentro.',
             validar: (entrada) => (Object.values(METODOS).includes(entrada)
@@ -2340,6 +2398,8 @@
           {
             nombre: 'inicio',
             etiqueta: 'Vértice inicial',
+            corta: 'Inicial',
+            grupo: 'Inicio',
             soloCon: { parametro: 'metodo', valor: METODOS.PRIM },
             marcador: '1',
             ayuda: 'Desde dónde crece el árbol. Vacío, el primero.',
@@ -2357,6 +2417,8 @@
           {
             nombre: 'arbol',
             etiqueta: 'Ramas del árbol',
+            corta: 'Ramas',
+            grupo: 'Ramas',
             soloCon: { parametro: 'metodo', valor: METODOS.DADO },
             marcador: 'a b e f',
             ayuda: 'Los nombres de sus n − 1 aristas, sin ciclos.',
@@ -2446,6 +2508,8 @@
         {
           nombre: 'r',
           etiqueta: 'Registros por cubeta (r)',
+          corta: 'Registros (r)',
+          grupo: 'Tamaño',
           tipo: 'numero',
           marcador: '3',
           ayuda: 'Cuántos renglones caben en cada cubeta antes de que choque y haya que expandir.',
@@ -2454,9 +2518,11 @@
         {
           nombre: 'modoExpansion',
           etiqueta: 'Modo de expansión y reducción',
+          corta: 'Expansión',
+          botones: 'chicos',
           opciones: [
-            { valor: dominio.cubetas.MODOS_EXPANSION.TOTAL, etiqueta: 'Total (n se duplica o se divide entre dos)' },
-            { valor: dominio.cubetas.MODOS_EXPANSION.PARCIAL, etiqueta: 'Parcial (series intercaladas)' }
+            { valor: dominio.cubetas.MODOS_EXPANSION.TOTAL, etiqueta: 'Total (n se duplica o se divide entre dos)', corta: 'Total', icono: 'total' },
+            { valor: dominio.cubetas.MODOS_EXPANSION.PARCIAL, etiqueta: 'Parcial (series intercaladas)', corta: 'Parcial', icono: 'parcial' }
           ],
           ayuda: 'Cómo crece o decrece la cantidad de cubetas al expandir o reducir.',
           validar: (entrada, contexto) => dominio.cubetas.validarModoExpansion(entrada, contexto)
@@ -2464,6 +2530,8 @@
         {
           nombre: 'umbralExpandir',
           etiqueta: 'Densidad para expandir (%)',
+          corta: 'Expandir',
+          grupo: 'Densidad (%)',
           tipo: 'numero',
           marcador: '82',
           ayuda: 'Al llegar o superar este porcentaje de ocupación —o al chocar una cubeta llena—, la estructura se expande.',
@@ -2479,6 +2547,8 @@
         {
           nombre: 'umbralReducir',
           etiqueta: 'Densidad para reducir (%)',
+          corta: 'Reducir',
+          grupo: 'Densidad (%)',
           tipo: 'numero',
           marcador: '125',
           ayuda: 'Al caer por debajo de este porcentaje (claves por cubeta, sin contar los renglones), la estructura se reduce.',
@@ -2614,14 +2684,31 @@
       mostrarAlertaMenu('info', `Tema en construcción: "${tema.titulo}" aún no está implementado.`);
       return;
     }
+    const ruta = rutaDe(tema);
     const configDelTema = Object.assign({}, config, {
       // La clave del tema viaja con su configuración: el archivo `.cc2` la
       // guarda y al abrir se comprueba que corresponda (CLAUDE.md 10).
       id: tema.tema,
       titulo: tema.titulo,
-      descripcion: config.descripcion || tema.descripcion
+      descripcion: config.descripcion || tema.descripcion,
+      // De dónde se llegó: el color es el del módulo, y «Volver» regresa al
+      // submódulo, no al inicio.
+      modulo: ruta[0].id,
+      volverA: ruta[ruta.length - 1].titulo
     });
-    montarPantalla(vista.pantallas.temaBusqueda.crearPantallaTema(configDelTema, mostrarMenu, { reciente }));
+    const volver = (destino = ruta.map((nodo) => nodo.id)) => navegar(destino);
+    anotarEnHistorial(ruta.map((nodo) => nodo.id));
+    montarPantalla(vista.pantallas.temaBusqueda.crearPantallaTema(configDelTema, volver, { reciente }));
+  }
+
+  // Las categorías que llevan a un tema: [Búsquedas, Búsquedas internas].
+  function rutaDe(tema, nodos = CATALOGO, ruta = []) {
+    for (const nodo of nodos) {
+      if (nodo === tema || (nodo.tema && nodo.tema === tema.tema)) return ruta;
+      const hallada = nodo.hijos ? rutaDe(tema, nodo.hijos, ruta.concat(nodo)) : null;
+      if (hallada) return hallada;
+    }
+    return null;
   }
 
   // El nodo del catálogo de un tema, por su clave: es lo que guarda una
@@ -2652,21 +2739,47 @@
     elementosDomMenu.alertas.appendChild(vista.componentes.panel.crearAlerta({ tipo, mensaje }));
   }
 
-  function mostrarMenu() {
+  // El menú se recorre por niveles (2026-11-25): `ruta` son los ids de las
+  // categorías abiertas, y vacía es el inicio.
+  function mostrarMenu(ruta = []) {
     elementosDomMenu = { alertas: document.createElement('div') };
 
     const pantalla = vista.pantallas.menu.crearPantallaMenu({
       catalogo: CATALOGO,
+      ruta,
       recientes: persistencia.recientes.obtener(),
       alSeleccionarTema: mostrarTema,
+      alNavegar: navegar,
       alAbrirReciente: abrirReciente
     });
 
-    const barra = pantalla.querySelector('.pantalla-menu__barra');
+    const barra = pantalla.querySelector('.menu__cabecera');
     barra.after(elementosDomMenu.alertas);
 
     montarPantalla(pantalla);
   }
+
+  function navegar(ruta) {
+    anotarEnHistorial(ruta);
+    mostrarMenu(ruta);
+  }
+
+  // **El «atrás» del navegador sube un nivel** en vez de salirse de la
+  // aplicación. La dirección no cambia —desde `file://` no hay otra—: solo se
+  // anota dónde se estaba. Un tema anota su submódulo, que es adonde se vuelve.
+  function anotarEnHistorial(ruta) {
+    try {
+      window.history.pushState({ ruta }, '');
+    } catch (error) {
+      // Sin historial la aplicación sigue: quedan sus propios botones.
+    }
+  }
+
+  window.addEventListener('popstate', (evento) => {
+    const pantalla = document.querySelector('#app > .pantalla');
+    if (pantalla && pantalla.cerrar) pantalla.cerrar();
+    mostrarMenu((evento.state && evento.state.ruta) || []);
+  });
 
   // **Se arranca con las fuentes ya cargadas** (2026-10-04). Las tipografías
   // viajan con la aplicación (fuentes/, CLAUDE.md 8.3), pero el navegador las

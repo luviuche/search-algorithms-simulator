@@ -6,133 +6,59 @@
     return `${fecha.getDate()} ${MESES[fecha.getMonth()]} ${fecha.getFullYear()}`;
   }
 
-  // Los temas no construidos se marcan y siguen respondiendo al clic, para
-  // avisar en vez de quedarse mudos (decisión del usuario, 2026-09-11). La
-  // marca es siempre la misma —"En desarrollo"—: lo disponible no se
-  // rotula, porque en un índice lo normal es que el tema exista.
-  function crearEstado() {
-    const el = document.createElement('span');
-    el.className = 'indice__estado';
-    el.textContent = 'En desarrollo';
-    return el;
-  }
+  const { crearIcono } = window.CC2.vista.componentes.iconos;
+  const miniaturas = window.CC2.vista.componentes.miniaturas;
 
-  // El catálogo se lee como el índice de un libro: **todo a la vista**, sin
-  // navegar por niveles ni tarjetas que abrir (pedido del usuario, 2026-09-11,
-  // sobre maqueta). La jerarquía la dicen la sangría y la tipografía, sobre la
-  // división que pide el docente —Búsquedas y Grafos—, y ningún nodo lleva
-  // número, en ningún nivel (CLAUDE.md 2).
-  //
-  // Un renglón de tema es: título · guía de puntos · descripción. La guía es
-  // la línea que en un libro lleva del título al número de página; aquí lleva
-  // a lo que hay que saber del tema, y por eso ningún renglón la deja colgando
-  // sin nada al otro lado.
-  function crearRenglonTema(nodo, alSeleccionarTema) {
-    const li = document.createElement('li');
+  // Lo no construido sigue en el catálogo y no se dibuja (decisión del
+  // usuario, 2026-11-25): la entrega no muestra lo que no está.
+  function seMuestra(nodo) {
+    return nodo.hijos ? nodo.hijos.some(seMuestra) : Boolean(nodo.disponible);
+  }
+  const hijosDe = (nodo) => nodo.hijos.filter(seMuestra);
+
+  // **Un bloque por módulo, submódulo o tema** (2026-11-25, sobre maquetas):
+  // el dibujo de lo que se estudia, el nombre y, si lleva algo dentro, qué. Sin
+  // descripciones: el dibujo ya explica (pedido del usuario). Ningún nodo
+  // lleva número ni la palabra «módulo» (CLAUDE.md 2).
+  function crearBloque(nodo, { modulo, grande, alPulsar }) {
     const boton = document.createElement('button');
     boton.type = 'button';
-    boton.className = 'indice__tema' + (nodo.disponible ? '' : ' indice__tema--pendiente');
+    boton.className = 'bloque-menu' + (grande ? ' bloque-menu--grande' : '');
+    boton.dataset.modulo = modulo;
+    boton.dataset.nodo = nodo.id;
+    if (nodo.hijos) boton.dataset.categoria = 'si';
 
+    const dibujo = document.createElement('span');
+    dibujo.className = 'bloque-menu__dibujo';
+    const miniatura = miniaturas.crear(nodo.id);
+    dibujo.appendChild(miniatura);
+
+    const texto = document.createElement('span');
+    texto.className = 'bloque-menu__texto';
     const titulo = document.createElement('span');
-    titulo.className = 'indice__tema-titulo';
-    titulo.textContent = nodo.titulo;
-
-    const guia = document.createElement('span');
-    guia.className = 'indice__guia';
-    guia.setAttribute('aria-hidden', 'true');
-
-    boton.append(titulo, guia);
-
-    if (nodo.descripcion) {
-        boton.title = nodo.descripcion;
-      const descripcion = document.createElement('span');
-      descripcion.className = 'indice__tema-descripcion texto-nivel-5';
-      descripcion.textContent = nodo.descripcion;
-      boton.appendChild(descripcion);
-    }
-    if (!nodo.disponible) boton.appendChild(crearEstado());
-
-    boton.addEventListener('click', () => alSeleccionarTema(nodo));
-    li.appendChild(boton);
-    return li;
-  }
-
-  // Una sección del índice, en la profundidad que le toque. Los tres niveles
-  // no son tres componentes: es el mismo, rotulado distinto —parte, grupo y
-  // subgrupo sangrado—, porque el catálogo es un árbol y nada garantiza que
-  // siempre tenga tres niveles.
-  const CLASES_POR_PROFUNDIDAD = ['parte', 'grupo', 'subgrupo'];
-
-  function tieneTemaDisponible(nodo) {
-    return nodo.hijos ? nodo.hijos.some(tieneTemaDisponible) : Boolean(nodo.disponible);
-  }
-
-  function crearSeccion(nodo, profundidad, alSeleccionarTema) {
-    const nivel = CLASES_POR_PROFUNDIDAD[Math.min(profundidad, CLASES_POR_PROFUNDIDAD.length - 1)];
-    const seccion = document.createElement('section');
-    seccion.className = `indice__${nivel}`;
-
-    const titulo = document.createElement(profundidad === 0 ? 'h2' : profundidad === 1 ? 'h3' : 'h4');
-    titulo.className = `indice__${nivel}-titulo`;
-    titulo.textContent = nodo.titulo;
-
-    // La descripción de la parte va pegada a su título, en la misma línea: es
-    // el subtítulo de la sección y no un párrafo aparte.
-    if (profundidad === 0 && nodo.descripcion) {
-      const descripcion = document.createElement('span');
-      descripcion.className = 'indice__parte-descripcion';
-      descripcion.textContent = nodo.descripcion;
-      titulo.appendChild(descripcion);
-    }
-    seccion.appendChild(titulo);
-
-    // **Los temas sin construir dicen «En desarrollo» una sola vez**, no en
-    // cada renglón (CLAUDE.md 4). Sin ningún tema construido, el rótulo va en
-    // la cabecera de la parte y no se dibujan descripciones. Con alguno
-    // —Grafos desde Floyd, 2026-10-22— los pendientes se juntan al final,
-    // bajo su rótulo y en dos columnas: en la cabecera habría dicho que toda
-    // la parte está en desarrollo.
-    let pendientesAlFinal = false;
-    if (profundidad === 0) {
-      const categorias = (nodo.hijos || []).filter((hijo) => hijo.hijos);
-      const hayPendientes = (nodo.hijos || []).some((hijo) => !hijo.hijos && !hijo.disponible);
-      if (!tieneTemaDisponible(nodo)) {
-        seccion.classList.add('indice__parte--pendiente');
-        titulo.appendChild(crearEstado());
-      } else if (hayPendientes && categorias.length === 0) {
-        pendientesAlFinal = true;
+    titulo.className = 'bloque-menu__titulo';
+    const nombre = document.createElement('span');
+    nombre.className = 'bloque-menu__nombre';
+    nombre.textContent = nodo.titulo;
+    titulo.append(nombre, crearIcono('entrar'));
+    texto.appendChild(titulo);
+    if (nodo.hijos) {
+      const fichas = document.createElement('span');
+      fichas.className = 'bloque-menu__fichas';
+      for (const hijo of hijosDe(nodo)) {
+        const ficha = document.createElement('span');
+        ficha.className = 'ficha';
+        ficha.textContent = hijo.corto || hijo.titulo;
+        fichas.appendChild(ficha);
       }
+      texto.appendChild(fichas);
     }
-
-    // Los temas seguidos se juntan en una sola lista y las categorías abren su
-    // propia sección, **respetando el orden del catálogo**: en búsquedas
-    // internas, secuencial y binaria van antes que transformación de claves.
-    let lista = null;
-    const hijos = pendientesAlFinal
-      ? (nodo.hijos || []).filter((hijo) => hijo.disponible).concat((nodo.hijos || []).filter((hijo) => !hijo.disponible))
-      : (nodo.hijos || []);
-    let rotuloPuesto = false;
-    for (const hijo of hijos) {
-      if (hijo.hijos) {
-        lista = null;
-        seccion.appendChild(crearSeccion(hijo, profundidad + 1, alSeleccionarTema));
-        continue;
-      }
-      if (pendientesAlFinal && !hijo.disponible && !rotuloPuesto) {
-        rotuloPuesto = true;
-        const rotulo = crearEstado();
-        rotulo.classList.add('indice__estado--rotulo');
-        seccion.appendChild(rotulo);
-        lista = null;
-      }
-      if (!lista) {
-        lista = document.createElement('ul');
-        lista.className = 'indice__lista' + (rotuloPuesto ? ' indice__lista--pendientes' : '');
-        seccion.appendChild(lista);
-      }
-      lista.appendChild(crearRenglonTema(hijo, alSeleccionarTema));
-    }
-    return seccion;
+    boton.append(dibujo, texto);
+    const recorrer = () => miniaturas.recorrer(miniatura);
+    boton.addEventListener('mouseenter', recorrer);
+    boton.addEventListener('focus', () => { if (boton.matches(':focus-visible')) recorrer(); });
+    boton.addEventListener('click', () => alPulsar(nodo));
+    return boton;
   }
 
   // **Las recientes van en una tira bajo la barra** y no en un panel a la
@@ -161,7 +87,7 @@
 
     const titulo = document.createElement('h2');
     titulo.className = 'tira-recientes__titulo';
-    titulo.textContent = 'Recientes';
+    titulo.append(crearIcono('reloj'), 'Seguir con');
 
     const lista = document.createElement('ul');
     lista.className = 'tira-recientes__lista';
@@ -243,57 +169,111 @@
       ESCALA_MAXIMA
     ));
     pantalla.style.zoom = String(escala);
-    // El alto mínimo de pantalla también se escala: `100vh` con zoom 1,4
+    // El alto de la pantalla también se escala: `100vh` con zoom 1,4
     // mediría 140 vh y la página se desplazaría sin nada debajo.
-    pantalla.style.minHeight = `${100 / escala}vh`;
+    pantalla.style.height = `${100 / escala}vh`;
     return escala;
   }
 
-  function crearPantallaMenu({ catalogo, recientes, alSeleccionarTema, alAbrirReciente }) {
+  function crearBotonDeRuta(clase, icono, texto, alPulsar) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = clase;
+    if (icono) boton.appendChild(crearIcono(icono));
+    boton.append(texto);
+    boton.addEventListener('click', alPulsar);
+    return boton;
+  }
+
+  // Las migas: dónde se está, y un clic a cualquier nivel de arriba.
+  function crearMigas(categorias, alNavegar) {
+    const nav = document.createElement('nav');
+    nav.className = 'migas';
+    nav.setAttribute('aria-label', 'Dónde estoy');
+    nav.appendChild(crearBotonDeRuta('migas__nivel', 'inicio', 'Inicio', () => alNavegar([])));
+    categorias.forEach((nodo, i) => {
+      nav.appendChild(crearIcono('miga'));
+      if (i === categorias.length - 1) {
+        const actual = document.createElement('span');
+        actual.className = 'migas__actual';
+        actual.setAttribute('aria-current', 'page');
+        actual.textContent = nodo.titulo;
+        nav.appendChild(actual);
+      } else {
+        nav.appendChild(crearBotonDeRuta('migas__nivel', null, nodo.titulo, () => alNavegar(categorias.slice(0, i + 1).map((categoria) => categoria.id))));
+      }
+    });
+    return nav;
+  }
+
+  // La marca: unas casillas de las que sale un grafo.
+  function crearMarca() {
+    const molde = document.createElement('template');
+    molde.innerHTML = `<svg class="menu__marca" viewBox="0 0 34 34" aria-hidden="true" focusable="false"><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="11" y="13" width="9" height="9" rx="1.5" fill="currentColor"/><path d="M20 17.5 27 8M20 17.5 27 27"/><circle cx="28.5" cy="6.5" r="3.6"/><circle cx="28.5" cy="28" r="3.6"/></svg>`;
+    return molde.content.firstElementChild;
+  }
+
+  // **El menú se recorre por niveles** (2026-11-25): el inicio con los dos
+  // módulos, sus submódulos y sus temas. `ruta` son los ids de las categorías
+  // abiertas; una que no exista se corta ahí.
+  function crearPantallaMenu({ catalogo, ruta, recientes, alSeleccionarTema, alNavegar, alAbrirReciente }) {
+    const categorias = [];
+    let nivel = catalogo;
+    for (const id of ruta) {
+      const nodo = nivel.find((hijo) => hijo.id === id && hijo.hijos);
+      if (!nodo) break;
+      categorias.push(nodo);
+      nivel = nodo.hijos;
+    }
+    const ids = (nodos) => nodos.map((nodo) => nodo.id);
+    const actual = categorias[categorias.length - 1] || null;
+    const modulo = categorias.length ? categorias[0].id : 'inicio';
+
     const pantalla = document.createElement('div');
     pantalla.className = 'pantalla pantalla-menu-app';
+    pantalla.dataset.modulo = modulo;
 
-    const barra = document.createElement('header');
-    barra.className = 'pantalla-menu__barra';
+    const cabecera = document.createElement('header');
+    cabecera.className = 'menu__cabecera';
+    const nombre = document.createElement('div');
+    const titulo = document.createElement('h1');
+    titulo.textContent = 'Simulador de búsquedas y grafos';
+    const materia = document.createElement('p');
+    materia.textContent = 'Ciencias de la Computación II';
+    nombre.append(titulo, materia);
+    cabecera.append(crearMarca(), nombre);
+    if (actual) cabecera.appendChild(crearMigas(categorias, alNavegar));
 
-    const marca = document.createElement('div');
-    marca.className = 'pantalla-menu__marca';
-    const sigla = document.createElement('span');
-    sigla.className = 'texto-nivel-2';
-    sigla.textContent = 'CC2';
-    const descripcionMarca = document.createElement('span');
-    descripcionMarca.className = 'texto-nivel-5';
-    descripcionMarca.textContent = ' · Ciencias de la Computación II — Simulador de algoritmos de búsqueda';
-    marca.append(sigla, descripcionMarca);
-
-    // **Sin botón de alertas** (2026-09-11). Era un botón fijo para preguntar
-    // si había alertas, y casi siempre contestaba que no. Los avisos que sí
-    // importan —«tema en construcción»— no salían de ahí: salen solos al
-    // pulsar un tema pendiente, y se muestran debajo de esta barra, que es
-    // donde siguen saliendo.
-    barra.appendChild(marca);
-
-    const cuerpo = document.createElement('div');
-    cuerpo.className = 'pantalla-menu__cuerpo';
-
-    // **Las dos partes van una al lado de la otra, del mismo ancho**
-    // (`indice--columnas`; opción E, elegida por el usuario el 2026-10-28):
-    // Búsquedas a la izquierda —las internas y, debajo, las externas— y Grafos
-    // a la derecha, cada una con su título y su línea. Con media pantalla
-    // cada tema cabe en un renglón con su título, sus puntos y su
-    // descripción, también en un portátil de 1366. Fue posible al juntar las
-    // cinco funciones hash en un tema; antes Grafos iba angosto y sin
-    // descripciones, y las de las externas se partían.
-    const columnaCatalogo = document.createElement('div');
-    columnaCatalogo.className = 'pantalla-menu__catalogo indice indice--columnas';
-    for (const parte of catalogo) {
-      columnaCatalogo.appendChild(crearSeccion(parte, 0, alSeleccionarTema));
+    const cuerpo = document.createElement('main');
+    cuerpo.className = 'menu__cuerpo';
+    if (actual) {
+      const padre = categorias[categorias.length - 2];
+      const encabezado = document.createElement('div');
+      encabezado.className = 'menu__encabezado';
+      const tituloActual = document.createElement('h2');
+      tituloActual.textContent = actual.titulo;
+      encabezado.append(
+        crearBotonDeRuta('menu__volver', 'volver', padre ? padre.titulo : 'Inicio', () => alNavegar(ids(categorias.slice(0, -1)))),
+        tituloActual
+      );
+      cuerpo.appendChild(encabezado);
     }
 
-    cuerpo.appendChild(columnaCatalogo);
-    pantalla.append(barra);
-    if (recientes.length > 0) pantalla.append(crearTiraRecientes(recientes, alAbrirReciente));
-    pantalla.append(cuerpo);
+    // Dos o tres bloques van en fila; cuatro, de a dos con el dibujo a la
+    // izquierda: en una fila quedaban altos, angostos y con el dibujo chico.
+    const visibles = actual ? hijosDe(actual) : catalogo;
+    const bloques = document.createElement('div');
+    bloques.className = `menu__bloques menu__bloques--${visibles.length}`;
+    for (const nodo of visibles) {
+      bloques.appendChild(crearBloque(nodo, {
+        modulo: actual ? modulo : nodo.id,
+        grande: visibles.length === 2,
+        alPulsar: (pulsado) => (pulsado.hijos ? alNavegar(ids(categorias.concat(pulsado))) : alSeleccionarTema(pulsado))
+      }));
+    }
+    cuerpo.appendChild(bloques);
+    if (!actual && recientes.length > 0) cuerpo.appendChild(crearTiraRecientes(recientes, alAbrirReciente));
+    pantalla.append(cabecera, cuerpo);
 
     // Se escala al montarse y cada vez que cambia la ventana; el oyente se
     // retira solo cuando el menú ya no está en la página.

@@ -2,523 +2,215 @@
   min-height: 100vh;
 }
 
-/* Menú */
-.pantalla-menu-app {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-5);
-  padding: var(--espacio-5) var(--espacio-6);
-}
-
-.pantalla-menu__barra {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-bottom: var(--espacio-3);
-  border-bottom: 1px solid var(--borde);
-}
-
-.pantalla-menu__marca {
-  display: flex;
-  align-items: baseline;
-  gap: var(--espacio-1);
-}
-
-.pantalla-menu__cuerpo {
-  display: block;
-}
-
-/* Las recientes, en una tira bajo la barra (2026-09-27): cada una es una
-   pastilla, y si no caben todas se desvanece el borde derecho, como en el
-   lienzo. Antes eran un panel de 320 px a la derecha que se quedaba con el
-   ancho del catálogo. */
-.tira-recientes {
-  display: flex;
-  align-items: baseline;
-  gap: var(--espacio-3);
-  min-width: 0;
-}
-
-.tira-recientes__titulo {
-  margin: 0;
-  flex: none;
-  font-family: var(--fuente-condensada);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
-}
-
-/* **Se desplaza en horizontal** (pedido del usuario, 2026-10-28): con la
-   rueda —con o sin Shift— sobre la tira, o pasando el foco con el
-   tabulador. Antes era `overflow: hidden` y lo que no cabía quedaba bajo el
-   desvanecido, sin forma de llegar a ello. Sin barra: el desvanecido dice
-   que hay más, y va del lado donde lo hay (`--corte-izquierda`,
-   `--corte-derecha`, que pone menu.js al desplazar). */
-.tira-recientes__lista {
-  list-style: none;
-  margin: 0;
-  /* El aire de arriba y abajo es para el contorno del foco, que el
-     desplazamiento recortaría. */
-  padding: 3px 0;
-  display: flex;
-  gap: var(--espacio-2);
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  white-space: nowrap;
-}
-
-.tira-recientes__lista::-webkit-scrollbar {
-  display: none;
-}
-
-.tira-recientes__lista--corte-derecha {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
-}
-
-.tira-recientes__lista--corte-izquierda {
-  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
-  mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
-}
-
-.tira-recientes__lista--corte-izquierda.tira-recientes__lista--corte-derecha {
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
-}
-
-.tira-recientes__lista > li {
-  flex: none;
-}
-
-/* Cada pastilla es un botón: abre el tema con la estructura como quedó
-   (2026-10-21). Responde como los renglones del índice, con el borde y no
-   con un color de estado, que son de la casilla (CLAUDE.md 8.1). */
-.tira-recientes__item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--espacio-1);
-  padding: 3px 10px;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  background: var(--superficie);
-  font: inherit;
-  font-size: 12px;
-  color: inherit;
-  cursor: pointer;
-}
-
-.tira-recientes__item:hover {
-  border-color: var(--borde-fuerte);
-}
-
-.tira-recientes__item:focus-visible {
-  outline: 2px solid var(--borde-fuerte);
-  outline-offset: 1px;
-}
-
-/* La cantidad de claves, separada del detalle con un punto medio como el
-   resto de la pastilla. */
-.tira-recientes__claves {
-  color: var(--tinta-suave);
-}
-
-.tira-recientes__claves::before {
-  content: "· ";
-}
-
-.tira-recientes__tema {
-  font-weight: 500;
-  color: var(--tinta);
-}
-
-.tira-recientes__detalle {
-  color: var(--tinta-suave);
-}
-
-.pantalla-menu__catalogo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-4);
-}
-
-
-/* El catálogo se lee como el índice de un libro (CLAUDE.md 2): todo a la
-   vista, sin tarjetas ni navegación por niveles. La jerarquía la dicen la
-   sangría y la tipografía, y ningún nodo lleva número. */
-.indice {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-5);
-}
-
-/* Las dos partes —Búsquedas y Grafos— una al lado de la otra y del mismo
-   ancho (opción E, 2026-10-28): con media pantalla cada tema va en un renglón
-   con su título, sus puntos y su descripción. El menú se dibuja al ancho de
-   un portátil y se escala con la ventana (`escalarAlaVentana` en menu.js),
-   así que estas medidas son las de 1366 px; el tope evita que, sin escalar,
-   la guía de puntos se estire hasta perder el renglón. */
-.indice--columnas {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  max-width: 1300px;
-  column-gap: calc(var(--espacio-6) * 1.5);
-  align-items: start;
-}
-
-/* Una parte sin ningún tema construido: solo los nombres, y el «En
-   desarrollo» una vez en su cabecera. */
-.indice__parte--pendiente .indice__tema .indice__estado,
-.indice__parte--pendiente .indice__guia,
-.indice__parte--pendiente .indice__parte-descripcion,
-.indice__parte--pendiente .indice__tema-descripcion {
-  display: none;
-}
-
-.indice__parte--pendiente .indice__parte-titulo {
-  flex-wrap: wrap;
-}
-
-.indice__parte-titulo > .indice__estado {
-  font-weight: 400;
-}
-
-/* El rótulo encima de los temas pendientes de una parte que ya tiene alguno
-   construido (Grafos desde Floyd, 2026-10-22). */
-.indice__estado--rotulo {
-  display: block;
-  margin-top: var(--espacio-3);
-  padding-left: var(--espacio-4);
-}
-
-/* Los pendientes bajo su rótulo, en dos columnas y solo con el nombre: el
-   sello ya está encima, y así Grafos cabe en un portátil. */
-.indice__lista--pendientes {
-  columns: 2;
-  column-gap: var(--espacio-5);
-}
-
-.indice__lista--pendientes li {
-  break-inside: avoid;
-}
-
-.indice__lista--pendientes .indice__guia,
-.indice__lista--pendientes .indice__estado {
-  display: none;
-}
-
-.indice__parte,
-.indice__grupo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-}
-
-.indice__parte {
-  gap: var(--espacio-3);
-}
-
-.indice__parte-titulo {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--espacio-3);
-  font-family: var(--fuente-condensada);
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--tinta);
-  padding-bottom: var(--espacio-2);
-  border-bottom: 1px solid var(--borde-fuerte);
-}
-
-/* Subtítulo de la parte, en la misma línea que su título: la descripción no
-   es un párrafo aparte, y como tal no hereda ni las versalitas ni el tracking. */
-.indice__parte-descripcion {
-  font-family: var(--fuente-texto);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--tinta-suave);
-}
-
-.indice__grupo-titulo {
-  /* Sin el margen que el navegador da a h3 y h4: eran ~40 px de aire vacío
-     por subgrupo, y el índice no cabía en un portátil (2026-09-27). */
-  margin: 0;
-  font-family: var(--fuente-condensada);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
-}
-
-/* El subgrupo se sangra en vez de rotularse más fuerte: la sangría ya dice
-   que cuelga del grupo, y un rótulo más marcado competiría con él. */
-.indice__subgrupo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-left: var(--espacio-4);
-}
-
-.indice__subgrupo-titulo {
-  margin: var(--espacio-2) 0 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--tinta);
-}
-
-.indice__lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-/* Un tema es un renglón, no una tarjeta: se levanta del papel solo al pasar
-   el mouse, y sin color nuevo (CLAUDE.md 8.1). */
-.indice__tema {
-  display: flex;
-  align-items: baseline;
-  gap: var(--espacio-3);
-  width: 100%;
-  /* Renglón apretado, como el de un índice: con el aire de un botón normal el
-     catálogo entero medía 1067 px y Grafos se salía de la ventana de
-     proyección, que es justo lo que este menú viene a arreglar. */
-  padding: 1px var(--espacio-3);
-  border: 1px solid transparent;
-  border-radius: var(--radio-control);
-  background: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--duracion-interfaz) var(--curva-interfaz),
-              border-color var(--duracion-interfaz) var(--curva-interfaz);
-}
-
-.indice__tema:hover {
-  background: var(--superficie);
-  border-color: var(--borde);
-}
-
-/* El título no se parte nunca: es el nombre del tema, y partido deja de
-   leerse de un vistazo, que es para lo que sirve un índice. Si hay que ceder
-   ancho, lo cede la descripción. */
-.indice__tema-titulo {
-  font-size: 13px;
-  color: var(--tinta);
-  white-space: nowrap;
-}
-
-.indice__tema--pendiente .indice__tema-titulo {
-  color: var(--tinta-suave);
-}
-
-.indice__tema-descripcion {
-  min-width: 0;
-  text-align: right;
-  /* Cuando no cabe en un renglón, se parte parejo (revisión de diseño,
-     2026-10-14): dejaba una palabra sola abajo —«bloque por / bloque»,
-     «reducción / dinámica de n»—. */
-  text-wrap: balance;
-}
-
-/* Lo que un tema sin construir tiene al otro lado de la guía. Va en la
-   mono de las métricas y en versalitas: se lee como un sello y no como
-   descripción, que es lo que ocupa ese mismo lugar en los demás renglones. */
-.indice__estado {
-  font-family: var(--fuente-mono);
-  font-size: 11px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
-  white-space: nowrap;
-}
-
-/* La guía de puntos: la línea que en un libro lleva del título al número de
-   página. Aquí lleva a la descripción del tema —o a su estado—, y por eso
-   ningún renglón la deja colgando sin nada al otro lado. Se sube un poco
-   porque se alinea por la base del texto y no por su caja. */
-.indice__guia {
-  flex: 1;
-  min-width: var(--espacio-5);
-  border-bottom: 1px dotted var(--borde-fuerte);
-  transform: translateY(-3px);
-}
-
-/* Tema (pantalla de trabajo de un algoritmo) */
 /* La estructura es el foco de atención de la clase: tiene que estar visible al
    abrir el tema, sin scroll. Por eso la pantalla se ancla al alto del viewport
-   y el desplazamiento vive dentro del panel lateral, nunca en la página — si
-   scrollea la página, el algoritmo se va de pantalla al proyectar.
-   `minmax(0, 1fr)` en vez de `1fr`: sin él la fila no puede encogerse por
-   debajo de su contenido y el panel lateral vuelve a estirar el lienzo. */
+   y nunca desplaza la página. `minmax(0, 1fr)` en vez de `1fr`: sin él la fila
+   no puede encogerse por debajo de su contenido.
+
+   De arriba abajo (2026-11-25): la cabecera del color del módulo, la cinta, el
+   lienzo con la bitácora a su derecha, y la barra de estado con las métricas.
+   Posicionada: el panel de escribir y la explicación se ubican en ella. */
 .pantalla-tema {
+  --margen-lienzo: 10px;
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr 340px;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--espacio-5);
-  padding: var(--espacio-5);
+  grid-template-columns: minmax(0, 1fr) 290px;
+  grid-template-rows: var(--alto-encabezado) auto minmax(0, 1fr) var(--alto-estado);
   height: 100vh;
   overflow: hidden;
+  background: var(--papel);
 }
 
-/* En pantallas anchas el panel crece a 420 px (elegido con capturas,
-   2026-10-14): a 340 la bitácora parte casi cada renglón en dos —en residuos
-   múltiples, cinco de seis— y a 420 caben 9 entradas en una línea. La
-   estructura no lo echa de menos a 1920. El corte deja fuera 1536 (zoom al
-   125 %), donde el árbol de residuos con 420 ya toca el borde del lienzo y
-   no le quedaría lugar al cálculo de la dirección. */
 @media (min-width: 1600px) {
   .pantalla-tema {
-    grid-template-columns: 1fr 420px;
+    grid-template-columns: minmax(0, 1fr) 330px;
   }
+}
+
+.pantalla-tema--sin-bitacora {
+  grid-template-columns: minmax(0, 1fr) 0;
+}
+
+.pantalla-tema--sin-bitacora .pantalla-tema__panel-lateral {
+  display: none;
+}
+
+/* El lienzo se corre para dejarle sitio al panel de escribir: el grafo que se
+   va dibujando mientras tanto queda a la vista. */
+.pantalla-tema--escribiendo .pantalla-tema__lienzo {
+  margin-left: calc(var(--espacio-3) + var(--ancho-escritura) + 10px);
 }
 
 .pantalla-tema__encabezado {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: 0 14px 0 var(--espacio-2);
+  background: var(--cabecera);
+  color: var(--cabecera-tinta);
+}
+
+.pantalla-tema__encabezado h1 {
+  margin: 0;
+  font: 600 19px/1.1 var(--fuente-condensada);
+  white-space: nowrap;
+}
+
+.pantalla-tema__salidas {
   display: flex;
-  align-items: baseline;
-  gap: var(--espacio-3);
-  padding-bottom: var(--espacio-3);
-  border-bottom: 1px solid var(--borde);
+  gap: 2px;
+  min-width: 0;
 }
 
-.pantalla-tema__volver {
-  border: none;
+.pantalla-tema__salidas button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: var(--radio-control);
   background: none;
+  color: inherit;
+  font-size: 14px;
+  white-space: nowrap;
   cursor: pointer;
-  color: var(--tinta-suave);
-  align-self: center;
 }
 
-.pantalla-tema__rotulo {
-  align-self: center;
+.pantalla-tema__salidas button:hover {
+  background: rgba(255, 255, 255, .16);
 }
 
-.pantalla-tema__subtitulo {
-  align-self: center;
+.pantalla-tema__encabezado .panel__resumen {
+  justify-self: end;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--cabecera-tinta);
 }
 
-/* El control de elisión se fija arriba y la estructura se centra en el resto,
-   para que no se desplace verticalmente al cambiar de paso. */
+.pantalla-tema__encabezado .panel__resumen-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Las métricas: en un renglón y siempre a la vista, como la barra de estado
+   de una hoja de cálculo. */
+.pantalla-tema__estado {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  background: var(--cabecera);
+  color: var(--cabecera-tinta);
+}
+
+.pantalla-tema__metricas {
+  display: flex;
+  gap: 28px;
+  min-width: 0;
+}
+
+.pantalla-tema__metricas .metrica {
+  flex: none;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.pantalla-tema__metricas .metrica__valor {
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.pantalla-tema__metricas .metrica__etiqueta {
+  font: 400 14px/1.2 var(--fuente-texto);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  color: var(--cabecera-tinta);
+}
+
+
 .pantalla-tema__lienzo {
   /* Posicionado: el aviso flota sobre él (ver `.pantalla-tema__alertas`). */
   position: relative;
   display: grid;
-  /* La fila de arriba mide siempre al menos lo que el control «Ver estructura
-     completa», esté o no: es la fila donde flota el aviso, y si colapsaba a
-     cero cuando el control se ocultaba, una tabla que llena el lienzo subía
-     hasta montarse debajo del aviso (lo destapó la prueba de humo a 700 px,
-     2026-09-27). Cuando el control está, no cambia nada. Y mide al menos lo
-     que el aviso que flota en ella (`--alto-aviso`, ver
-     `reservarAltoDelAviso`): narrando los pasos mide más que el control. */
-  grid-template-rows: minmax(max(20px, var(--alto-aviso, 0px)), auto) minmax(0, 1fr);
-  gap: var(--espacio-3);
+  /* La fila de arriba es donde flota el aviso, y mide al menos lo que él
+     (`--alto-aviso`, ver `reservarAltoDelAviso`): si colapsara, una tabla que
+     llena el lienzo subiría hasta montarse debajo. */
+  grid-template-rows: max(8px, var(--alto-aviso, 0px)) minmax(0, 1fr);
+  gap: var(--espacio-2);
+  margin: var(--margen-lienzo) 0 var(--margen-lienzo) var(--espacio-3);
   background: var(--superficie-hundida);
-  border: 1px solid var(--borde);
+  border: 1.5px solid var(--borde);
   border-radius: var(--radio-panel);
-  padding: var(--espacio-5);
+  padding: var(--espacio-4) var(--espacio-5);
   min-height: 0;
   overflow: hidden;
 }
 
-/* Cada uno a su fila, dicho explícitamente. Sin esto, el escenario se cae a la
-   fila de arriba —la que mide lo que su contenido— en cuanto el control no
-   está: y no está ni en los árboles, que no eliden, ni en cualquier tema cuya
-   estructura quepa entera. El resultado era que el árbol se pegaba al borde
-   de arriba del lienzo con medio lienzo vacío debajo, mientras las tablas y
-   las filas sí quedaban centradas (defecto visto por el usuario, 2026-09-11). */
-.lienzo__control {
-  grid-row: 1;
-  justify-self: end;
+/* A su fila, dicho explícitamente: sin esto el escenario se cae a la de
+   arriba, la del aviso. */
+@media (max-height: 720px) {
+  .pantalla-tema__lienzo {
+    padding-block: var(--espacio-2);
+  }
+}
+
+@media (max-height: 690px) {
+  .pantalla-tema {
+    --margen-lienzo: 6px;
+  }
+
+  .pantalla-tema__lienzo {
+    padding-block: var(--espacio-1);
+    gap: var(--espacio-1);
+  }
+
+  /* El número del paso va delante del mensaje, en su renglón. */
+  .pantalla-tema__alertas {
+    top: 6px;
+    left: 6px;
+  }
+
+  .pantalla-tema__alertas .alerta {
+    padding-block: 5px;
+  }
+
+  .pantalla-tema__alertas .alerta__cuerpo {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--espacio-3);
+  }
+
+  .pantalla-tema__alertas .alerta__rotulo {
+    flex: none;
+  }
 }
 
 .lienzo__escenario {
   grid-row: 2;
 }
-
+/* La bitácora, a la derecha del lienzo y de su mismo alto. */
 .pantalla-tema__panel-lateral {
-  --alto-desvanecido: 40px;
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-3);
+  min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  /* Aire para que la barra de desplazamiento no se monte sobre los paneles. */
-  padding-right: var(--espacio-2);
+  padding: var(--margen-lienzo) var(--espacio-3) var(--margen-lienzo) 10px;
 }
 
-/* El desvanecido donde queda algo por ver (ver `marcarCortesDelPanelLateral`
-   en tema-busqueda.js). Es un velo del color del fondo, pegado arriba o abajo
-   mientras se desplaza, y no una máscara del panel: la máscara desvanecería
-   también la barra. No ocupa sitio —el margen negativo descuenta su alto y el
-   espacio entre tarjetas— ni recibe clics. */
-.pantalla-tema__panel-lateral::before,
-.pantalla-tema__panel-lateral::after {
-  content: "";
-  flex: none;
-  position: sticky;
-  z-index: 1;
-  height: var(--alto-desvanecido);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--duracion-interfaz) var(--curva-interfaz);
-}
+/* El aviso flota sobre el lienzo, arriba a la izquierda (opción B de la
+   maqueta, 2026-09-27): no ocupa alto y no mueve la estructura. */
 
-.pantalla-tema__panel-lateral::before {
-  top: 0;
-  margin-bottom: calc(-1 * (var(--alto-desvanecido) + var(--espacio-3)));
-  background: linear-gradient(to bottom, var(--papel), transparent);
-}
-
-.pantalla-tema__panel-lateral::after {
-  bottom: 0;
-  margin-top: calc(-1 * (var(--alto-desvanecido) + var(--espacio-3)));
-  background: linear-gradient(to top, var(--papel), transparent);
-}
-
-.pantalla-tema__panel-lateral--corte-arriba::before,
-.pantalla-tema__panel-lateral--corte-abajo::after {
-  opacity: 1;
-}
-
-/* Ritmo más apretado que el de los paneles de siempre (2026-09-30, opción
-   A + C de la maqueta): 12 px entre tarjetas, 12 de relleno y el título a 8
-   de su contenido, en vez de 16, 16 y 12. Junto con quitarle el título a
-   Reproducción, es lo que hacía falta para que en el portátil se vean todas
-   las métricas: «Altura» en los árboles de bits y la segunda fila de las
-   búsquedas externas. Solo aquí: el menú no tiene esa presión. */
-.pantalla-tema__panel-lateral .panel {
-  padding: var(--espacio-3);
-}
-
-.pantalla-tema__panel-lateral .panel__titulo {
-  margin-bottom: var(--espacio-2);
-}
-
-/* El aviso flota sobre el lienzo, arriba a la izquierda, en la fila del
-   control «Ver estructura completa», que hoy solo usa su lado derecho
-   (opción B de la maqueta, 2026-09-27; CLAUDE.md 6.2).
-
-   Hasta entonces se anclaba arriba del panel lateral (pedido del usuario,
-   2026-08-29: abajo en la columna quedaba fuera de la vista). Ahí empujaba
-   todos los paneles, y en un portátil (1366×640) dejaba las métricas bajo el
-   borde justo al terminar cada operación. Se había descartado el lienzo
-   porque su alto es el recurso escaso y una banda que aparece y desaparece
-   haría saltar la estructura; flotando no ocupa alto y no mueve nada. Se deja
-   libre el ancho del control a la derecha, y la sombra lo separa de lo que
-   haya debajo. */
 .pantalla-tema__alertas {
   position: absolute;
-  top: var(--espacio-4);
-  left: var(--espacio-4);
-  max-width: calc(100% - 2 * var(--espacio-4) - 220px);
+  top: var(--espacio-3);
+  left: var(--espacio-3);
+  max-width: calc(100% - 2 * var(--espacio-3));
   z-index: 3;
 }
 
@@ -547,95 +239,6 @@
 .pantalla-tema__alertas:empty {
   display: none;
 }
-
-.pantalla-tema__controles {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  flex-wrap: wrap;
-}
-
-/* La reproducción como última fila de Operaciones (opción C, 2026-09-30),
-   separada de las operaciones por una línea. En índices va sola en su
-   tarjeta y no la lleva. */
-form.panel > .pantalla-tema__reproduccion {
-  border-top: 1px solid var(--borde);
-  padding-top: var(--espacio-3);
-}
-
-/* El reproductor en una fila (2026-09-27): los pasos a los lados, cuadrados,
-   y en medio el botón que alterna entre reproducir y pausar. */
-.reproductor {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  gap: var(--espacio-2);
-}
-
-.reproductor .boton {
-  justify-content: center;
-}
-
-/* El rótulo, el deslizador y su lectura en segundos, en un solo renglón: era
-   el rótulo encima y sumaba otra línea que el portátil no tenía. */
-.pantalla-tema__velocidad {
-  display: grid !important;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--espacio-2);
-  margin-top: var(--espacio-3);
-}
-
-.pantalla-tema__velocidad input {
-  width: 100%;
-  min-width: 0;
-}
-
-/* Cifras de ancho fijo y un mínimo para el texto: al arrastrar, el número
-   cambia de `0,2 s` a `4,0 s` y sin esto el deslizador se encogería y se
-   estiraría bajo el pulgar. */
-.pantalla-tema__velocidad-lectura {
-  font-family: var(--fuente-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--tinta-suave);
-  min-width: 4ch;
-  text-align: right;
-}
-
-/* Las métricas van en cuadrícula de dos columnas y no en fila: son entre dos
-   y cuatro según el tema, y en fila fija la cuarta —"Registros por bloque",
-   en búsquedas externas— se salía del panel y quedaba cortada contra el
-   borde. Envolviéndolas sin más quedaban escalonadas, porque cada una mide lo
-   que mida su rótulo; en cuadrícula caen alineadas y el panel se lee de un
-   vistazo.
-
-   **Cada una en un renglón, con el valor delante de su rótulo**
-   (2026-09-27): con el valor encima, el panel medía el doble, y en un
-   portátil la tercera métrica de binaria quedaba cortada. Las columnas miden
-   lo que su contenido, con aire entre ellas para que dos métricas no se lean
-   como una frase, y un rótulo largo se parte dentro de su celda. La que lleva
-   fórmula ocupa el renglón entero (`metrica--ancha`). */
-.pantalla-tema__metricas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, auto));
-  justify-content: start;
-  gap: var(--espacio-2) var(--espacio-6);
-}
-
-.pantalla-tema__metricas .metrica {
-  flex-direction: row;
-  align-items: baseline;
-  gap: var(--espacio-2);
-  min-width: 0;
-}
-
-.pantalla-tema__metricas .metrica__valor {
-  font-size: 18px;
-}
-
-.pantalla-tema__metricas .metrica--ancha {
-  grid-column: 1 / -1;
-}
-
 /* Estructura horizontal (secuencial, binaria) */
 .estructura-horizontal {
   display: flex;
@@ -949,41 +552,83 @@ form.panel > .pantalla-tema__reproduccion {
   overflow: hidden;
 }
 
-/* Lienzo sin estructura todavía: dice qué falta en vez de quedarse mudo. Va
-   centrado como iría la estructura, para que el aviso ocupe el sitio de lo que
-   anuncia. */
+/* Lienzo sin estructura todavía: qué falta y qué se hace después, con los
+   símbolos de la cinta (2026-11-25). */
 .estructura-vacia {
   place-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--espacio-3);
-  max-width: min(100%, 30rem);
+  gap: var(--espacio-5);
+  max-width: 100%;
   text-align: center;
 }
 
-/* Lo que hay que hacer, en la tinta y al tamaño de un título: es lo primero
-   que ve el estudiante al entrar, y se proyecta (CLAUDE.md 6.2). */
 .estructura-vacia__titulo {
   margin: 0;
-  font: 500 22px/1.3 var(--fuente-texto);
+  font: 600 25px/1.2 var(--fuente-condensada);
   color: var(--tinta);
   text-wrap: balance;
 }
 
-.estructura-vacia__indicacion {
+.guia {
+  list-style: none;
+  display: flex;
+  justify-content: center;
   margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  font: 400 15px/1.4 var(--fuente-texto);
-  color: var(--tinta-suave);
+  padding: 0;
 }
 
-/* La flecha señala el panel lateral, que siempre está a la derecha. */
-.estructura-vacia__flecha {
-  font-size: 20px;
-  color: var(--tinta);
+.guia__paso {
+  position: relative;
+  flex: 0 1 206px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+}
+
+/* La flecha de un paso al siguiente. */
+.guia__paso + .guia__paso::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 34px;
+  width: 14px;
+  height: 14px;
+  border: solid var(--tinta-suave);
+  border-width: 2.5px 2.5px 0 0;
+  transform: rotate(45deg);
+}
+
+.guia__simbolo {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+  border: 2px solid var(--modulo);
+  border-radius: 18px;
+  background: var(--superficie);
+  color: var(--modulo);
+}
+
+.guia__simbolo .icono {
+  width: 46px;
+  height: 46px;
+  stroke-width: 1.5;
+}
+
+.guia__paso b {
+  font-weight: 500;
+  font-size: 17px;
+}
+
+.guia__texto {
+  font-size: 14.5px;
+  line-height: 1.35;
+  color: var(--tinta-suave);
 }
 
 /* Estructura vertical (transformación de claves, CLAUDE.md 6.1): la tabla de
@@ -1532,25 +1177,6 @@ form.panel > .pantalla-tema__reproduccion {
 /* Reiniciar vive en el encabezado, empujado al extremo: no es una operación
    sobre las claves sino sobre la pantalla entera, y ahí no depende de cuánto
    haya que desplazar el panel lateral para alcanzarlo. */
-/* Las tres acciones sobre la estructura —cargar, guardar, vaciar— juntas y a
-   la derecha de la barra: sueltas junto al título parecían parte de él. */
-.pantalla-tema__acciones {
-  margin-left: auto;
-  align-self: center;
-  display: flex;
-  gap: var(--espacio-2);
-}
-
-/* Un botón que ha preguntado y espera el segundo clic. Sin color nuevo: lo
-   dice el texto, y el borde marcado lo distingue de sus vecinos (CLAUDE.md
-   8.1). */
-.boton--confirmando {
-  border-color: var(--estado-evaluacion-borde);
-  border-width: 2px;
-  font-weight: 500;
-}
-
-
 /* Índices primarios, secundarios y multinivel (CLAUDE.md 5.x): sexta
    orientación de la pantalla. Es la única donde no se dibuja ni una clave —el
    tema no inserta nada—, sino **estructuras enteras una al lado de otra**, de
@@ -1954,23 +1580,51 @@ form.panel > .pantalla-tema__reproduccion {
    más arriba» y no como un defecto. */
 .bitacora.desborda { --desvanecido: 32px; }
 
-/* **La bitácora ocupa el alto que sobra** (2026-10-06). Con su tope fijo de
-   260 px, en la pantalla de referencia quedaban unos 110 px vacíos debajo de
-   ella mientras la historia se cortaba arriba. Ahora la tarjeta crece hasta
-   el pie del panel lateral; cuando no sobra nada —una ventana chica, o el
-   zoom del navegador a 150 %— mide los 260 de siempre y el panel se desplaza
-   como antes. Que no encoja por debajo de lo que mide su historia, hasta
-   esos 260, lo fija `ajustarAltoMinimoBitacora` en la pantalla: vacía es una
-   tarjeta chica. */
+/* La bitácora ocupa todo el alto de su columna. */
 .pantalla-tema__panel-lateral > .panel--bitacora {
-  flex: 1 0 auto;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 0;
+  border: 1.5px solid var(--borde);
+  box-shadow: none;
+}
+
+.panel--bitacora > .panel__titulo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 8px 8px 8px 14px;
+  border-bottom: 1px solid #C5D2E4;
+  font: 500 15px/1.2 var(--fuente-texto);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
+}
+
+.panel--bitacora > .panel__titulo > .icono {
+  width: 19px;
+  height: 19px;
+  color: var(--modulo);
+}
+
+.panel--bitacora .boton-icono {
+  margin-left: auto;
 }
 
 .panel--bitacora .bitacora {
-  flex: 1 0 0;
+  flex: 1;
+  min-height: 0;
   max-height: none;
+  padding: 4px 14px;
+}
+
+.panel--bitacora .bitacora__fila {
+  font-size: 13.5px;
+  border-bottom-color: #DCE4EF;
 }
 
 

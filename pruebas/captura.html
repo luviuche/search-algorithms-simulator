@@ -6,6 +6,8 @@
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/componentes.css">
+  <link rel="stylesheet" href="../css/menu.css">
+  <link rel="stylesheet" href="../css/cinta.css">
   <link rel="stylesheet" href="../css/pantallas.css">
 </head>
 <body>
@@ -78,7 +80,9 @@
     function enviar(formulario, valores) {
       for (const [nombre, valor] of Object.entries(valores)) {
         const campo = formulario.querySelector(`[name="${nombre}"]`);
-        if (campo) campo.value = valor;
+        if (!campo) continue;
+        campo.value = valor;
+        campo.dispatchEvent(new Event('change', { bubbles: true }));
       }
       formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     }
@@ -106,13 +110,30 @@
       'Función módulo': 'modulo', 'Función cuadrado': 'cuadrado', 'Función truncamiento': 'truncamiento',
       'Función plegamiento': 'plegamiento', 'Conversión de bases': 'bases'
     };
+    // El menú se recorre por niveles (2026-11-25): se vuelve al inicio y se
+    // abren las categorías hasta dar con el tema, como lo haría el estudiante.
+    // **Por título exacto y no por `includes`**: conviven «Búsqueda secuencial»
+    // y «Búsqueda secuencial externa».
+    function buscarEnElMenu(titulo) {
+      const inicio = document.querySelector('.migas__nivel');
+      if (inicio) inicio.click();
+      const abrir = () => {
+        const bloques = [...document.querySelectorAll('.bloque-menu')];
+        const bloque = bloques.find((el) => !el.dataset.categoria && el.querySelector('.bloque-menu__nombre').textContent === titulo);
+        if (bloque) { bloque.click(); return true; }
+        for (const id of bloques.filter((el) => el.dataset.categoria).map((el) => el.dataset.nodo)) {
+          document.querySelector(`.bloque-menu[data-nodo="${id}"]`).click();
+          if (abrir()) return true;
+          document.querySelector('.menu__volver').click();
+        }
+        return false;
+      };
+      if (!abrir()) throw new Error(`No está en el menú: ${titulo}`);
+    }
     function entrarATema(nombreTema) {
       const funcion = FUNCIONES_HASH[nombreTema];
       const titulo = funcion ? 'Búsqueda por transformación de claves' : nombreTema;
-      const renglon = [...document.querySelectorAll('.indice__tema')]
-        .find((el) => el.querySelector('.indice__tema-titulo').textContent === titulo);
-      if (!renglon) throw new Error(`No está en el índice: ${titulo}`);
-      renglon.click();
+      buscarEnElMenu(titulo);
       if (funcion) {
         const selector = document.querySelector('form.panel [name="funcion"]');
         selector.value = funcion;

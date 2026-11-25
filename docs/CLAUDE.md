@@ -251,50 +251,22 @@ El estado (`estructura`, `reproductor`, `pasoActual`) vive en el closure de cada
 
 **Estados y modificadores de casilla son cosas distintas.** El estado pinta (`ocupada`, `en-evaluacion`, `descartada`, `encontrada`…) y es uno solo. Los modificadores marcan pertenencias independientes del color —la dirección de la que salió la clave (`direccion`)— que pueden caer sobre una casilla que ya tiene su propio estado, y por eso no pueden ser un estado más. (El corchete del rango activo de binaria era el ejemplo de siempre; se retiró con el azul el 2026-09-27, §8.2. El rastro de los sondeos, `sondeada`, se retiró el 2026-09-30: lo recorrido y descartado se apaga.)
 
-### El catálogo del menú: un índice, no una navegación (2026-09-06, rehecho 2026-09-11)
+### El menú: por niveles, en bloques con dibujo (2026-11-25)
 
-**El catálogo (`CATALOGO` en `app.js`) es un árbol y no una lista plana de unidades.** Cada nodo es o bien una **categoría** (trae `hijos`) o bien un **tema final** (trae `tema`, la clave que abre `TEMAS`). Se organiza en dos grandes temas —**Búsquedas** y **Grafos**— y no por unidad del curso (pedido del docente, §2): la unidad anterior mezclaba búsquedas externas con grafos en la misma división, que es justo la mezcla que el docente ya no quiere ver al navegar. Dentro de Búsquedas: **búsquedas internas** (secuencial, binaria, transformación de claves, búsqueda por residuo) y **búsquedas externas**.
+**El menú se recorre por niveles**: el inicio con dos bloques, Búsquedas y Grafos; dentro, sus submódulos; dentro, sus temas. Lo pidió el docente (módulos, submódulos y dibujos) y se eligió sobre maquetas. Reemplaza el índice con todo a la vista del 2026-09-11, que a su vez había reemplazado una navegación por tarjetas vacías: la diferencia es que ahora cada bloque enseña algo.
 
-**El árbol se dibuja entero, como el índice de un libro** (pedido del usuario sobre maqueta, 2026-09-11). La navegación por niveles —una tarjeta por nodo, migas de pan arriba— **se retiró**: obligaba a bajar tres niveles para llegar a un tema y la primera pantalla enseñaba dos tarjetas y medio lienzo vacío, cuando lo que uno quiere al abrir es ver el programa completo. Ahora la jerarquía la dicen **la sangría y la tipografía**: parte (`indice__parte`), grupo (`indice__grupo`) y subgrupo sangrado (`indice__subgrupo`), los tres el mismo componente rotulado distinto, porque nada garantiza que el árbol tenga siempre tres niveles. **Ningún nodo lleva número**, en ningún nivel (§2).
+- **Cada bloque lleva el dibujo de lo que se estudia, su nombre y, si tiene hijos, sus nombres cortos** (`corto` en el catálogo). **Sin descripciones** (pedido del usuario): el dibujo ya explica. Un bloque que abre un tema lleva solo dibujo y nombre. La palabra *módulo* no aparece en pantalla y nada se numera (§2).
+- **Los dibujos son miniaturas de la estructura real** (`vista/componentes/miniaturas.js`), con los colores de los estados (§8.2), que significan lo mismo que en el lienzo. Se eligieron sobre íconos de línea e ilustraciones. Al pasar el mouse o llegar con el teclado recorren el algoritmo una vez; solo cambian colores, así que también con el movimiento reducido. **Tienen que ser correctas**: los árboles salen de los códigos de las letras y las cuentas dan lo que dicen.
+- **Grafos se agrupa en cuatro**: Caminos y árboles, Operaciones, Representación matricial —un solo tema, el bloque lo abre directo— y Coloreado y conjuntos.
+- **Los temas sin construir no se muestran** (decisión del usuario): siguen en `CATALOGO` con `disponible: false`, y el menú los filtra (`seMuestra`).
+- **Dos o tres bloques van en fila; cuatro, de a dos con el dibujo a la izquierda.** En una fila quedaban altos, angostos y con el dibujo chico.
+- **Salir de un tema deja en su submódulo**, no en el inicio, y el «atrás» del navegador sube un nivel (`anotarEnHistorial`, `popstate`). La dirección no cambia: desde `file://` solo se anota el estado.
+- Las recientes van solo en el inicio, rotuladas «Seguir con».
+- **Se dibuja a 1366 × 640 y se escala para llenar la ventana** (`escalarAlaVentana`, entre 0,75× y 2×), como antes. El alto lo fija el código y `.pantalla` no puede imponer su `100vh`: con el zoom se salía de la ventana.
 
-**Un tema pendiente va sin descripción hasta que se trabaje** (decisión del usuario, 2026-09-11). Se probó a describirlos todos —binaria externa, tablas de índices, índices multinivel y los ocho de grafos— con definiciones de manual, y se retiró: una descripción escrita sin haber visto el enfoque del docente enseña algo que puede no ser lo que él plantea, y en el índice se lee como si lo fuera. Cada uno recibirá la suya cuando se construya, que es cuando se sabe.
+En las pruebas, `entrarATema` recorre el menú con clics hasta dar con el bloque, **por título exacto**: conviven «Búsqueda secuencial» y «Búsqueda secuencial externa».
 
-**El título de un tema no se parte nunca** (`white-space: nowrap`): es el nombre, y partido deja de leerse de un vistazo. Cuando la fila se queda corta, cede la descripción. Por eso las descripciones de los pendientes se escribieron cortas: con nombre largo, descripción y sello en el mismo renglón, no hay ancho para frases.
-
-**Un renglón de tema es: título · guía de puntos · descripción.** La guía es la línea que en un libro lleva del título al número de página; aquí lleva a lo que hay que saber del tema, y por eso **ningún renglón la deja colgando sin nada al otro lado**: si el tema no está construido, al final va su marca «En desarrollo» en lugar de la descripción. Los temas sin construir **siguen respondiendo al clic** con el aviso de «en construcción», como antes (decisión del usuario, 2026-09-11): la marca dice qué hay y qué no, y el aviso explica por qué no pasa nada.
-
-**Las dos partes van una al lado de la otra** (`indice--columnas`). No es decoración: medido sobre la maqueta, el índice en una sola columna mide 1439 px y a dos columnas 1045, así que en una sola columna Grafos quedaba fuera de la ventana y había que desplazarse para verlo — justo lo que el índice viene a evitar.
-
-**Desde el 2026-09-27, tres columnas y un menú que crece con la pantalla** (repaso de diseño contra las tres pantallas de referencia: portátil 1366×640, la del usuario 1920×950 y 1440p 2560×1310). En el portátil, el índice de dos columnas dejaba Huffman y todas las externas bajo el borde; y en 1440p ocupaba la mitad izquierda de la pantalla.
-
-- *(Reemplazado el 2026-10-28, ver abajo.)* **Búsquedas pone sus categorías lado a lado, cada una entera en su columna**: internas | externas (`indice__parte--en-columnas`, para toda parte con más de una categoría). Se probó equilibrar las alturas pasando los árboles a la columna de externas, y el usuario no quiso: Búsquedas se divide en internas y externas, y cada mitad va junta. Bajo externas queda un hueco; es el precio.
-- *(Reemplazado el 2026-10-28.)* **Una parte sin ningún tema construido va angosta** (`indice__parte--pendiente`, hoy Grafos): solo los nombres, y el «En desarrollo» una vez en su cabecera en vez de en cada renglón. Es lo que le deja a Búsquedas el ancho para que sus descripciones quepan. Cuando Grafos tenga temas volverá a llevar descripciones, y el menú habrá que repensarlo. **Con Floyd (2026-10-22) Grafos tiene un tema construido y sigue angosta mientras le queden pendientes**: los construidos primero, en tinta normal y sin descripción (va en el `title`), y el «En desarrollo» una sola vez encima de los pendientes, que se juntan al final; en la cabecera habría dicho que toda la parte está en desarrollo.
-
-**Desde el 2026-10-28, dos partes iguales: Búsquedas | Grafos** (opción E de las maquetas, elegida por el usuario). Grafos ya tenía cinco temas construidos y pedía sus descripciones, pero en su columna angosta no cabían. Se probaron tres caminos:
-- llevarlas al renglón de la columna angosta (A): le quitaba ancho a Búsquedas y las descripciones de las externas se partían en hasta cinco renglones;
-- ponerlas debajo del título (B): no se leía como el resto del índice;
-- meter Grafos bajo las externas (C): parecía parte de Búsquedas.
-
-Lo que lo resolvió fue idea del usuario: **juntar las cinco funciones hash en un solo tema** (§5.3). Con cuatro renglones menos:
-- las búsquedas internas y, debajo, las externas caben en una columna;
-- Búsquedas y Grafos van lado a lado, del mismo ancho, cada una con su título, su descripción y su línea;
-- con media pantalla por parte, **cada tema va en un solo renglón**: título, puntos y descripción. Lo vigila `menuEnColumnas` en la prueba de humo, que también mide que el índice quepa sin desplazar.
-
-En Grafos, los pendientes van al final, bajo un solo «En desarrollo», en dos columnas y solo con su nombre (`indice__lista--pendientes`). `indice__parte--pendiente` queda para una parte sin ningún tema construido, con el sello en la cabecera.
-
-**Las descripciones del menú son cortas**, del largo de las de Búsquedas. Un tema de grafos lleva la suya, más larga, como subtítulo dentro del tema (`descripcion` en `TEMAS`, §4 «El nombre de un tema vive en un solo sitio»).
-
-Se revisó si convenía agrupar más temas, con un criterio: agrupar solo cuando comparten estructura y formulario, y difieren en una regla que se elige al crear (como el tratamiento). Lo cumplen las funciones hash. No lo cumplen:
-- secuencial y binaria, internas o externas: lo que cambia es la búsqueda, y binaria tiene su propio dibujo;
-- los árboles: cada uno es una estructura distinta y hoy no tienen formulario.
-
-**Dijkstra y Bellman van en «Caminos mínimos»**, con el algoritmo a elegir, junto a Floyd (construidos el 2026-11-24, §5.20). Y antes de construir «Conjuntos de corte y conectividad» hay que decidir qué parte vive ahí y cuál en la representación matricial, donde quedaron pendientes los circuitos y cortes en matriz.
-- **Los títulos de grupo y subgrupo no llevan el margen del navegador**: `h3` y `h4` traían unos 40 px de aire vacío por subgrupo que nunca se anularon. El renglón, además, va más apretado (1 px de relleno vertical).
-- **El menú se dibuja al ancho de un portátil y se escala para llenar la ventana** (`escalarAlaVentana` en `menu.js`; opción A de la maqueta, elegida sobre una variante adaptable que cambiaba de diseño a los 1600 px y aun así dejaba media pantalla vacía). Letra, renglones y espacios crecen juntos, con `zoom` —que sí cambia el espacio ocupado, a diferencia de `transform`—, desde 1× en el portátil hasta un tope de 2×; se recalcula al cambiar la ventana. **Y también se achica, hasta 0,75×** (2026-10-06): con el piso en 1, por debajo de 1366 px el diseño se apretaba —a 1024 las descripciones quedaban una palabra por renglón, y a 1280, la pantalla de referencia con el zoom a 150 %, las de externas ocupaban hasta cinco—. 0,75 es lo que pide un proyector XGA (1024 / 1366). El `min-height` de la pantalla se divide por la escala, o `100vh` con zoom 1,4 mediría 140 vh. **Solo en el menú**: en las pantallas de tema, escalarlo todo le quitaría ancho a las estructuras anchas como índices. Se evaluó aparte y se descartó el 2026-10-04: el zoom del navegador hace ese escalado, y por tema (§6.9).
-
-**Las categorías ya no llevan estado propio.** Con todo a la vista, cada tema dice el suyo y una insignia en la categoría solo repetiría —o mentiría, como en búsquedas externas, que hoy tiene dos temas construidos y tres por construir—.
-
-Dos consecuencias para quien toque las pruebas: **se entra a un tema con un solo clic en su renglón** (`entrarATema`, en `humo.html` y `captura.html`, ya no recorre categorías y por eso desapareció el mapa `RUTA_TEMA`), y ese renglón **se busca por título exacto y no por `includes`**: en el índice conviven «Búsqueda secuencial» y «Búsqueda secuencial externa», y un `includes` entraría siempre al primero.
+**Criterio para agrupar temas en uno**: solo cuando comparten estructura y formulario y difieren en una regla que se elige al crear. Lo cumplen las funciones hash, y Dijkstra, Bellman y Floyd en «Caminos mínimos». No lo cumplen secuencial y binaria, ni los árboles.
 
 ### El nombre de un tema vive en un solo sitio (2026-09-11)
 
@@ -314,7 +286,9 @@ Dos consecuencias para quien toque las pruebas: **se entra a un tema con un solo
 │   ├── tokens.css          variables de color, tipografía, espaciado
 │   ├── base.css            reset y elementos base
 │   ├── componentes.css     casilla, panel, botón, alerta, bitácora
-│   ├── pantallas.css       menú, tema, alertas
+│   ├── menu.css            el menú y sus miniaturas
+│   ├── cinta.css           la cinta de herramientas y el panel de escribir
+│   ├── pantallas.css       pantalla de tema, dibujos, alertas
 │   └── impresion.css       hoja de estilos del PDF
 ├── js/
 │   ├── manifiesto.js       la lista de scripts, en orden: la leen las páginas y las pruebas
@@ -336,7 +310,7 @@ Dos consecuencias para quien toque las pruebas: **se entra a un tema con un solo
 │   │   │   └── operaciones.js traza de insertar, buscar y eliminar
 │   │   └── colisiones/     reasignacion.js · anidados.js · encadenamiento.js
 │   ├── vista/
-│   │   ├── componentes/    casilla, panel, alerta, métrica, bitácora, cálculo
+│   │   ├── componentes/    casilla, panel, alerta, métrica, bitácora, cálculo, cinta, miniaturas
 │   │   ├── pantallas/
 │   │   │   ├── menu.js           catálogo de temas y recientes
 │   │   │   └── tema-busqueda.js  pantalla de trabajo, parametrizada
@@ -1371,6 +1345,8 @@ Los controles no se van: paso anterior, paso siguiente y el botón que alterna e
 
 ### 6.9 Pantallas y escala (2026-10-04)
 
+*(Desde el 2026-11-25 no hay panel lateral de controles: ver §6.11. Lo que aquí y en §6.2 se dice de sus paneles, su ancho y su desvanecido es historia.)*
+
 **La pantalla de referencia es la del usuario: 1920 × 1080, ventana del navegador ≈ 1920 × 950.** El usuario trabaja en escritorio y no tiene portátil. **Desde el 2026-10-28 ya no se proyecta en el aula**: las clases terminan de forma virtual, el usuario comparte la ventana del navegador en la videollamada, y el profesor puede abrir la aplicación en su portátil, de resolución desconocida. Solo la usan ellos dos. Las menciones a «el portátil 1366 × 640» en secciones anteriores son de repasos hechos con esa suposición: un ajuste pensado solo para ese portátil no tiene que sacrificar nada en la pantalla de referencia.
 
 **No se escala la pantalla de tema automáticamente.** Se evaluó con maquetas (diseñar a 1280 × 600 y ampliar o reducir para llenar la ventana, como el menú) y se descartó:
@@ -1399,6 +1375,28 @@ Los colores son los estados de la casilla y nada más (§8.2): naranja lo que el
 **Los conceptos por vértice van como columnas al final de cada fila de la matriz** (distancia: «suma»; excentricidad: «mayor»), y no en una tabla aparte como en la maqueta C: con la tabla aparte, a 1280 × 633 el grafo, la matriz, la tabla y el panel no cabían. Escritas al lado de su fila además se lee de dónde salen.
 
 **Cabe en el lienzo sin desplazarse** (`ajustarGrafo`; `align-items: safe center` en los dos ejes, porque centrado lo que se salía por arriba no contaba en `scrollHeight` y la columna se medía 160 px más baja). En la representación matricial se prueba además la matriz al lado de su estructura en vez de encima (`--extendida`), que es lo que entra a 1024 × 650. **Con 4 y 5 vértices, el cuadrado del docente** (2026-10-24): 1 y 2 arriba, 3 y 4 abajo, y el 5 a la derecha a media altura, que es como están dibujados la hoja de Floyd, el grafo verde y la hoja 1 del coloreado; en círculo, el 3 caía abajo a la derecha y sus diagonales se cruzaban. Con los demás, en círculo. Se prueba el grafo al lado de la matriz y encima de ella, se queda la disposición que deja la letra más grande y se encoge lo justo, nunca por debajo de 0,5×; encogida, el panel del cálculo toma el sitio que deja, así que se mide otra vez y se achica lo que falte. Se vuelve a ajustar al cambiar la ventana. A 1920 × 950 va a tamaño completo; a 1024 × 650 queda cerca de la mitad. El humo lo afirma en los ocho tamaños (`afirmarGrafoCabe`).
+
+
+### 6.11 La cinta de herramientas (2026-11-25)
+
+Al docente le gusta que la configuración sea **como la barra de herramientas de Office**, y que cada acción se explique sola: símbolo y palabra. Se eligió sobre maquetas la cinta **con pestañas** (la otra era una sola franja, que en la tabla hash ya llenaba un portátil). Vive en `vista/componentes/cinta.js` (las piezas) y en la pantalla de tema (qué lleva cada hoja).
+
+De arriba abajo: cabecera del color del módulo —Inicio, volver al submódulo, el tema y con qué se creó la estructura—, la cinta, el lienzo con la **bitácora a su derecha**, y una **barra de estado con las métricas**. El panel lateral de controles desapareció.
+
+- **Pestañas**: Archivo (abrir, guardar, vaciar), Crear, Operaciones y Ver (estructura completa, bitácora). Un tema sin configuración —los árboles— no lleva Crear; uno sin operaciones —índices, los de grafos— no lleva Operaciones. Se entra en Crear; al crear, la cinta pasa a Operaciones.
+- **La reproducción está siempre a la derecha**, en cualquier pestaña: separarla habría obligado a cambiar de pestaña a cada paso.
+- **La cinta mide lo mismo en cada pestaña**: si no, el dibujo saltaría. Se puede ocultar, y elegir una pestaña la trae de vuelta.
+- **Lo que se elige entre pocas opciones va en botones** (`botones: 'grandes' | 'chicos'` en el parámetro, `icono` o `cifra` en la opción). El `select` sigue siendo el campo del formulario, oculto: es lo que se lee al crear y lo que escribe abrir un archivo; la galería lo maneja y lo sigue por su `change`. **Quien ponga un valor a mano tiene que despachar ese evento.**
+- **Los nombres van cortos** (`corta`), y el completo con su ayuda sale al pasar el mouse (`crearPista`). Los campos de un mismo `grupo` se apilan de a dos.
+- **Lo que se escribe en varios renglones** —aristas, puntos— va en un panel a la izquierda del lienzo, abierto al entrar, y el grafo se dibuja al lado mientras se escribe. Es parte del formulario de Crear aunque se dibuje fuera de la cinta. El lienzo se corre para no quedar tapado.
+- **Guardar y Vaciar se apagan** cuando no aplican; antes desaparecían. Vaciar sigue pidiendo un segundo clic, en su propio botón.
+- **El lienzo vacío es una guía**: Crear, Operar, Reproducir, Guardar, con los símbolos de la cinta (el usuario los pidió dentro de cada tema y no en el menú).
+- **En un portátil** (menos de 690 px de alto) la cinta pierde el nombre de los grupos y todo se aprieta, y el número del paso va en el renglón del mensaje. Hasta 1599 px de ancho las cinco funciones hash van en dos columnas.
+- **El aviso se coloca antes de dibujar el paso**, para que el dibujo se ajuste ya al sitio que le deja.
+
+Lo vigilan en el humo `cintaDeCadaTema` —los 19 temas, con cada opción de cada lista, sin desplazarse desde 1240 px y con cada botón explicado—, `panelDeEscribir`, `menuPorNiveles` y `vigilarQueElGrafoQuepa`, que mira todos los pasos.
+
+---
 
 ## 7. Animación
 
@@ -1465,25 +1463,28 @@ Es el único sitio donde el reordenamiento no dura los 400 ms de siempre, y por 
 
 ### 8.2 Tokens de color
 
+**«Claro con color»** (2026-11-25): al docente no le gustaba que todo fuera tan claro y gris. Se eligió sobre maquetas, contra una oscura y una intermedia. **Cada módulo tiene su color** —azul Búsquedas, verde azulado Grafos— en la cabecera, la cinta, los botones y el fondo: dice dónde se está. Va con `data-modulo` en la pantalla (`tokens.css`). No son colores de estado y no se mezclan con ellos.
+
 ```css
---papel:              #EDF0F3;  /* fondo de la aplicación */
---superficie:         #FFFFFF;  /* paneles, tarjetas, casillas ocupadas */
---superficie-hundida: #E4E8EC;  /* lienzo de la estructura, campos */
---tinta:              #24303B;  /* texto principal, bordes de casilla */
---tinta-suave:        #5C6A77;  /* texto secundario, índices — 4,5:1 sobre el lienzo */
---borde:              #C6D0D8;  /* separadores */
---borde-fuerte:       #748798;  /* contorno de paneles, aristas, tramos — 3:1 sobre el lienzo */
+--papel:              #CFDFF8 · #C4E8E2;  /* fondo: búsquedas · grafos (inicio, #DCE6F4) */
+--superficie:         #FFFFFF;            /* cinta, tarjetas, casillas ocupadas */
+--superficie-hundida: #E3EDFD · #DDF2EE;  /* lienzo */
+--modulo:             #1E5BC6 · #087A72;  /* cabecera, botones, lo elegido */
+--tinta:              #10203A;            /* texto principal */
+--tinta-suave:        #3F5170;            /* texto secundario: 6,8:1 sobre el lienzo */
+--borde:              #93A8C6;            /* separadores */
+--borde-fuerte:       #5F7796;            /* aristas, tramos: 3,9:1 sobre el lienzo */
 ```
 
 **Estados del algoritmo** — cada uno con su refuerzo no cromático:
 
 | Estado | Borde | Relleno | Refuerzo |
 |---|---|---|---|
-| Vacía | `#728799` | `--superficie-hundida` | Contorno punteado |
-| Ocupada | `#24303B` | `#FFFFFF` | — |
-| En evaluación | `#B8731C` | `#F7E2BD` | Borde de 2 px |
-| Descartada | `#97A3AC` | `#E5E9EC` | Opacidad 0.5 |
-| Encontrada | `#1B7A63` | `#CFE9E1` | Glifo de verificación |
+| Vacía | `#5F7796` | `--superficie-hundida` | Contorno punteado |
+| Ocupada | `#1B3358` | `#FFFFFF` | — |
+| En evaluación | `#A55A06` | `#FFDDA3` | Borde de 2 px |
+| Descartada | `#8A9BB4` | `#E1E8F2` | Opacidad 0.5 |
+| Encontrada | `#0F7A52` | `#BDF2D8` | Glifo de verificación |
 | Colisión | `#7B4B9E` | `#E9DDF2` | Trama diagonal |
 | Eliminada | `#A8324A` | `#F3D6DC` | Glifo ✕ |
 
@@ -1527,7 +1528,7 @@ Las cifras tabulares no son opcionales: los dígitos deben alinearse en columna 
 Radios: 3 px casillas · 6 px controles · 10 px paneles.
 Espaciado: escala 4 · 8 · 12 · 16 · 24 · 32 · 40. No usar valores fuera de ella.
 
-Sombras cortas y definidas, nunca difusas. Sin gradientes ni glassmorphism. Tema claro obligatorio: se proyecta en salón iluminado y debe coincidir con el PDF exportado.
+Sombras cortas y definidas, nunca difusas. Sin gradientes ni glassmorphism. El lienzo sigue siendo claro —debe coincidir con el PDF exportado—, pero con el color de su módulo (§8.2).
 
 ---
 
@@ -1640,7 +1641,7 @@ Consecuencia: **una estructura reciente se identifica por su tema y por los dato
 
 ### Estructuras recientes
 
-**Van en una tira bajo la barra del menú** (2026-09-27): cada una es una pastilla con su tema y los datos con que se creó —la fecha, en el `title`—, y si no caben todas se desvanece el borde derecho, como en el lienzo. Hasta entonces eran un panel de 320 px a la derecha que se quedaba con el ancho del catálogo; en un portátil las descripciones del índice acababan en columnas de una palabra. Sin recientes no hay tira.
+**Van en una tira al pie del inicio, «Seguir con»** (desde el 2026-11-25; antes, bajo la barra del menú, 2026-09-27): cada una es una pastilla con su tema y los datos con que se creó —la fecha, en el `title`—, y si no caben todas se desvanece el borde derecho, como en el lienzo. Hasta entonces eran un panel de 320 px a la derecha que se quedaba con el ancho del catálogo; en un portátil las descripciones del índice acababan en columnas de una palabra. Sin recientes no hay tira.
 
 **Se abren como las dejó el estudiante** (pedido del usuario, 2026-10-21; elegido sobre «vacía con los mismos parámetros»). Hasta entonces guardaban solo el tema y un resumen: eran un recordatorio. Ahora cada una lleva `datos` —lo mismo que se escribiría en el `.cc2`, `archivo.serializar`—, la clave del tema en el catálogo y un `id`, y cada pastilla es un botón que entra al tema con esa estructura. Lo que quedó:
 

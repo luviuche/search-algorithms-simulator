@@ -240,8 +240,8 @@
           return;
         }
         renderizarLienzoVacio(config.palabra
-          ? { titulo: 'Inserte una letra o una palabra para empezar', indicacion: 'Escríbala en el panel de la derecha' }
-          : { titulo: 'Inserte una clave para empezar', indicacion: 'Escríbala en el panel de la derecha' });
+          ? { titulo: 'Inserte una letra o una palabra para empezar' }
+          : { titulo: 'Inserte una clave para empezar' });
         return;
       }
       // El nodo del árbol es redondo, así que mide de ancho lo que de alto y

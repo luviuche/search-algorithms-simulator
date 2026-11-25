@@ -6,27 +6,27 @@
      borde de una casilla vacía estaba en 1,47:1 y desaparecía en el
      proyector. Cada valor es el más claro que conserva su matiz y llega a la
      meta: si se toca uno, medirlo de nuevo. */
-  --papel: #EDF0F3;
+  --papel: #DCE6F4;
   --superficie: #FFFFFF;
-  --superficie-hundida: #E4E8EC;
-  --tinta: #24303B;
-  --tinta-suave: #5C6A77;
-  --borde: #C6D0D8;
-  --borde-fuerte: #748798;
+  --superficie-hundida: #E3EDFD;
+  --tinta: #10203A;
+  --tinta-suave: #3F5170;
+  --borde: #93A8C6;
+  --borde-fuerte: #5F7796;
 
   /* Estados del algoritmo: únicos, no se reutilizan fuera de la casilla (CLAUDE.md 8.1) */
-  --estado-vacia-borde: #728799;
+  --estado-vacia-borde: #5F7796;
   --estado-vacia-relleno: var(--superficie-hundida);
-  --estado-ocupada-borde: #24303B;
+  --estado-ocupada-borde: #1B3358;
   --estado-ocupada-relleno: #FFFFFF;
-  --estado-rango-borde: #2F6E96;
-  --estado-rango-relleno: #DCE9F1;
-  --estado-evaluacion-borde: #B8731C;
-  --estado-evaluacion-relleno: #F7E2BD;
-  --estado-descartada-borde: #97A3AC;
-  --estado-descartada-relleno: #E5E9EC;
-  --estado-encontrada-borde: #1B7A63;
-  --estado-encontrada-relleno: #CFE9E1;
+  --estado-rango-borde: #1E5BC6;
+  --estado-rango-relleno: #CFE0FB;
+  --estado-evaluacion-borde: #A55A06;
+  --estado-evaluacion-relleno: #FFDDA3;
+  --estado-descartada-borde: #8A9BB4;
+  --estado-descartada-relleno: #E1E8F2;
+  --estado-encontrada-borde: #0F7A52;
+  --estado-encontrada-relleno: #BDF2D8;
   /* Colisión en morado y eliminada en rojo (2026-10-14): compartían el rojo,
      y proyectados se leían como lo mismo. El morado no lo usa ningún otro
      estado, y la casilla que choca es también la que se está mirando, así
@@ -65,14 +65,39 @@
   --dominado-relleno: #F7D4E6;
   --dominado-borde: #B0306F;
 
+  /* El color de cada módulo (2026-11-25, «claro con color»: al docente no le
+     gustaba que todo fuera tan claro). Azul Búsquedas, verde azulado Grafos:
+     pintan la cabecera, la cinta y los botones, y dicen dónde se está. No son
+     estados: los del algoritmo son los de arriba. Se fijan por pantalla con
+     `data-modulo` (ver al final). */
+  --cabecera: #23406E;
+  --cabecera-tinta: #FFFFFF;
+  --cabecera-suave: #D3E0F5;
+  --modulo: #1E5BC6;
+  --modulo-suave: #DCE8FB;
+  --modulo-hover: #EAF1FD;
+  --modulo-ficha: #E6EEFA;
+  --miniatura-fondo: #BBD4FB;
+  --miniatura-linea: #1B3358;
+  --miniatura-apagado: #56708F;
+  --miniatura-rotulo: #2F4568;
+
+  /* Pantalla de trabajo: medidas que comparten la rejilla y el panel de
+     escribir, que se ubica por su cuenta (ver css/cinta.css). */
+  --alto-encabezado: 46px;
+  --alto-pestanas: 37px;
+  --alto-hoja: 112px;
+  --alto-estado: 34px;
+  --ancho-escritura: 290px;
+
   /* Alertas: deliberadamente distintas de los colores de estado del algoritmo (CLAUDE.md 8.1) */
   --alerta-info-borde: #35507A;
   --alerta-advertencia-borde: #8A5A12;
   --alerta-error-borde: #7A2338;
 
   /* Elevación (CLAUDE.md 8.4) */
-  --elev-1: 0 1px 2px rgba(36, 48, 59, .08);
-  --elev-2: 0 3px 10px rgba(36, 48, 59, .12);
+  --elev-1: 0 1px 2px rgba(16, 32, 58, .10);
+  --elev-2: 0 3px 10px rgba(16, 32, 58, .16);
 
   /* Ancho único de casilla. Todas las casillas de una estructura miden lo
      mismo, tengan clave dentro o no: si cada una se dimensionara por su
@@ -135,6 +160,38 @@
   /* Animación de interfaz (CLAUDE.md 7): paneles, alertas, hover — no el algoritmo */
   --duracion-interfaz: 180ms;
   --curva-interfaz: ease-out;
+}
+
+/* Un bloque del inicio lleva el color de su módulo, pero la pantalla no: por
+   eso la cabecera y el fondo solo cambian en una pantalla. */
+/* En un portátil el alto es el recurso escaso: la cinta se queda sin el nombre
+   de los grupos —cada botón dice lo suyo— y todo lo demás se aprieta. */
+@media (max-height: 690px) {
+  :root {
+    --alto-encabezado: 40px;
+    --alto-pestanas: 33px;
+    --alto-hoja: 86px;
+    --alto-estado: 30px;
+  }
+}
+
+[data-modulo='busquedas'] {
+  --papel: #CFDFF8;
+  --cabecera: #1E5BC6;
+  --cabecera-suave: #DCE8FB;
+}
+
+[data-modulo='grafos'] {
+  --papel: #C4E8E2;
+  --superficie-hundida: #DDF2EE;
+  --estado-vacia-relleno: #DDF2EE;
+  --cabecera: #087A72;
+  --cabecera-suave: #E4F7F3;
+  --modulo: #087A72;
+  --modulo-suave: #CDEBE5;
+  --modulo-hover: #E6F5F2;
+  --modulo-ficha: #E1F2EE;
+  --miniatura-fondo: #A9E2DA;
 }
 
 /*

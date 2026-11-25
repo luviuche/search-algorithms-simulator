@@ -351,10 +351,7 @@
         dom.estructuraEl.innerHTML = '';
 
         if (bosque.length === 0) {
-          renderizarLienzoVacio({
-            titulo: 'Escriba una palabra para construir su árbol',
-            indicacion: 'En el panel de la derecha'
-          });
+          renderizarLienzoVacio({ titulo: 'Escriba una palabra para construir su árbol' });
           return;
         }
         for (const raiz of bosque) {

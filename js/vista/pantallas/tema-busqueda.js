@@ -3,7 +3,8 @@
   const vista = window.CC2.vista;
   const persistencia = window.CC2.persistencia;
   const { TIPOS_PASO } = window.CC2.algoritmos.traza;
-
+  const cinta = vista.componentes.cinta;
+  const { crearIcono } = vista.componentes.iconos;
 
   // Ancho de casilla para los temas sin `l` (`config.sinLongitud`, CLAUDE.md
   // 5.7): sin una longitud fija que medir, se reserva sitio para varias
@@ -72,8 +73,8 @@
       // que la traza declara hasta ahí (ver `sincronizarEfectos`).
       clavesBase: null,
       mostrarCompleta: false,
-      // «Editar» abrió la configuración plegada (ver `sincronizarConfiguracion`).
-      editandoConfiguracion: false,
+      // El panel donde se escriben las aristas, abierto (ver `sincronizarEscritura`).
+      escribiendo: Boolean((config.parametros || []).some((parametro) => parametro.tipo === 'texto-largo')),
       // La palabra del árbol, en los temas que solo construyen desde ella
       // (Huffman, `soloPalabra`): es lo que se guarda en el archivo, porque su
       // bosque no toca `estructura.claves` (ver `estructuraAGuardar`).
@@ -758,47 +759,48 @@
       if (window.ResizeObserver) new ResizeObserver(() => marcarDesbordeAlAsentarse(el)).observe(el);
     }
 
-    // La bitácora crece hasta el pie del panel lateral cuando sobra alto (ver
-    // `.panel--bitacora`), pero cuando no sobra no puede encogerse por debajo
-    // de lo que mide su historia, con el tope de siempre: así, vacía es una
-    // tarjeta chica, y llena mide 260 px y el panel se desplaza como antes.
-    // «Lo que mida, hasta 260» no se puede decir en CSS sin quitarle el
-    // crecimiento, así que se fija aquí cada vez que cambia su contenido.
-    const ALTO_MINIMO_BITACORA = 260;
-    function ajustarAltoMinimoBitacora() {
-      const bitacora = dom.bitacora;
-      bitacora.style.minHeight = '0px';
-      bitacora.style.minHeight = `${Math.min(ALTO_MINIMO_BITACORA, bitacora.scrollHeight)}px`;
-    }
-
-    // **Lo que hay que hacer, en grande; dónde, debajo y señalando el panel**
-    // (revisión de diseño, punto 5, 2026-10-06). Era una sola frase de 12 px
-    // en gris en medio de un lienzo de 1500 × 800, lo primero que ve el
-    // estudiante al entrar, y desde el fondo del aula no se leía. `mensaje`
-    // es `{ titulo, indicacion }`; la indicación lleva la flecha hacia el
-    // panel lateral, que es donde está lo que se pide.
-    const LIENZO_VACIO = {
-      titulo: 'Cree una estructura para empezar',
-      indicacion: 'Elija su tamaño en el panel de la derecha'
-    };
+    // **Lo que hay que hacer, en grande, y los pasos con los símbolos de la
+    // cinta** (2026-11-25): crear, operar, reproducir y guardar, para que la
+    // pantalla se explique sola. Antes era una frase y una flecha hacia el
+    // panel de la derecha. `mensaje` es `{ titulo }`.
+    const LIENZO_VACIO = { titulo: 'Cree una estructura para empezar' };
+    const PASOS_DE_LA_GUIA = [
+      ...(config.sinConfiguracion ? [] : [{
+        icono: 'crear', nombre: 'Crear',
+        texto: estado.escribiendo ? 'Escriba los datos y pulse Crear' : 'Dé los datos y pulse Crear'
+      }]),
+      ...(config.sinOperaciones ? [] : [config.sinConfiguracion
+        ? { icono: 'insertar', nombre: 'Insertar', texto: config.soloPalabra ? 'Escriba una palabra' : 'Escriba una letra o una palabra' }
+        : { icono: 'operar', nombre: 'Operar', texto: 'Inserte, busque o elimine claves' }]),
+      { icono: 'reproducir', nombre: 'Reproducir', texto: 'Vea cada paso del algoritmo' },
+      { icono: 'guardar', nombre: 'Guardar', texto: 'Conserve su trabajo en un archivo' }
+    ];
     function renderizarLienzoVacio(mensaje) {
-      const { titulo, indicacion } = mensaje || config.mensajeLienzoVacio || LIENZO_VACIO;
+      const { titulo } = mensaje || config.mensajeLienzoVacio || LIENZO_VACIO;
       dom.estructuraEl.className = 'estructura-vacia';
       dom.estructuraEl.removeAttribute('style');
       dom.estructuraEl.innerHTML = '';
       const tituloEl = document.createElement('p');
       tituloEl.className = 'estructura-vacia__titulo';
       tituloEl.textContent = titulo;
-      const indicacionEl = document.createElement('p');
-      indicacionEl.className = 'estructura-vacia__indicacion';
-      indicacionEl.textContent = indicacion;
-      const flecha = document.createElement('span');
-      flecha.className = 'estructura-vacia__flecha';
-      flecha.setAttribute('aria-hidden', 'true');
-      flecha.textContent = '→';
-      indicacionEl.appendChild(flecha);
-      dom.estructuraEl.append(tituloEl, indicacionEl);
-      if (dom.controlElision) dom.controlElision.hidden = true;
+      const pasos = document.createElement('ol');
+      pasos.className = 'guia';
+      for (const { icono, nombre, texto } of PASOS_DE_LA_GUIA) {
+        const paso = document.createElement('li');
+        paso.className = 'guia__paso';
+        const simbolo = document.createElement('span');
+        simbolo.className = 'guia__simbolo';
+        simbolo.appendChild(crearIcono(icono));
+        const nombreEl = document.createElement('b');
+        nombreEl.textContent = nombre;
+        const textoEl = document.createElement('span');
+        textoEl.className = 'guia__texto';
+        textoEl.textContent = texto;
+        paso.append(simbolo, nombreEl, textoEl);
+        pasos.appendChild(paso);
+      }
+      dom.estructuraEl.append(tituloEl, pasos);
+      habilitarControlElision(false);
     }
 
     // Los efectos de un paso, abriendo los lotes del llenado automático.
@@ -963,7 +965,8 @@
         pasos,
         velocidadMs: msPorPaso(),
         alCambiarReproduccion: (reproduciendo) => {
-          dom.alternarReproduccion.textContent = reproduciendo ? 'Pausar' : 'Reproducir';
+          cinta.escribir(dom.alternarReproduccion, reproduciendo ? 'Pausar' : 'Reproducir');
+          cinta.cambiarIcono(dom.alternarReproduccion, reproduciendo ? 'pausar' : 'reproducir');
         },
         alCambiarPaso: (paso, indice) => {
           estado.pasoActual = paso;
@@ -973,9 +976,11 @@
           // tiene que encontrar ya la línea que este paso revela.
           sincronizarCalculo(paso);
           aplicarVisibilidadCalculo();
+          // El aviso antes que el dibujo: si ocupa otro renglón, el dibujo se
+          // ajusta ya al sitio que le deja.
+          sincronizarAviso(indice);
           renderizarEstructura(paso, indice);
           actualizarMetricas(paso);
-          sincronizarAviso(indice);
           // El paso final no dice nada: el aviso sigue con la noticia de la
           // operación, y repetirla en la bitácora solo sería ruido.
           if (paso && paso.mensaje && !paso.final && indice > ultimoApuntado) registrarBitacora(paso.mensaje, { dePaso: true });
@@ -1226,101 +1231,146 @@
       );
     }
 
+    // La hoja «Crear» de la cinta: un formulario con sus campos repartidos en
+    // grupos. Los nombres van cortos —el completo y su explicación salen al
+    // pasar el mouse—, y lo que se elige entre pocas opciones va en botones.
     function crearFormularioConfiguracion() {
       const contenedor = document.createElement('form');
       contenedor.className = 'panel';
-      // El tratamiento de colisiones se elige al crear y no después: no cambia
-      // solo el comportamiento sino la forma de la estructura, así que
-      // cambiarlo con claves ya colocadas obligaría a redispersarla entera.
-      const selectorTratamiento = config.tratamientos ? `
-        <label class="texto-nivel-3">Tratamiento de colisiones
-          <select name="tratamiento">
-            ${config.tratamientos.map((t) => `<option value="${t.valor}">${t.etiqueta}</option>`).join('')}
-          </select>
-        </label>
-      ` : '';
-
-      // Parámetros propios del tema —las posiciones del truncamiento, la base
-      // de la conversión— junto a n y l, por la misma razón que el tratamiento:
-      // definen cómo se dispersa la estructura y cambiarlos con claves ya
-      // colocadas dejaría direcciones que no corresponden a ninguna cuenta.
-      const campoDeParametro = (parametro) => {
-        // Un parámetro con `opciones` se digita eligiendo, no escribiendo: la
-        // operación del plegamiento es una de dos y no tiene por qué validarse
-        // contra erratas del estudiante.
-        // Uno de `tipo: 'texto-largo'` se escribe en varios renglones: las
-        // aristas de un grafo, una por renglón.
-        const control = parametro.opciones
-          ? `<select name="${parametro.nombre}">
-               ${parametro.opciones.map((o) => `<option value="${o.valor}">${o.etiqueta}</option>`).join('')}
-             </select>`
-          : parametro.tipo === 'texto-largo'
-          ? `<textarea name="${parametro.nombre}" rows="${parametro.renglones || 6}"
-                       spellcheck="false" placeholder="${parametro.marcador || ''}"></textarea>`
-          : `<input type="${parametro.tipo === 'numero' ? 'number' : 'text'}"
-                    name="${parametro.nombre}"
-                    placeholder="${parametro.marcador || ''}">`;
-        // Un parámetro puede ser del tratamiento y no del tema —el tamaño del
-        // arreglo anidado lo es—: entonces solo se muestra cuando ese
-        // tratamiento está elegido. Sigue existiendo en el formulario aunque
-        // esté oculto, y su validación resuelve el vacío como el valor por
-        // defecto, así que no hace falta un camino aparte para leerlo.
-        //
-        // Lo mismo con otro parámetro (`soloCon`): las posiciones solo existen
-        // con la función truncamiento, la base solo con conversión de bases.
-        const alcance = parametro.soloConTratamiento
-          ? ` data-solo-con-tratamiento="${parametro.soloConTratamiento}"`
-          : parametro.soloCon
-            ? ` data-solo-con-parametro="${parametro.soloCon.parametro}" data-solo-con-valor="${[].concat(parametro.soloCon.valor).join(' ')}"`
-            : '';
-        return `
-        <label class="texto-nivel-3"${alcance}>${parametro.etiqueta}
-          ${control}
-          <span class="campo__ayuda texto-nivel-5">${parametro.ayuda || ''}</span>
-        </label>
-      `;
+      contenedor.id = 'configuracion';
+      const grupos = [];
+      // Los campos seguidos de un mismo grupo van juntos, apilados de a dos.
+      const agregar = (rotulo, el, { campo = false } = {}) => {
+        const ultimo = grupos[grupos.length - 1];
+        if (campo && ultimo && ultimo.campos && ultimo.rotulo === rotulo) {
+          ultimo.campos.appendChild(el);
+          return;
+        }
+        if (!campo) {
+          grupos.push({ rotulo, el: cinta.crearGrupo(rotulo, el) });
+          return;
+        }
+        const campos = document.createElement('div');
+        campos.className = 'cinta-campos';
+        campos.appendChild(el);
+        grupos.push({ rotulo, campos, el: cinta.crearGrupo(rotulo, campos) });
       };
+      const crearEntrada = (atributos) => Object.assign(document.createElement('input'), atributos);
+      const crearLista = (nombre, opciones) => {
+        const select = document.createElement('select');
+        select.name = nombre;
+        for (const opcion of opciones) select.add(new Option(opcion.etiqueta, opcion.valor));
+        return select;
+      };
+
+      // Un parámetro puede ser del tratamiento y no del tema —el tamaño del
+      // arreglo anidado lo es—, o de un valor de otro parámetro (`soloCon`):
+      // las posiciones solo existen con la función truncamiento. Entonces solo
+      // se muestra cuando ese valor está elegido. Sigue existiendo en el
+      // formulario aunque esté oculto, y su validación resuelve el vacío como
+      // el valor por defecto, así que no hace falta un camino aparte.
+      const acotar = (el, parametro) => {
+        el.dataset.campo = parametro.nombre;
+        if (parametro.soloConTratamiento) el.dataset.soloConTratamiento = parametro.soloConTratamiento;
+        else if (parametro.soloCon) {
+          el.dataset.soloConParametro = parametro.soloCon.parametro;
+          el.dataset.soloConValor = [].concat(parametro.soloCon.valor).join(' ');
+        }
+        return el;
+      };
+
+      let escritura = null;
+      const agregarParametro = (parametro) => {
+        const corta = parametro.corta || parametro.etiqueta;
+        if (parametro.opciones) {
+          const select = crearLista(parametro.nombre, parametro.opciones);
+          if (parametro.botones) {
+            const galeria = cinta.crearGaleria({ select, opciones: parametro.opciones, chicos: parametro.botones === 'chicos' });
+            galeria.setAttribute('role', 'group');
+            galeria.setAttribute('aria-label', parametro.etiqueta);
+            agregar(corta, acotar(galeria, parametro));
+            return;
+          }
+          // Una lista suelta, como un campo más.
+          agregar(parametro.grupo || corta, acotar(cinta.crearCampo({
+            etiqueta: corta, control: select, titulo: parametro.etiqueta, ayuda: parametro.ayuda
+          }), parametro), { campo: true });
+          return;
+        }
+        // Lo que se escribe en varios renglones —las aristas, los puntos— no
+        // cabe en la cinta: va en un panel que se abre a la izquierda del
+        // lienzo, y en la cinta queda el botón que lo abre.
+        if (parametro.tipo === 'texto-largo') {
+          if (!escritura) {
+            escritura = crearEscritura();
+            agregar(config.nombreEstructura === 'grafo' ? 'Grafo' : 'Datos', dom.botonEscritura);
+          }
+          escritura.agregar(parametro, acotar);
+          return;
+        }
+        // Un parámetro corto se digita en la cinta misma.
+        const control = crearEntrada({
+          type: parametro.tipo === 'numero' ? 'number' : 'text', name: parametro.nombre, placeholder: parametro.marcador || ''
+        });
+        // Un número largo —500000 registros— pide su campo a la medida.
+        if (parametro.tipo === 'numero' && control.placeholder.length > 4) control.style.width = `calc(${control.placeholder.length}ch + 28px)`;
+        agregar(parametro.grupo || corta, acotar(cinta.crearCampo({
+          etiqueta: corta, titulo: parametro.etiqueta, ayuda: parametro.ayuda, control
+        }), parametro), { campo: true });
+      };
+
       // Un parámetro `primero` va antes del tamaño: la función hash decide qué
       // más pide el formulario, así que se elige antes que todo lo demás.
-      const camposPrimeros = (config.parametros || []).filter((p) => p.primero).map(campoDeParametro).join('');
-      const camposParametros = (config.parametros || []).filter((p) => !p.primero).map(campoDeParametro).join('');
+      (config.parametros || []).filter((parametro) => parametro.primero).forEach(agregarParametro);
       // Un árbol de bits no tiene tamaño que elegir: cuántas posiciones caben
       // sale de la profundidad que dan los bits del código, y la clave es
       // siempre una letra. Pedir n y l ahí sería pedir un dato que el tema no
-      // usa (CLAUDE.md 5.5).
-      //
-      // Otras búsquedas dinámicas (CLAUDE.md 5.7) sí pide n, pero no l: sus
-      // claves no tienen una longitud fija —el ejercicio mezcla libremente
-      // cifras de distinto tamaño—, así que ese campo se omite aparte.
-      // Las búsquedas externas llaman `N` al tamaño y "registros" a lo que
-      // guarda cada posición: no es un sinónimo cosmético, es como el docente
-      // plantea el ejercicio y de dónde sale la forma del archivo. El campo es
-      // el mismo `n` de siempre por dentro (CLAUDE.md 5.x).
-      const camposTamano = config.sinTamano ? '' : `
-        <label class="texto-nivel-3">${config.etiquetaTamano || 'Tamaño de la estructura (n)'}
-          <input type="number" name="n" min="1" required>
-        </label>
-        ${config.sinLongitud ? '' : `
-        <label class="texto-nivel-3">Longitud de clave (l)
-          <input type="number" name="l" min="1" max="${dominio.limites.L_MAXIMA}" required>
-        </label>`}`;
-      contenedor.innerHTML = `
-        <h2 class="panel__titulo texto-nivel-2">${config.tituloConfiguracion || 'Configuración de la estructura'}</h2>
-        ${camposPrimeros}
-        ${camposTamano}
-        ${camposParametros}
-        ${selectorTratamiento}
-        <div class="pantalla-tema__controles">
-          <button type="submit" class="boton boton--primario">Crear ${nombreEstructura()}</button>
-          <button type="button" class="boton" data-accion="cancelar-configuracion" hidden>Cancelar</button>
-        </div>
-      `;
-      // Cancelar vuelve a plegarla sin tocar la estructura: solo existe cuando
-      // hay una que conservar (ver `sincronizarConfiguracion`).
-      contenedor.querySelector('[data-accion="cancelar-configuracion"]').addEventListener('click', () => {
-        estado.editandoConfiguracion = false;
-        sincronizarConfiguracion();
+      // usa (CLAUDE.md 5.5). Otras búsquedas dinámicas (5.7) sí pide n, pero
+      // no l: sus claves no tienen una longitud fija. Las búsquedas externas
+      // llaman `N` al tamaño: no es un sinónimo cosmético, es como el docente
+      // plantea el ejercicio. El campo es el mismo `n` de siempre por dentro.
+      if (!config.sinTamano) {
+        agregar('Tamaño', cinta.crearCampo({
+          etiqueta: config.tamanoCorto || 'Casillas (n)',
+          titulo: config.etiquetaTamano || 'Tamaño de la estructura (n)',
+          ayuda: 'Cuántas posiciones tiene.',
+          control: crearEntrada({ type: 'number', name: 'n', min: '1', required: true })
+        }), { campo: true });
+        if (!config.sinLongitud) {
+          agregar('Tamaño', cinta.crearCampo({
+            etiqueta: 'Cifras (l)', titulo: 'Longitud de clave (l)', ayuda: 'Cuántas cifras tiene cada clave.',
+            control: crearEntrada({ type: 'number', name: 'l', min: '1', max: String(dominio.limites.L_MAXIMA), required: true })
+          }), { campo: true });
+        }
+      }
+      (config.parametros || []).filter((parametro) => !parametro.primero).forEach(agregarParametro);
+      // El tratamiento de colisiones se elige al crear y no después: no cambia
+      // solo el comportamiento sino la forma de la estructura, así que
+      // cambiarlo con claves ya colocadas obligaría a redispersarla entera.
+      if (config.tratamientos) {
+        // Va con lo propio de la función elegida —las posiciones, la base—,
+        // apilado: aparte no cabía en un portátil.
+        agregar('Dirección y colisiones', cinta.crearCampo({
+          etiqueta: 'Colisiones', titulo: 'Tratamiento de colisiones',
+          ayuda: 'Qué se hace si dos claves caen en la misma casilla. Vale para toda la estructura.',
+          control: crearLista('tratamiento', config.tratamientos)
+        }), { campo: true });
+      }
+      dom.botonCrear = cinta.crearBoton({
+        texto: `Crear ${nombreEstructura()}`, icono: 'crear', tipo: 'submit', principal: true, accion: 'crear',
+        ayuda: config.alCrear ? 'Con estos datos, y arranca el algoritmo.' : 'Con estos datos, vacía.'
       });
+      grupos.push({ rotulo: 'Crear', el: cinta.crearGrupo('Crear', dom.botonCrear) });
+      contenedor.append(...grupos.map((grupo) => grupo.el));
+      if (escritura) contenedor.appendChild(escritura.el);
+
+      // Un grupo con todos sus campos ocultos no deja su nombre suelto.
+      const ocultarGruposVacios = () => {
+        for (const grupo of contenedor.querySelectorAll('.cinta__grupo')) {
+          const campos = [...grupo.querySelectorAll('[data-campo]')];
+          grupo.hidden = campos.length > 0 && campos.every((campo) => campo.hidden);
+        }
+      };
       // Los campos que pertenecen a un tratamiento aparecen y desaparecen con
       // él, para que el formulario no pida un dato que no se va a usar.
       const camposDelTratamiento = [...contenedor.querySelectorAll('[data-solo-con-tratamiento]')];
@@ -1330,6 +1380,7 @@
         for (const campo of camposDelTratamiento) {
           campo.hidden = campo.dataset.soloConTratamiento !== elegido;
         }
+        ocultarGruposVacios();
       }
       if (selector) selector.addEventListener('change', sincronizarCamposDelTratamiento);
       sincronizarCamposDelTratamiento();
@@ -1340,6 +1391,7 @@
           const control = contenedor.querySelector(`[name="${campo.dataset.soloConParametro}"]`);
           campo.hidden = !control || !campo.dataset.soloConValor.split(' ').includes(control.value);
         }
+        ocultarGruposVacios();
       }
       if (camposDeOtroParametro.length) {
         contenedor.addEventListener('change', sincronizarCamposDeParametros);
@@ -1382,6 +1434,82 @@
         });
       });
       return contenedor;
+    }
+
+    // **El panel donde se escribe lo largo** —las aristas, los puntos—, a la
+    // izquierda del lienzo: mientras se escribe, el grafo se dibuja al lado
+    // (`vistaPrevia`). Es parte del formulario de la hoja «Crear», aunque se
+    // dibuje fuera de la cinta.
+    function crearEscritura() {
+      const el = document.createElement('section');
+      el.className = 'escritura';
+      el.hidden = true;
+      const cabecera = document.createElement('div');
+      cabecera.className = 'escritura__cabecera';
+      const titulo = document.createElement('h2');
+      const cerrar = document.createElement('button');
+      cerrar.type = 'button';
+      cerrar.className = 'boton-icono';
+      cerrar.setAttribute('aria-label', 'Cerrar');
+      cerrar.appendChild(crearIcono('cerrar'));
+      cerrar.addEventListener('click', () => ponerEscritura(false));
+      cabecera.append(titulo, cerrar);
+      const campos = document.createElement('div');
+      campos.className = 'escritura__campos';
+      const crear = document.createElement('button');
+      crear.type = 'submit';
+      crear.className = 'boton boton--primario';
+      crear.append(crearIcono('crear'), `Crear ${nombreEstructura()}`);
+      el.append(cabecera, campos, crear);
+
+      titulo.textContent = 'Escribir datos';
+      dom.escritura = el;
+      dom.botonEscritura = cinta.crearBoton({
+        texto: 'Escribir datos', icono: 'escribir', accion: 'escribir',
+        ayuda: 'Abre el panel donde se escriben, uno por renglón.'
+      });
+      dom.botonEscritura.addEventListener('click', () => ponerEscritura(!estado.escribiendo));
+
+      function agregar(parametro, acotar) {
+        const campo = document.createElement('label');
+        campo.className = 'escritura__campo';
+        const nombre = document.createElement('span');
+        nombre.textContent = parametro.etiqueta;
+        const area = document.createElement('textarea');
+        area.name = parametro.nombre;
+        area.rows = parametro.renglones || 6;
+        area.spellcheck = false;
+        area.placeholder = parametro.marcador || '';
+        const ayuda = document.createElement('span');
+        ayuda.className = 'campo__ayuda';
+        ayuda.textContent = parametro.ayuda || '';
+        campo.append(nombre, area, ayuda);
+        campos.appendChild(acotar(campo, parametro));
+        // Con una sola cosa que escribir, el botón la nombra.
+        const nombres = (config.parametros || []).filter((otro) => otro.tipo === 'texto-largo');
+        const texto = nombres.every((otro) => /^Aristas/.test(otro.etiqueta)) ? 'Escribir aristas' : 'Escribir datos';
+        titulo.textContent = texto;
+        cinta.escribir(dom.botonEscritura, texto);
+      }
+      return { el, agregar };
+    }
+
+    function ponerEscritura(abierta) {
+      estado.escribiendo = abierta;
+      sincronizarEscritura();
+      if (abierta) {
+        const area = [...dom.escritura.querySelectorAll('textarea')].find((campo) => campo.getClientRects().length > 0);
+        if (area) area.focus({ preventScroll: true });
+      }
+    }
+
+    // Se ve con su hoja: en otra pestaña, o con la cinta oculta, no está.
+    function sincronizarEscritura() {
+      if (!dom.escritura || !dom.cinta) return;
+      const abierta = estado.escribiendo && dom.cinta.actual() === 'crear' && !dom.cinta.plegada();
+      dom.escritura.hidden = !abierta;
+      dom.botonEscritura.setAttribute('aria-pressed', String(abierta));
+      pantalla.classList.toggle('pantalla-tema--escribiendo', abierta);
     }
 
     // Crear una estructura y reiniciarla son lo mismo: la nueva nace vacía y
@@ -1431,22 +1559,16 @@
       if (aviso) mostrarAlerta('advertencia', aviso);
       renderizarEstructura(null);
       actualizarMetricas(null);
-      estado.editandoConfiguracion = false;
+      // Con estructura, lo que sigue es operar con ella —o verla, si el tema no
+      // opera—: la cinta pasa a esa hoja y el panel de escribir se cierra.
+      estado.escribiendo = false;
       sincronizarConfiguracion();
+      if (dom.cinta && !config.sinOperaciones) dom.cinta.elegir('operaciones');
       return resultado.estructura;
     }
 
-    // **La configuración se pliega en cuanto hay estructura** (opción B de la
-    // maqueta, elegida por el usuario el 2026-09-27). Abierta todo el tiempo
-    // ocupaba unos 250 px del panel lateral para algo que casi no se vuelve a
-    // tocar, y en un portátil (1366×640) dejaba la reproducción y las métricas
-    // fuera de la vista. Plegada, lo que queda de ella es un resumen en la
-    // cabecera de Operaciones —«n = 24 · l = 2  Editar»—, y «Editar» la
-    // vuelve a abrir en su sitio con los valores de siempre.
-    //
-    // No se pliega en los temas sin operaciones (índices): ahí la
-    // configuración *es* la operación, y sin panel de Operaciones no habría
-    // dónde poner el resumen.
+    // Con qué se creó, en la cabecera: «Módulo · n = 12 · l = 4». La hoja
+    // «Crear» sigue con sus valores, para crear otra.
     function resumenDeEstructura(estructura) {
       if (config.detalleReciente) return config.detalleReciente(estructura);
       return config.sinLongitud ? `n = ${estructura.n}` : `n = ${estructura.n} · l = ${estructura.l}`;
@@ -1465,16 +1587,21 @@
       if (!dom.operaciones || config.sinConfiguracion) return;
       const hay = Boolean(estado.estructura);
       for (const control of dom.operaciones.querySelectorAll(CONTROLES_DE_OPERACION)) control.disabled = !hay;
+      if (dom.cinta) dom.cinta.habilitar('operaciones', hay);
     }
 
     function sincronizarConfiguracion() {
       sincronizarOperaciones();
-      if (!dom.configuracion || !dom.resumenEstructura) return;
-      const plegada = Boolean(estado.estructura) && !estado.editandoConfiguracion;
-      dom.configuracion.hidden = plegada;
-      dom.resumenEstructura.hidden = !plegada;
+      sincronizarEscritura();
+      if (!dom.resumenEstructura) return;
+      dom.resumenEstructura.hidden = !estado.estructura || Boolean(config.sinConfiguracion);
       if (estado.estructura) dom.resumenTexto.textContent = resumenDeEstructura(estado.estructura);
-      dom.configuracion.querySelector('[data-accion="cancelar-configuracion"]').hidden = !estado.estructura;
+      if (dom.botonCrear && estado.estructura) cinta.escribir(dom.botonCrear, `Crear ${otro()}`);
+    }
+
+    // «Crear otra» estructura, «otro» grafo.
+    function otro() {
+      return /(a|ción)$/.test(nombreEstructura()) ? 'otra' : 'otro';
     }
 
     // Los parámetros propios del tema, leídos de un `FormData` y validados
@@ -1896,21 +2023,20 @@
     // 2026-09-30). Reiniciar no hace ni lo uno ni lo otro —la bitácora se vacía
     // y la reciente ya está anotada—, y por eso son dos entradas distintas a
     // la misma función.
-    // **«Guardar» y «Vaciar» aparecen cuando hay algo que guardar o vaciar.**
-    // Con configuración, eso es en cuanto la estructura existe: se guardan
-    // sus parámetros aunque esté vacía. En los temas que la crean solos al
-    // entrar (los árboles), no: la estructura existe desde el principio, pero
-    // para el estudiante ahí todavía no hay árbol, y los botones se veían sin
-    // que hubiera nada (visto por el usuario, 2026-09-30). Ahí aparecen con
-    // la primera clave o la primera operación —en Huffman, la palabra—, y se
-    // van al vaciar. Se llama desde `renderizarEstructura`.
+    // **«Guardar» y «Vaciar» se encienden cuando hay algo que guardar o
+    // vaciar.** Con configuración, eso es en cuanto la estructura existe: se
+    // guardan sus parámetros aunque esté vacía. En los temas que la crean
+    // solos al entrar (los árboles), no: la estructura existe desde el
+    // principio, pero para el estudiante ahí todavía no hay árbol. Ahí se
+    // encienden con la primera clave o la primera operación —en Huffman, la
+    // palabra—, y se apagan al vaciar. Se llama desde `renderizarEstructura`.
     function sincronizarAccionesDeEstructura() {
       let hayAlgo = Boolean(estado.estructura);
       if (hayAlgo && config.sinConfiguracion) {
         hayAlgo = Boolean(estado.pasos) || estado.estructura.claves.some((clave) => clave !== undefined);
       }
-      if (dom.reiniciar) dom.reiniciar.hidden = !hayAlgo;
-      if (dom.guardar) dom.guardar.hidden = !hayAlgo;
+      if (dom.reiniciar) dom.reiniciar.disabled = !hayAlgo;
+      if (dom.guardar) dom.guardar.disabled = !hayAlgo;
     }
 
     function crearYRegistrar({ n, l, tratamiento, parametros, advertencia, alEntrar = false }) {
@@ -1976,16 +2102,16 @@
         return;
       }
       estado.confirmandoVaciado = window.setTimeout(cancelarConfirmacionDeVaciado, MS_CONFIRMACION);
-      dom.reiniciar.textContent = `¿Vaciar ${nombreEstructura()}?`;
-      dom.reiniciar.classList.add('boton--confirmando');
+      cinta.escribir(dom.reiniciar, `¿Vaciar ${nombreEstructura()}?`);
+      dom.reiniciar.classList.add('cinta-boton--confirmando');
     }
 
     function cancelarConfirmacionDeVaciado() {
       if (!estado.confirmandoVaciado) return;
       window.clearTimeout(estado.confirmandoVaciado);
       estado.confirmandoVaciado = null;
-      dom.reiniciar.textContent = `Vaciar ${nombreEstructura()}`;
-      dom.reiniciar.classList.remove('boton--confirmando');
+      cinta.escribir(dom.reiniciar, `Vaciar ${nombreEstructura()}`);
+      dom.reiniciar.classList.remove('cinta-boton--confirmando');
     }
 
     function reiniciarEstructura() {
@@ -2019,47 +2145,10 @@
       return opcion ? opcion.etiqueta.toLowerCase() : valor;
     }
 
-    // Insertar, buscar y eliminar viven en un solo panel (pedido del docente,
-    // 2026-08-29). Las tres operan sobre lo mismo —una clave— y tres paneles
-    // con un campo idéntico cada uno repetían el mismo formulario tres veces y
-    // empujaban métricas y bitácora fuera de la pantalla.
-    //
-    // Los botones nombran solo el verbo y no `Insertar clave`: el campo que
-    // tienen encima ya dice sobre qué operan, y tres rótulos con la palabra
-    // repetida no caben en una fila del panel (CLAUDE.md 9).
-    // El resumen de la configuración plegada —«n = 24 · l = 2  Editar»— y su
-    // enlace, en la cabecera del panel que lo lleve.
-    function conectarResumen(contenedor) {
-      dom.resumenEstructura = contenedor.querySelector('[data-resumen="estructura"]');
-      dom.resumenTexto = contenedor.querySelector('.panel__resumen-texto');
-      contenedor.querySelector('[data-accion="editar-configuracion"]').addEventListener('click', () => {
-        estado.editandoConfiguracion = true;
-        sincronizarConfiguracion();
-        const primerCampo = dom.configuracion && dom.configuracion.querySelector('input, select');
-        if (primerCampo) primerCampo.focus();
-      });
-    }
-
-    // Índices no tiene panel de operaciones (`sinOperaciones`), así que el
-    // resumen va en la cabecera del de la reproducción (revisión de diseño,
-    // 2026-10-14). Sin un sitio para el resumen, la configuración se quedaba
-    // abierta tras construir y dejaba métricas y bitácora fuera de la vista.
-    function crearPanelReproduccion(reproduccion) {
-      const contenedor = document.createElement('section');
-      contenedor.className = 'panel';
-      contenedor.innerHTML = `
-        <div class="panel__cabecera">
-          <h2 class="panel__titulo texto-nivel-2">Reproducción</h2>
-          <span class="panel__resumen" data-resumen="estructura" hidden>
-            <span class="panel__resumen-texto"></span>
-            <button type="button" class="boton-enlace" data-accion="editar-configuracion">Editar</button>
-          </span>
-        </div>`;
-      contenedor.appendChild(reproduccion);
-      conectarResumen(contenedor);
-      return contenedor;
-    }
-
+    // La hoja «Operaciones»: insertar, buscar y eliminar comparten un solo
+    // campo (pedido del docente, 2026-08-29), porque las tres operan sobre lo
+    // mismo, una clave. Los botones nombran solo el verbo: el campo que tienen
+    // al lado ya dice sobre qué operan (CLAUDE.md 9).
     function crearPanelOperaciones() {
       const contenedor = document.createElement('form');
       contenedor.className = 'panel';
@@ -2069,49 +2158,31 @@
       // son p, r, u, e, b y a—. Las seis inserciones viajan en una sola traza,
       // así que se avanzan y se retroceden letra por letra como cualquier otra
       // operación. Ahí el llenado al azar no aporta nada y cede su sitio.
-      const campoClave = config.claveEsLetra
-        ? '<input type="text" name="clave" maxlength="1" size="4" autocapitalize="off" spellcheck="false" required>'
-        : '<input type="text" name="clave" inputmode="numeric" required>';
-      // El campo y su botón en un renglón (2026-09-28): uno debajo del otro,
-      // en el portátil empujaban las métricas fuera de la pantalla.
-      const segundaFila = config.palabra
-        ? `<div class="campo">
-             <label class="texto-nivel-3" for="campo-palabra">Palabra</label>
-             <div class="campo__en-linea">
-               <input type="text" id="campo-palabra" name="palabra" autocapitalize="off" spellcheck="false">
-               <button type="button" class="boton" data-accion="insertar-palabra">Insertar palabra</button>
-             </div>
-           </div>`
-        : '';
-      // El llenado automático es un enlace junto al rótulo de la clave y no un
-      // botón en su propia fila (2026-09-27): se usa una vez para preparar el
-      // ejemplo, y la fila que ocupaba era la que le faltaba al portátil.
-      const enlaceLlenado = config.palabra
-        ? ''
-        : '<button type="button" class="boton-enlace" data-accion="llenado-automatico">Llenado automático</button>';
-      contenedor.innerHTML = `
-        <div class="panel__cabecera">
-          <h2 class="panel__titulo texto-nivel-2">Operaciones</h2>
-          <span class="panel__resumen" data-resumen="estructura" hidden>
-            <span class="panel__resumen-texto"></span>
-            <button type="button" class="boton-enlace" data-accion="editar-configuracion">Editar</button>
-          </span>
-        </div>
-        ${config.soloPalabra ? '' : `
-        <div class="campo">
-          <div class="campo__rotulo-fila">
-            <label class="texto-nivel-3" for="campo-clave">Clave</label>
-            ${enlaceLlenado}
-          </div>
-          ${campoClave.replace('name="clave"', 'id="campo-clave" name="clave"')}
-        </div>
-        <div class="pantalla-tema__controles">
-          <button type="submit" class="boton boton--primario" data-accion="insertar">Insertar</button>
-          <button type="button" class="boton" data-accion="buscar">Buscar</button>
-          <button type="button" class="boton" data-accion="eliminar">Eliminar</button>
-        </div>`}
-        ${segundaFila}
-      `;
+      if (!config.soloPalabra) {
+        const clave = Object.assign(document.createElement('input'), { type: 'text', name: 'clave', id: 'campo-clave', required: true });
+        if (config.claveEsLetra) Object.assign(clave, { maxLength: 1, size: 4, autocapitalize: 'off', spellcheck: false });
+        else clave.inputMode = 'numeric';
+        contenedor.append(cinta.crearGrupo(config.claveEsLetra ? 'Letra' : 'Claves',
+          cinta.crearCampo({
+            etiqueta: config.claveEsLetra ? 'Letra' : 'Clave', control: clave, encima: true,
+            ayuda: 'Con la que se opera. Enter la inserta.'
+          }),
+          cinta.crearBoton({ texto: 'Insertar', icono: 'insertar', accion: 'insertar', tipo: 'submit', ayuda: 'La coloca donde le toca, paso a paso.' }),
+          cinta.crearBoton({ texto: 'Buscar', icono: 'buscar', accion: 'buscar', ayuda: 'Hasta hallarla, o hasta saber que no está.' }),
+          cinta.crearBoton({ texto: 'Eliminar', icono: 'eliminar', accion: 'eliminar', ayuda: 'La busca y la quita.' })));
+      }
+      if (config.palabra) {
+        const palabra = Object.assign(document.createElement('input'), { type: 'text', name: 'palabra', id: 'campo-palabra', autocapitalize: 'off', spellcheck: false });
+        contenedor.append(cinta.crearGrupo('Palabra',
+          cinta.crearCampo({ etiqueta: 'Palabra', control: palabra, encima: true, ayuda: 'Sus letras, una por una.' }),
+          cinta.crearBoton({
+            texto: 'Insertar palabra', icono: 'palabra', accion: 'insertar-palabra', principal: Boolean(config.soloPalabra),
+            ayuda: config.soloPalabra ? 'Construye el árbol con sus letras.' : 'Inserta sus letras una por una, en orden.'
+          })));
+      } else {
+        contenedor.append(cinta.crearGrupo('Llenado',
+          cinta.crearBoton({ texto: 'Llenar', titulo: 'Llenado automático', icono: 'llenar', accion: 'llenado-automatico', ayuda: 'Con claves al azar.' })));
+      }
 
       // Solo la inserción limpia el campo: es la que se repite clave tras
       // clave al preparar el escenario. Buscar y eliminar dejan el valor, que
@@ -2141,7 +2212,6 @@
           llenarAutomaticamente();
         });
       }
-      conectarResumen(contenedor);
       const porPalabra = contenedor.querySelector('[data-accion="insertar-palabra"]');
       if (porPalabra) {
         porPalabra.addEventListener('click', () => {
@@ -2152,70 +2222,61 @@
       return contenedor;
     }
 
-    // **La reproducción es la última fila de Operaciones** (opción C de la
-    // maqueta, elegida por el usuario el 2026-09-30): lo que se hace y cómo
-    // se lo ve avanzar, juntos. Está siempre, con los pasos y «Reproducir»
-    // apagados hasta que hay una operación (`habilitarReproduccion`). Antes
-    // era una tarjeta propia que nacía vacía —sus botones estaban ocultos sin
-    // operación—, y sin título se veía como un cuadro blanco sin nada dentro.
-    // Donde no hay Operaciones (índices) va en una tarjeta propia, igual de
-    // siempre presente. La velocidad no se apaga: elegirla antes de operar
-    // también vale.
+    // **La reproducción está siempre a la derecha de la cinta**, en cualquier
+    // pestaña, con los pasos y «Reproducir» apagados hasta que hay una
+    // operación (`habilitarReproduccion`). La velocidad no se apaga: elegirla
+    // antes de operar también vale.
     function crearReproduccion() {
-      const contenido = document.createElement('div');
-      contenido.className = 'pantalla-tema__reproduccion';
-      contenido.setAttribute('role', 'group');
-      contenido.setAttribute('aria-label', 'Reproducción');
-      contenido.innerHTML = `
-        <div data-seccion="reproduccion">
-          <div class="reproductor">
-            <button type="button" class="boton" data-accion="anterior" title="Paso anterior" aria-label="Paso anterior">◀</button>
-            <button type="button" class="boton" data-accion="reproducir">Reproducir</button>
-            <button type="button" class="boton" data-accion="siguiente" title="Paso siguiente" aria-label="Paso siguiente">▶</button>
-          </div>
-          <label class="pantalla-tema__velocidad texto-nivel-5">
-            <span class="pantalla-tema__velocidad-rotulo">Velocidad</span>
-            <input type="range" min="${PASO_MS_MINIMO}" max="${PASO_MS_MAXIMO}" step="100"
-                   value="${espejarVelocidad(PASO_MS_POR_OMISION)}" data-control="velocidad">
-            <output class="pantalla-tema__velocidad-lectura" data-salida="velocidad">${segundosPorPaso(PASO_MS_POR_OMISION)}</output>
-          </label>
-        </div>
-      `;
-
-      // En una fila y no en dos (opción B de la maqueta, 2026-09-27): los
-      // pasos a los lados y en medio **un solo botón que alterna** entre
-      // «Reproducir» y «Pausar». Reproducir y Detener nunca se usaban a la vez.
-      contenido.querySelector('[data-accion="anterior"]').addEventListener('click', () => {
+      const anterior = cinta.crearBoton({ texto: 'Anterior', titulo: 'Paso anterior', icono: 'anterior', accion: 'anterior', ayuda: 'Vuelve un paso atrás.' });
+      const siguiente = cinta.crearBoton({ texto: 'Siguiente', titulo: 'Paso siguiente', icono: 'siguiente', accion: 'siguiente', ayuda: 'Avanza un paso.' });
+      anterior.addEventListener('click', () => {
         if (estado.reproductor) estado.reproductor.pasoAnterior();
       });
-      contenido.querySelector('[data-accion="siguiente"]').addEventListener('click', () => {
+      siguiente.addEventListener('click', () => {
         if (estado.reproductor) estado.reproductor.siguientePaso();
       });
-      dom.alternarReproduccion = contenido.querySelector('[data-accion="reproducir"]');
+      // **Un solo botón que alterna** entre «Reproducir» y «Pausar»: nunca se
+      // usan a la vez (opción B de la maqueta, 2026-09-27).
+      dom.alternarReproduccion = cinta.crearBoton({
+        texto: 'Reproducir', icono: 'reproducir', accion: 'reproducir', principal: true, ayuda: 'Recorre los pasos solo.'
+      });
       dom.alternarReproduccion.addEventListener('click', () => {
         if (!estado.reproductor) return;
         if (estado.reproductor.estaReproduciendo()) estado.reproductor.detener();
         else estado.reproductor.reproducirContinuo();
       });
 
-      dom.controlVelocidad = contenido.querySelector('[data-control="velocidad"]');
-      dom.lecturaVelocidad = contenido.querySelector('[data-salida="velocidad"]');
+      const velocidad = document.createElement('label');
+      velocidad.className = 'pantalla-tema__velocidad';
+      velocidad.innerHTML = `
+        <span class="pantalla-tema__velocidad-rotulo">Velocidad</span>
+        <output class="pantalla-tema__velocidad-lectura" data-salida="velocidad">${segundosPorPaso(PASO_MS_POR_OMISION)}</output>
+        <input type="range" min="${PASO_MS_MINIMO}" max="${PASO_MS_MAXIMO}" step="100"
+               value="${espejarVelocidad(PASO_MS_POR_OMISION)}" data-control="velocidad">
+        <span aria-hidden="true">lento</span><span aria-hidden="true">rápido</span>`;
+      dom.controlVelocidad = velocidad.querySelector('[data-control="velocidad"]');
+      dom.lecturaVelocidad = velocidad.querySelector('[data-salida="velocidad"]');
       dom.controlVelocidad.addEventListener('input', () => {
         const ms = msPorPaso();
         dom.lecturaVelocidad.textContent = segundosPorPaso(ms);
         if (estado.reproductor) estado.reproductor.establecerVelocidad(ms);
       });
 
-      dom.botonesReproduccion = [...contenido.querySelectorAll('.reproductor .boton')];
+      dom.botonesReproduccion = [anterior, dom.alternarReproduccion, siguiente];
       habilitarReproduccion(false);
-      return contenido;
+      return cinta.crearGrupo('Reproducir', anterior, dom.alternarReproduccion, siguiente, velocidad);
     }
 
     function habilitarReproduccion(activa) {
       for (const boton of dom.botonesReproduccion || []) boton.disabled = !activa;
     }
 
-    function crearPanelMetricas() {
+    // Las métricas, en la barra de abajo: a la vista siempre y en un renglón,
+    // como la barra de estado de una hoja de cálculo.
+    function crearBarraDeEstado() {
+      const barra = document.createElement('footer');
+      barra.className = 'pantalla-tema__estado';
+      barra.setAttribute('aria-label', 'Métricas');
       const contenedorMetricas = document.createElement('div');
       contenedorMetricas.className = 'pantalla-tema__metricas';
 
@@ -2231,32 +2292,42 @@
         contenedorMetricas.appendChild(el);
       }
 
-      return vista.componentes.panel.crearPanel({ titulo: 'Métricas', contenido: contenedorMetricas });
+      barra.appendChild(contenedorMetricas);
+      return barra;
     }
 
-    // El control solo tiene sentido cuando hay algo comprimido que mirar: con
-    // `n` chico no hace nada y ocupa la esquina del lienzo. Se decide **después
-    // de dibujar y mirando el dibujo** —¿quedó algún tramo?— y no recalculando
-    // la elisión, que es la única forma de que valga para las cuatro
-    // orientaciones sin repetir su lógica en cada una.
+    // «Ver estructura completa», en la hoja «Ver». Solo tiene sentido cuando
+    // hay algo comprimido que mirar. Se decide **después de dibujar y mirando
+    // el dibujo** —¿quedó algún tramo?— y no recalculando la elisión, que es la
+    // única forma de que valga para las cuatro orientaciones sin repetir su
+    // lógica en cada una.
     //
     // La segunda condición es la que hace que se pueda volver: con la casilla
-    // marcada no queda ni un tramo, y sin ella el control desaparecería justo
-    // cuando hace falta para desmarcarla.
+    // marcada no queda ni un tramo, y sin ella se apagaría justo cuando hace
+    // falta para desmarcarla.
     const TRAMOS = '.tramo-elidido, .tramo-registros, .tramo-bloques, .tramo-indices';
 
+    function habilitarControlElision(activo) {
+      if (dom.controlElision) dom.controlElision.disabled = !activo;
+    }
+
     function actualizarControlElision() {
-      if (!dom.controlElision) return;
-      const hayTramos = !!dom.estructuraEl.querySelector(TRAMOS);
-      dom.controlElision.hidden = !hayTramos && !estado.mostrarCompleta;
+      habilitarControlElision(Boolean(dom.estructuraEl.querySelector(TRAMOS)) || estado.mostrarCompleta);
     }
 
     function crearControlElision() {
       const etiqueta = document.createElement('label');
-      etiqueta.className = 'lienzo__control texto-nivel-5';
-      etiqueta.innerHTML = `<input type="checkbox" data-control="mostrar-completa"> Ver estructura completa`;
-      etiqueta.querySelector('input').addEventListener('change', (evento) => {
-        estado.mostrarCompleta = evento.target.checked;
+      etiqueta.className = 'cinta-boton cinta-boton--chico lienzo__control';
+      const casilla = document.createElement('input');
+      casilla.type = 'checkbox';
+      casilla.dataset.control = 'mostrar-completa';
+      const texto = document.createElement('span');
+      texto.className = 'cinta-boton__texto';
+      texto.textContent = 'Ver estructura completa';
+      etiqueta.append(casilla, crearIcono('completa'), texto);
+      cinta.ponerAyuda(etiqueta, 'Ver estructura completa', 'Todas las posiciones, sin resumir los tramos.');
+      casilla.addEventListener('change', () => {
+        estado.mostrarCompleta = casilla.checked;
         // Lo que se ve cambia de ancho: la escala se vuelve a medir sin el
         // tope de la operación en curso (ver `ajustarEscala`), y lo mismo el
         // encogimiento de la matriz de las externas (ver `renderizarBloques`).
@@ -2266,7 +2337,29 @@
         calcularSegmentosApilado();
         renderizarEstructura(estado.pasoActual, estado.indicePaso);
       });
+      dom.controlElision = casilla;
       return etiqueta;
+    }
+
+    // La bitácora se puede ocultar para dejarle el ancho al dibujo.
+    function ponerBitacora(visible) {
+      pantalla.classList.toggle('pantalla-tema--sin-bitacora', !visible);
+      dom.botonBitacora.setAttribute('aria-pressed', String(visible));
+    }
+
+    function crearHojaVer() {
+      const hoja = document.createElement('div');
+      dom.botonBitacora = cinta.crearBoton({ texto: 'Bitácora', icono: 'bitacora', chico: true, accion: 'bitacora', ayuda: 'Muestra u oculta lo que ha pasado, en orden.' });
+      dom.botonBitacora.setAttribute('aria-pressed', 'true');
+      dom.botonBitacora.addEventListener('click', () => ponerBitacora(pantalla.classList.contains('pantalla-tema--sin-bitacora')));
+      const pila = document.createElement('div');
+      pila.className = 'cinta-pila';
+      // El árbol y el grafo no eliden: se dibujan enteros, porque su tamaño lo
+      // acota el alfabeto o el tema, y no un n que el estudiante elige.
+      if (!esArbol() && !esGrafo() && !esBosque()) pila.appendChild(crearControlElision());
+      pila.appendChild(dom.botonBitacora);
+      hoja.appendChild(cinta.crearGrupo('Mostrar', pila));
+      return hoja;
     }
 
     // Sin rótulo ni numeración: el tema se identifica por su nombre.
@@ -2274,47 +2367,45 @@
       const encabezado = document.createElement('header');
       encabezado.className = 'pantalla-tema__encabezado';
 
-      const botonVolver = document.createElement('button');
-      botonVolver.type = 'button';
-      botonVolver.className = 'pantalla-tema__volver texto-nivel-4';
-      botonVolver.textContent = '← Menú';
-      botonVolver.addEventListener('click', () => {
-        invalidarReproduccion();
-        alVolver();
-      });
+      const crearSalida = (clase, icono, texto, salir) => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = clase;
+        boton.append(crearIcono(icono), texto);
+        boton.addEventListener('click', () => {
+          cerrar();
+          salir();
+        });
+        return boton;
+      };
+      const salidas = document.createElement('nav');
+      salidas.className = 'pantalla-tema__salidas';
+      salidas.setAttribute('aria-label', 'Salir del tema');
+      salidas.append(
+        crearSalida('pantalla-tema__inicio', 'inicio', 'Inicio', () => alVolver([])),
+        crearSalida('pantalla-tema__volver', 'volver', config.volverA || 'Menú', () => alVolver())
+      );
 
       const tituloEl = document.createElement('h1');
-      tituloEl.className = 'texto-nivel-1';
       tituloEl.textContent = config.titulo;
 
-      const subtituloEl = document.createElement('span');
-      subtituloEl.className = 'pantalla-tema__subtitulo texto-nivel-5';
-      subtituloEl.textContent = config.descripcion;
+      const resumen = document.createElement('span');
+      resumen.className = 'panel__resumen';
+      resumen.dataset.resumen = 'estructura';
+      resumen.hidden = true;
+      dom.resumenEstructura = resumen;
+      dom.resumenTexto = document.createElement('span');
+      dom.resumenTexto.className = 'panel__resumen-texto';
+      resumen.appendChild(dom.resumenTexto);
 
-      // **«Vaciar» y no «reiniciar»** (pedido del usuario, 2026-09-11): lo que
-      // hace es dejar la misma estructura sin claves —mismo n, misma l, mismos
-      // parámetros—, y «reiniciar» sonaba a empezar de cero, tanto que el
-      // usuario llegó a pedir un segundo botón para lo que este ya hacía. El
-      // nombre era el problema, no el comportamiento.
-      dom.reiniciar = document.createElement('button');
-      dom.reiniciar.type = 'button';
-      dom.reiniciar.className = 'boton';
-      dom.reiniciar.dataset.accion = 'vaciar';
-      dom.reiniciar.textContent = `Vaciar ${nombreEstructura()}`;
-      // Sin estructura no hay nada que vaciar: el botón aparece cuando la hay
-      // (ver `sincronizarAccionesDeEstructura`).
-      dom.reiniciar.hidden = true;
-      dom.reiniciar.addEventListener('click', pedirVaciar);
+      encabezado.append(salidas, tituloEl, resumen);
+      return encabezado;
+    }
 
-      // Guardar y abrir viven en el encabezado, junto a reiniciar, por la
-      // misma razón: son operaciones sobre la pantalla entera y no sobre las
-      // claves, y ahí están siempre a la vista sin alargar el panel lateral,
-      // que es el recurso escaso (CLAUDE.md 6.2).
-      dom.abrir = document.createElement('button');
-      dom.abrir.type = 'button';
-      dom.abrir.className = 'boton';
-      dom.abrir.dataset.accion = 'cargar';
-      dom.abrir.textContent = 'Cargar';
+    // La hoja «Archivo»: lo que se hace con la estructura entera.
+    function crearHojaArchivo() {
+      const hoja = document.createElement('div');
+      dom.abrir = cinta.crearBoton({ texto: 'Abrir', icono: 'abrir', accion: 'cargar', ayuda: 'Un archivo .cc2 guardado antes.' });
       dom.abrir.addEventListener('click', () => dom.selectorDeArchivo.click());
 
       // El `input` de verdad no se ve: abrir el explorador del sistema es lo
@@ -2333,30 +2424,32 @@
         if (archivo) abrirArchivo(archivo);
       });
 
-      dom.guardar = document.createElement('button');
-      dom.guardar.type = 'button';
-      dom.guardar.className = 'boton';
-      dom.guardar.dataset.accion = 'guardar';
-      dom.guardar.textContent = 'Guardar';
-      dom.guardar.hidden = true;
+      dom.guardar = cinta.crearBoton({ texto: 'Guardar', icono: 'guardar', accion: 'guardar', ayuda: 'Su trabajo, en un archivo .cc2 que se puede volver a abrir.' });
+      dom.guardar.disabled = true;
       dom.guardar.addEventListener('click', guardarArchivo);
 
-      // Las tres acciones van juntas y a la derecha (decisión del usuario sobre
-      // maqueta, 2026-09-11): sueltas junto al título parecían parte de él y
-      // quedaban flotando en un sitio donde no hay nada más. Agrupadas se leen
-      // como lo que son —lo que se puede hacer con la estructura entera— y no
-      // le quitan ni un píxel al panel lateral ni al lienzo, que son los que
-      // van justos.
-      const acciones = document.createElement('div');
-      acciones.className = 'pantalla-tema__acciones';
-      acciones.append(dom.abrir, dom.guardar, dom.reiniciar);
+      // **«Vaciar» y no «reiniciar»** (pedido del usuario, 2026-09-11): lo que
+      // hace es dejar la misma estructura sin claves —mismo n, misma l, mismos
+      // parámetros—, y «reiniciar» sonaba a empezar de cero.
+      dom.reiniciar = cinta.crearBoton({ texto: `Vaciar ${nombreEstructura()}`, icono: 'vaciar', accion: 'vaciar', ayuda: 'Como recién creada. Pide un segundo clic.' });
+      dom.reiniciar.disabled = true;
+      dom.reiniciar.addEventListener('click', pedirVaciar);
 
-      encabezado.append(botonVolver, tituloEl, subtituloEl, acciones, dom.selectorDeArchivo);
-      return encabezado;
+      hoja.append(cinta.crearGrupo('Archivo', dom.abrir, dom.guardar, dom.reiniciar), dom.selectorDeArchivo);
+      return hoja;
+    }
+
+    // Al salir, por el botón o por el «atrás» del navegador: nada queda
+    // corriendo, y una inserción a medias se consuma.
+    function cerrar() {
+      cancelarConfirmacionDeVaciado();
+      invalidarReproduccion();
     }
 
     const pantalla = document.createElement('div');
     pantalla.className = 'pantalla pantalla-tema';
+    pantalla.dataset.modulo = config.modulo || 'busquedas';
+    pantalla.cerrar = cerrar;
     // Los dibujos fijan en ella el ancho de casilla (`ajustarAnchoDeCasilla`).
     dom.pantalla = pantalla;
 
@@ -2434,21 +2527,9 @@
       dom.estructuraEl.addEventListener('scroll', alinearCalculo, { passive: true });
       if (window.ResizeObserver) new ResizeObserver(alinearCalculo).observe(escenario);
     }
-    // El árbol no elide: se dibuja entero, porque su tamaño lo acota el
-    // alfabeto y no un n que el estudiante elige. Sin elisión, el control
-    // sobra y solo ocuparía alto del lienzo.
-    if (esArbol()) {
-      // El árbol no elide: su tamaño lo acota el alfabeto y no un n elegido.
-      lienzo.append(escenario);
-    } else {
-      dom.controlElision = crearControlElision();
-      // Nace escondido: no hay estructura todavía, así que no hay nada que
-      // comprimir. `renderizarEstructura` lo destapa en cuanto lo haya.
-      dom.controlElision.hidden = true;
-      lienzo.append(dom.controlElision, escenario);
-    }
+    lienzo.append(escenario);
 
-    const panelLateral = document.createElement('div');
+    const panelLateral = document.createElement('aside');
     panelLateral.className = 'pantalla-tema__panel-lateral';
     dom.alertas = document.createElement('div');
     dom.alertas.className = 'pantalla-tema__alertas';
@@ -2465,21 +2546,12 @@
     // `vaciar` y quien sea—, así que se mira el contenido y no cada llamada.
     vigilarDesborde(dom.bitacora);
     new MutationObserver(() => {
-      ajustarAltoMinimoBitacora();
       marcarDesborde(dom.bitacora);
     }).observe(dom.bitacora, { childList: true });
 
-    // Un árbol de bits no tiene nada que configurar —ni tamaño, ni longitud
-    // de clave, ni tratamiento— así que su panel se quedaría en un título y un
-    // botón «Crear estructura» que no elige nada. El árbol se crea al entrar
-    // al tema, y para vaciarlo está el botón de reiniciar (pedido del usuario,
-    // 2026-08-29).
-    // **El aviso va sobre el lienzo**, arriba a la izquierda, en la fila del
-    // control «Ver estructura completa» (opción B de la maqueta, 2026-09-27).
-    // Arriba del panel lateral empujaba todo hacia abajo, y en un portátil
-    // dejaba las métricas bajo el borde justo al terminar cada operación.
-    // Flota —no ocupa alto en el lienzo—, así que al aparecer o irse no
-    // mueve la estructura.
+    // **El aviso va sobre el lienzo**, arriba a la izquierda (opción B de la
+    // maqueta, 2026-09-27). Flota —no ocupa alto en el lienzo—, así que al
+    // aparecer o irse no mueve la estructura.
     lienzo.appendChild(dom.alertas);
     if (window.ResizeObserver) {
       let anchoAnterior = 0;
@@ -2489,27 +2561,36 @@
         reservarAltoDelAviso({ desdeCero: true });
       }).observe(lienzo);
     }
-    const reproduccion = crearReproduccion();
-    const operaciones = config.sinOperaciones ? null : crearPanelOperaciones();
-    if (operaciones) operaciones.appendChild(reproduccion);
-    // La bitácora se queda con el alto que sobre debajo de las métricas (ver
-    // `.panel--bitacora`).
     const panelBitacora = vista.componentes.panel.crearPanel({ titulo: 'Bitácora', contenido: dom.bitacora });
     panelBitacora.classList.add('panel--bitacora');
-    panelLateral.append(
-      ...(config.sinConfiguracion ? [] : [(dom.configuracion = crearFormularioConfiguracion())]),
-      // Índices no inserta, ni busca, ni elimina: su panel sería un campo de
-      // clave que no opera sobre nada (CLAUDE.md 5.x). Crear la estructura
-      // *es* la operación, y la derivación arranca con ella.
-      ...(config.sinOperaciones
-        ? [crearPanelReproduccion(reproduccion)]
-        : [operaciones]),
-      crearPanelMetricas(),
-      panelBitacora
-    );
+    const ocultarBitacora = document.createElement('button');
+    ocultarBitacora.type = 'button';
+    ocultarBitacora.className = 'boton-icono';
+    ocultarBitacora.setAttribute('aria-label', 'Ocultar la bitácora');
+    ocultarBitacora.appendChild(crearIcono('cerrar'));
+    cinta.ponerAyuda(ocultarBitacora, 'Ocultar la bitácora', 'Le deja el ancho al dibujo. Vuelve desde la pestaña Ver.');
+    ocultarBitacora.addEventListener('click', () => ponerBitacora(false));
+    panelBitacora.querySelector('.panel__titulo').append(ocultarBitacora);
+    panelBitacora.querySelector('.panel__titulo').prepend(crearIcono('bitacora'));
+    panelLateral.append(panelBitacora);
 
-    pantalla.append(crearEncabezado(), lienzo, panelLateral);
-    marcarCortesDelPanelLateral(panelLateral);
+    // Un árbol de bits no tiene nada que configurar —ni tamaño, ni longitud de
+    // clave, ni tratamiento—: se crea al entrar al tema (pedido del usuario,
+    // 2026-08-29), y su cinta no lleva «Crear». Un tema sin operaciones
+    // —índices, los de grafos— no lleva «Operaciones»: crear la estructura
+    // *es* la operación (CLAUDE.md 5.x).
+    const hojas = [{ id: 'archivo', titulo: 'Archivo', el: crearHojaArchivo() }];
+    if (!config.sinConfiguracion) {
+      dom.configuracion = crearFormularioConfiguracion();
+      hojas.push({ id: 'crear', titulo: 'Crear', el: dom.configuracion, accion: 'editar-configuracion' });
+    }
+    if (!config.sinOperaciones) hojas.push({ id: 'operaciones', titulo: 'Operaciones', el: crearPanelOperaciones() });
+    hojas.push({ id: 'ver', titulo: 'Ver', el: crearHojaVer() });
+    dom.cinta = cinta.crearCinta({ hojas, fija: crearReproduccion(), alElegir: () => sincronizarEscritura() });
+
+    pantalla.append(crearEncabezado(), dom.cinta.el, lienzo, panelLateral, crearBarraDeEstado());
+    cinta.crearPista(pantalla);
+    dom.cinta.elegir(config.sinConfiguracion ? 'operaciones' : 'crear');
 
     // Los temas sin configuración entran con su estructura ya creada: no hay
     // decisión que tomar antes de empezar a insertar.
@@ -2530,30 +2611,6 @@
     if (reciente) abrirReciente(reciente);
     else entrarSinEstructura();
     return pantalla;
-  }
-
-  // **El panel lateral se desvanece donde queda algo por ver** (pedido del
-  // usuario, 2026-10-28): abajo mientras haya más, arriba cuando ya se bajó,
-  // y nada cuando todo cabe. Cortado en seco, una tarjeta partida por la mitad
-  // —las métricas, en una ventana baja— se leía como un defecto; desvanecida,
-  // como «aquí sigue», el mismo idioma del lienzo y de la tira de recientes.
-  // Y en la ventana compartida de una clase virtual la barra, fina y gris, se
-  // pierde con la compresión del video; el desvanecido no.
-  function marcarCortesDelPanelLateral(panel) {
-    const marcar = () => {
-      const resto = panel.scrollHeight - panel.clientHeight - panel.scrollTop;
-      panel.classList.toggle('pantalla-tema__panel-lateral--corte-arriba', panel.scrollTop > 1);
-      panel.classList.toggle('pantalla-tema__panel-lateral--corte-abajo', resto > 1);
-    };
-    panel.addEventListener('scroll', marcar, { passive: true });
-    // Cambia de alto al plegar la configuración, al crecer la bitácora o al
-    // cambiar la ventana: se observan el panel y lo que lleva dentro.
-    if (window.ResizeObserver) {
-      const observador = new ResizeObserver(marcar);
-      observador.observe(panel);
-      for (const hijo of panel.children) observador.observe(hijo);
-    }
-    requestAnimationFrame(marcar);
   }
 
   window.CC2 = window.CC2 || {};

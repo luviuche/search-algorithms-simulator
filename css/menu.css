@@ -1,0 +1,388 @@
+/* El menú por niveles (2026-11-25, CLAUDE.md 4): bloques con el dibujo de lo
+   que se estudia. Se dibuja a 1366 × 640 y se escala (ver `escalarAlaVentana`
+   en menu.js), así que las medidas son las del portátil. */
+.pantalla.pantalla-menu-app {
+  /* El alto lo fija `escalarAlaVentana`: el `100vh` de toda pantalla, con el
+     zoom, se salía de la ventana. */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--papel);
+}
+
+.menu__cabecera {
+  flex: none;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 var(--espacio-7);
+  background: var(--cabecera);
+  color: var(--cabecera-tinta);
+}
+
+.menu__marca {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.menu__cabecera h1 {
+  margin: 0;
+  font: 600 21px/1.15 var(--fuente-condensada);
+}
+
+.menu__cabecera p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--cabecera-suave);
+}
+
+.migas {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  font-size: 14px;
+}
+
+.migas > .icono {
+  width: 14px;
+  height: 14px;
+  opacity: .75;
+}
+
+.migas__nivel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--espacio-2);
+  border: 0;
+  border-radius: var(--radio-control);
+  background: none;
+  color: var(--cabecera-suave);
+  cursor: pointer;
+}
+
+.migas__nivel:hover {
+  color: var(--cabecera-tinta);
+  background: rgba(255, 255, 255, .14);
+}
+
+.migas__actual {
+  padding: 6px var(--espacio-2);
+  font-weight: 500;
+}
+
+.menu__cabecera :focus-visible,
+.pantalla-tema__encabezado :focus-visible {
+  outline-color: #fff;
+}
+
+.menu__cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding: 18px var(--espacio-7) 20px;
+}
+
+.menu__encabezado {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+
+.menu__encabezado h2 {
+  margin: 0;
+  font: 600 27px/1.15 var(--fuente-condensada);
+}
+
+.menu__volver {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  height: 40px;
+  padding: 0 var(--espacio-4) 0 var(--espacio-3);
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  background: var(--superficie);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.menu__volver:hover {
+  border-color: var(--modulo);
+}
+
+.menu__volver .icono {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Los bloques ── */
+.menu__bloques {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* El dibujo se queda con lo que sobra; los textos de una fila miden lo
+     mismo, y así los dibujos quedan alineados. */
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.menu__bloques--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 400px;
+}
+
+.menu__bloques--4 {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.bloque-menu {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  gap: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  border: 1.5px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+  box-shadow: 0 2px 0 rgba(16, 32, 58, .16);
+  cursor: pointer;
+  transition: transform var(--duracion-interfaz) var(--curva-interfaz), border-color var(--duracion-interfaz) var(--curva-interfaz);
+}
+
+.bloque-menu:hover,
+.bloque-menu:focus-visible {
+  border-color: var(--modulo);
+  transform: translateY(-3px);
+}
+
+.bloque-menu__dibujo {
+  display: block;
+  position: relative;
+  min-height: 0;
+  background: var(--miniatura-fondo);
+}
+
+.bloque-menu__dibujo > .miniatura {
+  position: absolute;
+  inset: 10px 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 20px);
+}
+
+.bloque-menu__texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding: 14px 18px 16px;
+  border-top: 5px solid var(--modulo);
+}
+
+.bloque-menu__titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  font: 600 21px/1.15 var(--fuente-condensada);
+}
+
+.bloque-menu__titulo .icono {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--modulo);
+  transition: transform var(--duracion-interfaz) var(--curva-interfaz);
+}
+
+.bloque-menu:hover .bloque-menu__titulo .icono {
+  transform: translateX(4px);
+}
+
+.bloque-menu--grande .bloque-menu__titulo {
+  font-size: 30px;
+}
+
+.bloque-menu--grande .bloque-menu__titulo .icono {
+  width: 26px;
+  height: 26px;
+}
+
+.menu__bloques--4 .bloque-menu {
+  grid-row: auto;
+  grid-template-rows: 1fr;
+  grid-template-columns: 57% 1fr;
+}
+
+.menu__bloques--4 .bloque-menu__texto {
+  justify-content: center;
+  gap: var(--espacio-3);
+  padding: 18px 18px 18px 20px;
+  border-top: 0;
+  border-left: 5px solid var(--modulo);
+}
+
+.menu__bloques--4 .bloque-menu__titulo {
+  font-size: 23px;
+}
+
+.bloque-menu__fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ficha {
+  padding: 5px 11px;
+  border-radius: var(--radio-control);
+  background: var(--modulo-ficha);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* ── Recientes ── */
+.tira-recientes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+.tira-recientes__titulo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font: 500 14px/1.2 var(--fuente-texto);
+}
+
+/* **Se desplaza en horizontal** (pedido del usuario, 2026-10-28): con la
+   rueda sobre la tira, o pasando el foco con el tabulador. Sin barra: el
+   desvanecido dice que hay más, y va del lado donde lo hay. */
+.tira-recientes__lista {
+  list-style: none;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tira-recientes__lista::-webkit-scrollbar {
+  display: none;
+}
+
+.tira-recientes__lista--corte-derecha {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__lista--corte-izquierda {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__lista--corte-izquierda.tira-recientes__lista--corte-derecha {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 60px, #000 calc(100% - 60px), transparent);
+}
+
+.tira-recientes__lista > li {
+  flex: none;
+}
+
+.tira-recientes__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  padding: 6px var(--espacio-3);
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  background: var(--superficie);
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tira-recientes__item:hover {
+  border-color: var(--modulo);
+}
+
+.tira-recientes__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.tira-recientes__tema {
+  font-weight: 500;
+}
+
+.tira-recientes__detalle,
+.tira-recientes__claves {
+  color: var(--tinta-suave);
+}
+
+.tira-recientes__claves::before {
+  content: '· ';
+}
+
+/* ── Las miniaturas ── */
+.miniatura {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.miniatura text {
+  font: 400 15px var(--fuente-mono);
+  fill: var(--tinta);
+  stroke: none;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.miniatura .rot { font-size: 12px; fill: var(--miniatura-rotulo); }
+.miniatura .gra { font-size: 26px; }
+.miniatura .forma { fill: #fff; stroke: var(--miniatura-linea); stroke-width: 2; transition: fill .2s, stroke .2s; }
+.miniatura .linea { stroke: var(--miniatura-linea); stroke-width: 2; transition: stroke .2s; }
+.miniatura .opaca { fill: var(--miniatura-fondo); }
+.miniatura .vacia { fill: none; stroke-dasharray: 4 4; }
+.miniatura .forma.apagada { fill: none; stroke: var(--miniatura-apagado); }
+.miniatura text.apagada { fill: var(--miniatura-apagado); }
+.miniatura .linea.apagada { stroke: var(--miniatura-apagado); }
+.miniatura .forma.eval { fill: var(--estado-evaluacion-relleno); stroke: var(--estado-evaluacion-borde); stroke-width: 3; }
+.miniatura .linea.eval { stroke: var(--estado-evaluacion-borde); stroke-width: 3.5; }
+.miniatura .forma.hall { fill: var(--estado-encontrada-relleno); stroke: var(--estado-encontrada-borde); stroke-width: 3; }
+.miniatura .linea.hall { stroke: var(--estado-encontrada-borde); stroke-width: 4.5; }
+.miniatura text.hall { fill: var(--estado-encontrada-borde); }
+.miniatura .forma.col { fill: var(--estado-colision-relleno); stroke: var(--estado-colision-borde); }
+.miniatura .forma.dom { fill: var(--dominado-relleno); stroke: var(--dominado-borde); }
+.miniatura .cR { fill: var(--coloreo-R); stroke: #fff; }
+.miniatura .cN { fill: var(--coloreo-N); stroke: #fff; }
+.miniatura .cA { fill: var(--coloreo-A); stroke: #fff; }
+.miniatura .cV { fill: var(--coloreo-V); stroke: #fff; }
+.miniatura text.blanco { fill: #fff; }
+
+/* Mientras se recorre: lo que no ha llegado, en reposo; lo del paso, naranja. */
+.miniatura--recorriendo .espera.forma { fill: #fff; stroke: var(--miniatura-linea); stroke-width: 2; }
+.miniatura--recorriendo .espera.linea { stroke: var(--miniatura-linea); stroke-width: 2; }
+.miniatura--recorriendo .actual.forma { fill: var(--estado-evaluacion-relleno); stroke: var(--estado-evaluacion-borde); stroke-width: 3; }
+.miniatura--recorriendo .actual.linea { stroke: var(--estado-evaluacion-borde); stroke-width: 4; }

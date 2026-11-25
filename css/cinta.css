@@ -1,0 +1,601 @@
+/* La cinta de herramientas (2026-11-25, CLAUDE.md 6.11). Mide siempre lo mismo
+   (`--alto-pestanas` y `--alto-hoja`): si cambiara de alto con la hoja, el
+   dibujo saltaría al cambiar de pestaña. */
+.cinta {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.cinta__pestanas {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: var(--alto-pestanas);
+  padding: 0 var(--espacio-3);
+  background: var(--modulo-suave);
+}
+
+.cinta__pestana {
+  height: 32px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 7px 7px 0 0;
+  background: none;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.cinta__pestana:hover {
+  background: rgba(255, 255, 255, .55);
+}
+
+.cinta__pestana[aria-selected='true'] {
+  background: var(--superficie);
+  box-shadow: inset 0 3px 0 var(--modulo);
+  color: var(--modulo);
+  font-weight: 500;
+}
+
+.cinta--plegada .cinta__pestana[aria-selected='true'] {
+  background: none;
+}
+
+.cinta__pestana:disabled {
+  background: none;
+  color: #6A7B96;
+  cursor: default;
+}
+
+.cinta__pestana:focus-visible {
+  outline-offset: -2px;
+}
+
+.cinta__plegar {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: var(--radio-control);
+  background: none;
+  color: var(--tinta-suave);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cinta__plegar:hover {
+  background: rgba(255, 255, 255, .6);
+}
+
+.cinta--plegada .cinta__plegar .icono {
+  transform: rotate(180deg);
+}
+
+.cinta__cuerpo {
+  display: flex;
+  align-items: stretch;
+  height: var(--alto-hoja);
+  padding: 6px var(--espacio-2) 0;
+  background: var(--superficie);
+  border-bottom: 1.5px solid var(--borde);
+}
+
+.cinta--plegada .cinta__cuerpo {
+  display: none;
+}
+
+/* La hoja y la configuración de antes son el mismo formulario: `.panel` le
+   pondría caja, sombra y columna. Si no cabe, se desplaza de lado. */
+.cinta__hoja,
+form.panel.cinta__hoja {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.cinta__hoja[hidden],
+form.panel.cinta__hoja[hidden] {
+  display: none;
+}
+
+.cinta__grupo {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px;
+  border-right: 1px solid #C5D2E4;
+}
+
+.cinta__grupo[hidden] {
+  display: none;
+}
+
+.cinta__hoja > .cinta__grupo:last-of-type {
+  border-right-color: transparent;
+}
+
+.cinta__fija {
+  border-right: 0;
+  border-left: 1px solid #C5D2E4;
+}
+
+.cinta__grupo-cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.cinta__grupo-rotulo {
+  height: 22px;
+  font-size: 12.5px;
+  line-height: 20px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--tinta-suave);
+}
+
+/* ── Botones ── */
+.cinta-boton {
+  flex: none;
+  min-width: 66px;
+  max-width: 112px;
+  height: 78px;
+  padding: 6px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  font-size: 13.5px;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+
+.cinta-boton .icono {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.7;
+  color: var(--modulo);
+}
+
+.cinta-boton__cifra {
+  height: 32px;
+  font: 400 15px/32px var(--fuente-mono);
+  white-space: nowrap;
+  color: var(--modulo);
+}
+
+.cinta-boton:hover:not(:disabled) {
+  background: var(--modulo-hover);
+  border-color: var(--modulo);
+}
+
+.cinta-boton[aria-pressed='true'],
+.cinta-boton:has(input:checked) {
+  background: var(--modulo-suave);
+  border-color: var(--modulo);
+}
+
+.cinta-boton:focus-visible {
+  outline-offset: -2px;
+}
+
+.cinta-boton--principal {
+  padding-inline: 10px;
+  background: var(--modulo);
+  color: #fff;
+  font-weight: 500;
+}
+
+.cinta-boton--principal .icono {
+  color: #fff;
+}
+
+.cinta-boton--principal:hover:not(:disabled) {
+  background: var(--modulo);
+  filter: brightness(1.12);
+}
+
+.cinta-boton--principal:focus-visible {
+  outline-color: #fff;
+  outline-offset: -4px;
+}
+
+.cinta-boton--confirmando {
+  border: 2px solid var(--estado-eliminada-borde);
+  font-weight: 500;
+}
+
+.cinta-boton--confirmando .icono {
+  color: var(--estado-eliminada-borde);
+}
+
+.cinta-boton:disabled,
+.cinta-boton:has(input:disabled) {
+  color: #6F7F99;
+  cursor: default;
+}
+
+.cinta-boton:disabled .icono,
+.cinta-boton:has(input:disabled) .icono {
+  color: #97A6BD;
+}
+
+.cinta-boton--principal:disabled {
+  background: #DCE3EE;
+  color: #5E6F8B;
+}
+
+.cinta-boton--principal:disabled .icono {
+  color: #7C8DA8;
+}
+
+.cinta-boton--chico {
+  flex: none;
+  max-width: none;
+  min-width: 0;
+  height: 25px;
+  padding: 0 8px 0 5px;
+  flex-direction: row;
+  gap: 7px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.cinta-boton--chico .icono {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.cinta-boton--chico .cinta-boton__cifra {
+  min-width: 24px;
+  height: auto;
+  font-size: 17px;
+  line-height: 1;
+  text-align: center;
+}
+
+.cinta-boton--chico input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* La casilla invisible de «Ver estructura completa» se ubica contra su botón. */
+.lienzo__control {
+  position: relative;
+}
+
+.lienzo__control:focus-within {
+  outline: 2px solid var(--modulo);
+  outline-offset: -2px;
+}
+
+.cinta-galeria {
+  display: flex;
+  gap: var(--espacio-1);
+}
+
+/* Tres por columna, que es lo que cabe en el alto de la hoja. */
+.cinta-galeria--chicos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--filas, 3), 25px);
+  gap: 2px;
+  align-content: center;
+}
+
+/* Las cinco funciones hash, grandes si hay ancho; si no, en dos columnas: con
+   los datos propios de cada una, «Crear» se salía por la derecha. */
+@media (max-width: 1599px) {
+  .cinta-galeria--muchas {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, 25px);
+    gap: 2px;
+    align-content: center;
+  }
+
+  .cinta-galeria--muchas .cinta-boton {
+    max-width: none;
+    min-width: 0;
+    height: 25px;
+    padding: 0 8px 0 5px;
+    flex-direction: row;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .cinta-galeria--muchas .cinta-boton__cifra {
+    min-width: 46px;
+    height: auto;
+    font-size: 14px;
+    line-height: 1;
+    text-align: left;
+  }
+}
+
+.cinta-galeria[hidden] {
+  display: none;
+}
+
+.cinta-pila {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Campos ── */
+.cinta-campos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  gap: 7px 14px;
+  align-content: center;
+}
+
+form .cinta-campo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+form .cinta-campo--encima {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 3px;
+}
+
+.cinta .cinta-campo[hidden] {
+  display: none;
+}
+
+.cinta .cinta-campo input,
+.cinta .cinta-campo select {
+  height: 31px;
+  padding: 0 9px;
+  border: 1.5px solid #7C8FAA;
+  background-color: var(--superficie);
+}
+
+.cinta .cinta-campo input {
+  width: 92px;
+  font: 400 15px var(--fuente-mono);
+}
+
+.cinta .cinta-campo input::placeholder,
+.escritura textarea::placeholder {
+  color: #6F7F99;
+}
+
+.cinta .cinta-campo input[type='number'] {
+  width: 66px;
+  appearance: textfield;
+}
+
+.cinta .cinta-campo input[type='number']::-webkit-inner-spin-button {
+  display: none;
+}
+
+.cinta .cinta-campo input[maxlength='1'] {
+  width: 56px;
+}
+
+.cinta .cinta-campo input[name='palabra'] {
+  width: 160px;
+}
+
+.cinta .cinta-campo select {
+  width: 178px;
+  padding-right: 28px;
+  font-size: 14px;
+}
+
+.cinta .cinta-campo input:focus,
+.cinta .cinta-campo select:focus,
+.escritura textarea:focus {
+  border-color: var(--modulo);
+  outline: 2px solid var(--modulo);
+  outline-offset: -1px;
+}
+
+.cinta .cinta-campo input:disabled {
+  background: #EEF2F7;
+  border-color: #B4C0D1;
+}
+
+/* ── Velocidad ── */
+.pantalla-tema__velocidad {
+  flex: none;
+  width: 130px;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  gap: 2px 0;
+  padding-left: var(--espacio-2);
+  font-size: 13px;
+}
+
+.pantalla-tema__velocidad input {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 2px 0;
+  accent-color: var(--modulo);
+}
+
+.pantalla-tema__velocidad-lectura {
+  font: 400 13px var(--fuente-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pantalla-tema__velocidad > span[aria-hidden] {
+  font-size: 11.5px;
+  color: var(--tinta-suave);
+}
+
+/* ── El panel de escribir: las aristas, los puntos ── */
+.escritura {
+  position: absolute;
+  z-index: 4;
+  left: var(--espacio-3);
+  top: calc(var(--alto-encabezado) + var(--alto-pestanas) + var(--alto-hoja) + var(--margen-lienzo));
+  bottom: calc(var(--alto-estado) + var(--margen-lienzo));
+  width: var(--ancho-escritura);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px 14px;
+  border: 1.5px solid var(--modulo);
+  border-radius: var(--radio-panel);
+  background: var(--superficie);
+}
+
+.escritura[hidden] {
+  display: none;
+}
+
+.escritura__cabecera {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.escritura__cabecera h2 {
+  margin: 0;
+  font: 500 16px/1.2 var(--fuente-texto);
+}
+
+.escritura__campos {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  overflow-y: auto;
+}
+
+form .escritura__campo {
+  flex: 1 1 auto;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.escritura__campo[hidden] {
+  display: none;
+}
+
+.escritura textarea {
+  flex: 1;
+  min-height: 64px;
+  border: 1.5px solid #7C8FAA;
+  padding: 8px 10px;
+  font: 400 16px/1.5 var(--fuente-mono);
+  resize: none;
+}
+
+.escritura .campo__ayuda {
+  flex: none;
+  font: 400 12.5px/1.35 var(--fuente-texto);
+  color: var(--tinta-suave);
+}
+
+.escritura > .boton {
+  flex: none;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.boton-icono {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-control);
+  background: none;
+  color: var(--tinta-suave);
+  cursor: pointer;
+}
+
+.boton-icono:hover {
+  background: var(--modulo-suave);
+}
+
+/* ── La explicación al pasar el mouse ── */
+.pista {
+  position: absolute;
+  z-index: 20;
+  max-width: 270px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.pista[hidden] {
+  display: none;
+}
+
+.pista b {
+  display: block;
+  margin-bottom: 1px;
+  font-weight: 500;
+}
+
+@media (max-height: 690px) {
+  .cinta__grupo-rotulo { display: none; }
+  .cinta__cuerpo { padding-block: 3px; }
+  .cinta__pestana { height: 29px; }
+}
+
+/* Hasta un portátil de 1366, la cinta se aprieta. */
+@media (max-width: 1400px) {
+  .cinta__grupo { padding: 0 8px; }
+  .cinta .cinta-campo select { width: 168px; }
+}
+
+@media (max-width: 1340px) {
+  .cinta__grupo { padding: 0 6px; }
+  .cinta__grupo-cuerpo { gap: 1px; }
+  .pantalla-tema__velocidad { width: 98px; padding-left: 4px; }
+  .cinta .cinta-campo select { width: 160px; }
+  .cinta .cinta-campo input[type='number'] { width: 66px; }
+  .cinta-boton { font-size: 13px; }
+  .cinta-campos { gap: 7px 8px; }
+}

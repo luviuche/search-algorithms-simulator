@@ -314,13 +314,14 @@ form label[hidden] {
 }
 
 .boton--primario {
-  background: var(--tinta);
-  border-color: var(--tinta);
-  color: var(--superficie);
+  background: var(--modulo);
+  border-color: var(--modulo);
+  color: #fff;
 }
 
 .boton--primario:hover {
-  background: #1A232B;
+  background: var(--modulo);
+  filter: brightness(1.12);
 }
 
 /* Alerta — nunca reutiliza los colores de estado del algoritmo (CLAUDE.md 8.1) */

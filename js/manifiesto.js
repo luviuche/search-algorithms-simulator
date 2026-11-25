@@ -82,6 +82,8 @@
     'persistencia/recientes.js',
     'vista/componentes/casilla.js',
     'vista/componentes/iconos.js',
+    'vista/componentes/miniaturas.js',
+    'vista/componentes/cinta.js',
     'vista/componentes/panel.js',
     'vista/componentes/bitacora.js',
     'vista/componentes/calculo.js',

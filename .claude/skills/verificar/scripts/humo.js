@@ -31,6 +31,11 @@ function corridaEn({ ancho = ANCHO_POR_DEFECTO, alto }) {
     return { fallas: 1, lineas: ['sin informe: el volcado no trae #salida (¿subir el presupuesto de tiempo virtual?)'] };
   }
 
+  // Un informe vacío es una prueba que no corrió —un error de sintaxis en
+  // humo.html—, no una sin fallas (2026-11-25).
+  if (!salida.startsWith('RESULTADO')) {
+    return { resumen: 'sin RESULTADO', fallas: 1, lineas: ['el informe no trae RESULTADO: la prueba no corrió (¿error de sintaxis?)'], salida };
+  }
   const lineas = salida.split('\n');
   // La primera línea es el resultado; las que empiezan por ✕ son las
   // comprobaciones que fallaron, y EXCEPCIÓN/ERROR lo que ni llegó a correr.

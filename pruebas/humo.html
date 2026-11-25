@@ -6,6 +6,8 @@
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/componentes.css">
+  <link rel="stylesheet" href="../css/menu.css">
+  <link rel="stylesheet" href="../css/cinta.css">
   <link rel="stylesheet" href="../css/pantallas.css">
 </head>
 <body>
@@ -53,13 +55,9 @@
 
     const aviso = () => document.querySelector('.pantalla-tema__alertas .alerta');
 
-    // El catálogo es un árbol de tarjetas (CLAUDE.md 12): entrar a un tema
-    // El catálogo es un índice con todo a la vista (CLAUDE.md 2): entrar a un
-    // tema es un solo clic en su renglón, sin recorrer categorías.
-    //
-    // **Por título exacto y no por `includes`**: en el índice conviven
-    // "Búsqueda secuencial" y "Búsqueda secuencial externa", y un `includes`
-    // entraría siempre al primero que aparezca.
+    // Lo que se ve, y no el atributo.
+    const aLaVista = (el) => Boolean(el) && el.getClientRects().length > 0;
+
     // **Las cinco funciones hash son un solo tema desde el 2026-10-28**: se
     // las sigue nombrando como antes —«Función módulo»— y aquí se entra al
     // tema único con esa función ya elegida.
@@ -67,13 +65,30 @@
       'Función módulo': 'modulo', 'Función cuadrado': 'cuadrado', 'Función truncamiento': 'truncamiento',
       'Función plegamiento': 'plegamiento', 'Conversión de bases': 'bases'
     };
+    // El menú se recorre por niveles (2026-11-25): se vuelve al inicio y se
+    // abren las categorías hasta dar con el tema, como lo haría el estudiante.
+    // **Por título exacto y no por `includes`**: conviven «Búsqueda secuencial»
+    // y «Búsqueda secuencial externa».
+    function buscarEnElMenu(titulo) {
+      const inicio = document.querySelector('.migas__nivel');
+      if (inicio) inicio.click();
+      const abrir = () => {
+        const bloques = [...document.querySelectorAll('.bloque-menu')];
+        const bloque = bloques.find((el) => !el.dataset.categoria && el.querySelector('.bloque-menu__nombre').textContent === titulo);
+        if (bloque) { bloque.click(); return true; }
+        for (const id of bloques.filter((el) => el.dataset.categoria).map((el) => el.dataset.nodo)) {
+          document.querySelector(`.bloque-menu[data-nodo="${id}"]`).click();
+          if (abrir()) return true;
+          document.querySelector('.menu__volver').click();
+        }
+        return false;
+      };
+      if (!abrir()) throw new Error(`No está en el menú: ${titulo}`);
+    }
     function entrarATema(nombreTema) {
       const funcion = FUNCIONES_HASH[nombreTema];
       const titulo = funcion ? 'Búsqueda por transformación de claves' : nombreTema;
-      const renglon = [...document.querySelectorAll('.indice__tema')]
-        .find((el) => el.querySelector('.indice__tema-titulo').textContent === titulo);
-      if (!renglon) throw new Error(`No está en el índice: ${titulo}`);
-      renglon.click();
+      buscarEnElMenu(titulo);
       if (funcion) {
         const selector = document.querySelector('form.panel [name="funcion"]');
         selector.value = funcion;
@@ -310,9 +325,22 @@
     // verían idénticos— sino que insiste: el reproductor ignora los clics que
     // sobran una vez agotada la traza.
     function agotarTraza(pasos = 12) {
-      for (let i = 0; i < pasos; i++) control('siguiente').click();
+      for (let i = 0; i < pasos; i++) {
+        control('siguiente').click();
+        vigilarQueElGrafoQuepa();
+      }
       vigilarQueNadaSeSalga();
       return retratarEstructura();
+    }
+
+    // El grafo y lo suyo caben en todos los pasos, y no solo en los que una
+    // prueba mira (2026-11-25): un aviso de dos renglones le quita alto.
+    const noCaben = new Map();
+    function vigilarQueElGrafoQuepa() {
+      const caja = document.querySelector('.estructura-grafo');
+      if (!caja || window.innerWidth < 1280) return;
+      const sobra = Math.max(caja.scrollHeight - caja.clientHeight, caja.scrollWidth - caja.clientWidth) * (parseFloat(caja.style.zoom) || 1);
+      if (sobra > 4) noCaben.set(`${document.querySelector('.pantalla-tema h1').textContent}: ${(document.querySelector('.alerta__rotulo') || {}).textContent}`, `${Math.round(sobra)} px, ${caja.style.zoom}`);
     }
 
     // **Nada de la pantalla se posiciona contra la página** (2026-10-01). La
@@ -383,7 +411,7 @@
       );
 
       const formularios = [...document.querySelectorAll('form.panel')];
-      afirmar(control('vaciar').hidden, 'sin estructura no hay nada que reiniciar: el botón no aparece');
+      afirmar(control('vaciar').disabled, 'sin estructura no hay nada que vaciar: el botón está apagado');
       const deOperacion = () => ['insertar', 'buscar', 'eliminar', 'llenado-automatico']
         .map((accion) => formularios[1].querySelector(`[data-accion="${accion}"]`));
       afirmar(
@@ -391,7 +419,7 @@
         'sin estructura, las operaciones se ven apagadas'
       );
       enviar(formularios[0], { n, l });
-      afirmar(!control('vaciar').hidden, 'con la estructura creada, el botón de reiniciar aparece');
+      afirmar(!control('vaciar').disabled, 'con la estructura creada, el botón de vaciar se enciende');
       afirmar(deOperacion().every((boton) => !boton.disabled), 'con la estructura creada, las operaciones se encienden');
       for (const clave of claves) operar(formularios, 'insertar', clave);
 
@@ -408,51 +436,17 @@
         `la pantalla se ancla al viewport (mide ${Math.round(pantalla.getBoundingClientRect().height)} de ${window.innerHeight})`
       );
 
-      const lateral = document.querySelector('.pantalla-tema__panel-lateral');
+      afirmar(document.querySelectorAll('.pantalla-tema [name="clave"]').length === 1, 'las tres operaciones comparten un solo campo de clave');
       afirmar(
-        getComputedStyle(lateral).overflowY === 'auto',
-        'el desplazamiento vive en el panel lateral, no en la página'
+        ['insertar', 'buscar', 'eliminar'].every((accion) => aLaVista(formularios[1].querySelector(`[data-accion="${accion}"]`))),
+        'creada la estructura, la cinta pasa a Operaciones: insertar, buscar y eliminar a la vista'
       );
-
-      // Las tres operaciones comparten un panel: un solo campo de clave y un
-      // botón por operación. Tres paneles con un campo idéntico cada uno
-      // empujaban la reproducción fuera de la pantalla.
-      afirmar(
-        document.querySelectorAll('.pantalla-tema__panel-lateral [name="clave"]').length === 1,
-        'las tres operaciones comparten un solo campo de clave'
-      );
-      afirmar(
-        ['insertar', 'buscar', 'eliminar'].every((accion) => !!formularios[1].querySelector(`[data-accion="${accion}"]`)),
-        'el panel de operaciones ofrece insertar, buscar y eliminar'
-      );
-      // Cuatro paneles y no siete: configuración, operaciones —con la
-      // reproducción como su última fila desde el 2026-09-30—, métricas y
-      // bitácora. No se afirma que todos quepan sin desplazar
-      // —a 700 px de alto no caben, y el panel lateral scrollea para eso—,
-      // sino que ya no hay tres formularios repetidos empujándolos hacia
-      // abajo. El alto medido queda en el registro para ver regresiones.
-      const paneles = [...lateral.querySelectorAll('.panel')];
-      afirmar(paneles.length === 4, `el panel lateral tiene cuatro paneles (tiene ${paneles.length})`);
-      afirmar(
-        paneles[1].contains(control('siguiente')) && paneles[1].lastElementChild.contains(control('siguiente')),
-        'la reproducción es la última fila de las operaciones'
-      );
-      // Está desde que se entra, apagada hasta que hay una operación: antes
-      // nacía oculta y su tarjeta se veía como un cuadro vacío.
-      afirmar(
-        control('siguiente').getClientRects().length > 0,
-        'la reproducción está a la vista desde el principio'
-      );
-      registro.push(
-        `  panel lateral: ${lateral.scrollHeight} px de contenido en ${lateral.clientHeight} px visibles`
-      );
-      // 420 px desde 1600 de ancho, 340 por debajo (CLAUDE.md 6.9): a 1536
-      // —zoom al 125 %— el ancho le quitaría el lugar al dibujo.
-      const anchoEsperado = window.innerWidth >= 1600 ? 420 : 340;
-      afirmar(
-        Math.round(lateral.getBoundingClientRect().width) === anchoEsperado,
-        `el panel lateral mide ${anchoEsperado} px a ${window.innerWidth} de ancho (mide ${Math.round(lateral.getBoundingClientRect().width)})`
-      );
+      afirmar(aLaVista(control('siguiente')) && aLaVista(document.querySelector('.metrica')), 'la reproducción y las métricas están siempre a la vista');
+      // La bitácora mide lo que el lienzo, y se desplaza por dentro.
+      const lienzo = document.querySelector('.pantalla-tema__lienzo').getBoundingClientRect();
+      const bitacora = document.querySelector('.panel--bitacora').getBoundingClientRect();
+      afirmar(Math.abs(lienzo.top - bitacora.top) <= 1 && Math.abs(lienzo.bottom - bitacora.bottom) <= 1,
+        `la bitácora va al lado del lienzo y mide lo mismo (${Math.round(bitacora.height)} y ${Math.round(lienzo.height)})`);
 
       const caja = document.querySelector('.estructura-horizontal, .estructura-vertical').getBoundingClientRect();
       afirmar(
@@ -597,6 +591,10 @@
       try {
         ejecutar();
         afirmar(
+          noCaben.size === 0,
+          `el grafo cabe en todos los pasos (${[...noCaben].map(([donde, cuanto]) => `${donde} ${cuanto}`).join(' · ') || 'ninguno se sale'})`
+        );
+        afirmar(
           escapadas.size === 0,
           `nada de la pantalla se posiciona contra la página (${[...escapadas].join(' · ') || 'ninguno'})`
         );
@@ -610,10 +608,12 @@
 
     function ejecutar() {
       // El catálogo no numera los temas: ese es el pedido del docente.
-      const numerados = [...document.querySelectorAll('.indice__tema')]
+      const numerados = [...document.querySelectorAll('.bloque-menu__nombre')]
         .filter((el) => /^\s*\d/.test(el.textContent));
       afirmar(numerados.length === 0, 'ningún tema del catálogo aparece numerado');
-      menuEnColumnas();
+      menuPorNiveles();
+      panelDeEscribir();
+      cintaDeCadaTema();
 
       ejercitarTema('Búsqueda secuencial', {
         n: 16, l: 2, claves: [10, 20, 30, 40, 50, 60, 70, 80],
@@ -659,7 +659,6 @@
       recientesQueSeAbren();
       recienteDeUnaFuncionHashVieja();
       tiraDeRecientesQueSeDesplaza();
-      panelLateralDesvanecido();
       floyd();
       dijkstraYBellman();
       representacionMatricial();
@@ -775,7 +774,7 @@
       for (const [funcion, campos] of Object.entries(esperados)) {
         selector.value = funcion;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
-        const visibles = propios.filter((nombre) => formulario.querySelector(`[name="${nombre}"]`).getClientRects().length > 0);
+        const visibles = propios.filter((nombre) => aLaVista(formulario.querySelector(`[data-campo="${nombre}"]`)));
         afirmar(visibles.join(',') === campos.join(','),
           `con ${funcion} se ve${campos.length ? ` solo ${campos.join(', ')}` : 'n solo n, l y el tratamiento'} (se ven: ${visibles.join(', ') || 'ninguno'})`);
       }
@@ -795,7 +794,7 @@
       // campo quedó oculto, no si se ve.
       const seVe = (nombre) => {
         const campo = formularios[0].querySelector(`[name="${nombre}"]`);
-        return !!campo && !campo.closest('label').hidden;
+        return !!campo && !campo.closest('[data-campo]').hidden;
       };
       afirmar(
         seVe('operacion') && !!formularios[0].querySelector('select[name="operacion"]') && !seVe('posiciones') && !seVe('base'),
@@ -1461,10 +1460,6 @@
       // ni tratamiento—, así que no hay panel de configuración: se crea al
       // entrar al tema.
       afirmar(formularios.length === 1, `el tema no dibuja panel de configuración (${formularios.length} formulario(s))`);
-      afirmar(
-        document.querySelectorAll('.pantalla-tema__panel-lateral .panel').length === 3,
-        'el panel lateral queda en tres paneles'
-      );
       // El árbol existe desde que se entra al tema: vacío, el lienzo invita a
       // insertar y no a crear la estructura (usuario, 2026-09-30: antes
       // quedaba en blanco).
@@ -1481,13 +1476,10 @@
       // Ni Guardar ni Vaciar mientras el árbol no tenga nada (usuario,
       // 2026-09-30): la estructura existe, pero para el estudiante no hay
       // árbol todavía. Cargar sí, como en todos los temas.
-      const botonVisible = (accion) => {
-        const el = document.querySelector(`[data-accion="${accion}"]`);
-        return !!el && el.getClientRects().length > 0;
-      };
+      const encendido = (accion) => !document.querySelector(`[data-accion="${accion}"]`).disabled;
       afirmar(
-        botonVisible('cargar') && !botonVisible('guardar') && !botonVisible('vaciar'),
-        'el árbol vacío ofrece cargar, pero no guardar ni vaciar'
+        encendido('cargar') && !encendido('guardar') && !encendido('vaciar'),
+        'el árbol vacío ofrece abrir, pero no guardar ni vaciar'
       );
       afirmarEstructuraCentrada('árbol de búsqueda digital');
 
@@ -1496,7 +1488,7 @@
       operaciones.querySelector('[data-accion="insertar-palabra"]').click();
       const retrato = hastaElUltimoPasoDelAlgoritmo();
       registro.push('  traza de la palabra: ' + retrato);
-      afirmar(botonVisible('guardar') && botonVisible('vaciar'), 'con claves aparecen guardar y vaciar');
+      afirmar(encendido('guardar') && encendido('vaciar'), 'con claves aparecen guardar y vaciar');
       const bitacora = [...document.querySelectorAll('.bitacora__fila')].map((f) => f.textContent);
       afirmar(
         bitacora.some((linea) => linea.includes('Inserción iniciada: palabra prueba')),
@@ -2346,7 +2338,7 @@
         `se ven la primera, la última y la cubeta del paso con sus vecinas (${rotulos.join(' ')})`
       );
       afirmar(!!document.querySelector('.tramo-elidido--cubetas.tramo-elidido--claves'), 'el tramo que esconde claves se dibuja sólido');
-      afirmar(!document.querySelector('.lienzo__control').hidden, '«Ver estructura completa» está a la vista');
+      afirmar(!document.querySelector('[data-control="mostrar-completa"]').disabled, '«Ver estructura completa» está encendida');
       // Una cubeta con claves en Col se ve aunque no sea la del paso: la 3 se
       // llena y la 51 queda en su Col; después se inserta en la 20. Escondida,
       // dejaba la fila «Col» rotulada y vacía (visto por el usuario, 2026-10-15).
@@ -2376,7 +2368,7 @@
       entrarATema('Búsqueda secuencial externa');
       const formularios = [...document.querySelectorAll('form.panel')];
       afirmar(
-        formularios[0].textContent.includes('Registros del archivo (N)'),
+        formularios[0].textContent.includes('Registros (N)'),
         'el formulario pide los registros del archivo (N), no un tamaño genérico'
       );
 
@@ -2645,11 +2637,12 @@
         operar(formularios, 'insertar', clave);
       }
 
-      // El resumen más largo de la aplicación —«N = 23 · 5 bloques de 5»—
-      // no se sale de su panel: «Editar» quedaba cortado en un portátil.
-      const editar = document.querySelector('[data-accion="editar-configuracion"]').getBoundingClientRect();
-      const panelOperaciones = formularios[1].getBoundingClientRect();
-      afirmar(editar.right <= panelOperaciones.right, `el resumen de la estructura cabe en su panel («Editar» termina en ${Math.round(editar.right)}, el panel en ${Math.round(panelOperaciones.right)})`);
+      // El resumen más largo de la aplicación —«N = 23 · 5 bloques de 5»— no
+      // se monta sobre el título.
+      const resumenLargo = document.querySelector('.panel__resumen-texto').getBoundingClientRect();
+      const tituloDelTema = document.querySelector('.pantalla-tema h1').getBoundingClientRect();
+      afirmar(resumenLargo.left >= tituloDelTema.right && resumenLargo.right <= window.innerWidth,
+        `el resumen de la estructura cabe en la cabecera (${Math.round(resumenLargo.left)} tras el título en ${Math.round(tituloDelTema.right)})`);
 
       const bloques = () => [...document.querySelectorAll('.bloque')];
       const rotulo = (b) => bloques()[b - 1].querySelector('.bloque__etiqueta');
@@ -2959,13 +2952,10 @@
       document.querySelector('.pantalla-tema__volver').click();
     }
 
-    // El panel lateral en el portátil (opción B de la maqueta, 2026-09-27):
-    // la configuración se pliega al crear la estructura y deja su resumen en
-    // la cabecera de Operaciones, y la reproducción cabe en una fila. La meta
-    // era que en 1366×640 se vieran operaciones, reproducción y métricas sin
-    // desplazar el panel.
+    // La cinta (2026-11-25): crear la estructura pasa a Operaciones y deja su
+    // resumen en la cabecera; la reproducción y las métricas están siempre.
     function panelLateralPlegado() {
-      registro.push('', '── Panel lateral plegado ──');
+      registro.push('', '── La cinta ──');
 
       entrarATema('Búsqueda secuencial');
       const formularios = [...document.querySelectorAll('form.panel')];
@@ -2974,20 +2964,37 @@
       // Lo que se ve y no el atributo: `hidden` puesto no garantiza que el
       // elemento desaparezca si su `display` le gana, y así fue la primera vez.
       const seVe = (el) => el.getClientRects().length > 0;
-      afirmar(seVe(configuracion) && !seVe(resumen), 'sin estructura, la configuración está abierta y no hay resumen');
+      afirmar(seVe(configuracion) && !seVe(resumen), 'sin estructura, la cinta abre en Crear y no hay resumen');
 
       enviar(configuracion, { n: 24, l: 2 });
-      afirmar(!seVe(configuracion), 'al crear la estructura, la configuración se pliega');
+      afirmar(!seVe(configuracion), 'al crear la estructura, la cinta deja Crear');
       afirmar(
         seVe(resumen) && resumen.textContent.includes('n = 24 · l = 2'),
-        `y su resumen queda en la cabecera de Operaciones (${resumen.textContent.trim().replace(/\s+/g, ' ')})`
+        `y su resumen queda en la cabecera (${resumen.textContent.trim().replace(/\s+/g, ' ')})`
       );
 
-      document.querySelector('[data-accion="editar-configuracion"]').click();
-      const cancelar = configuracion.querySelector('[data-accion="cancelar-configuracion"]');
-      afirmar(seVe(configuracion) && !seVe(resumen) && seVe(cancelar), '«Editar» la vuelve a abrir, con «Cancelar» a la vista');
-      cancelar.click();
-      afirmar(!seVe(configuracion) && seVe(resumen), '«Cancelar» la pliega sin tocar la estructura');
+      const pestana = (id) => document.querySelector(`.cinta__pestana[data-hoja="${id}"]`);
+      pestana('crear').click();
+      afirmar(seVe(configuracion) && seVe(resumen) && configuracion.querySelector('[name="n"]').value === '24',
+        'la pestaña Crear la vuelve a mostrar con sus valores, sin tocar la estructura');
+      // La cinta mide lo mismo en todas las pestañas: si no, el dibujo saltaría.
+      const altos = ['archivo', 'crear', 'operaciones', 'ver'].map((id) => {
+        pestana(id).click();
+        return Math.round(document.querySelector('.cinta').getBoundingClientRect().height);
+      });
+      afirmar(new Set(altos).size === 1, `la cinta mide lo mismo en cada pestaña (${altos.join(', ')})`);
+      afirmar(seVe(control('bitacora')) && !seVe(control('insertar')), 'cada pestaña muestra solo lo suyo');
+      control('bitacora').click();
+      afirmar(!seVe(document.querySelector('.panel--bitacora')), 'Ver oculta la bitácora');
+      control('bitacora').click();
+      afirmar(seVe(document.querySelector('.panel--bitacora')), 'y la vuelve a mostrar');
+      control('plegar-cinta').click();
+      afirmar(!seVe(control('siguiente')), 'la cinta se puede ocultar');
+      pestana('operaciones').click();
+      afirmar(seVe(control('siguiente')) && seVe(control('insertar')), 'y elegir una pestaña la vuelve a mostrar');
+      pestana('archivo').click();
+      control('vaciar').click();
+      afirmar(control('vaciar').textContent === '¿Vaciar estructura?' && !!control('vaciar').querySelector('.icono'), 'Vaciar pregunta en su propio botón, sin perder el símbolo');
 
       for (const clave of [10, 18, 24, 31, 37, 42, 50, 63, 71, 84, 90, 97]) operar(formularios, 'insertar', clave);
       operar(formularios, 'buscar', 84);
@@ -3013,62 +3020,151 @@
         `secuencial apaga lo ya comparado antes de la casilla ${actual} (${antes.length} casillas)`
       );
 
-      // A 700 px de alto —el portátil deja unos 640— las métricas tienen que
-      // verse enteras sin desplazar el panel.
-      const lateral = document.querySelector('.pantalla-tema__panel-lateral');
-      const metricas = [...lateral.querySelectorAll('.panel')].find((p) => p.textContent.startsWith('Métricas'));
-      const pie = metricas.getBoundingClientRect().bottom;
-      const visible = lateral.getBoundingClientRect().top + lateral.clientHeight;
-      registro.push(`  métricas terminan en ${Math.round(pie)} px; el panel se ve hasta ${Math.round(visible)} px`);
-      afirmar(pie <= visible + 1, 'las métricas se ven enteras sin desplazar el panel lateral');
+      const metricas = document.querySelector('.pantalla-tema__estado').getBoundingClientRect();
+      afirmar(metricas.bottom <= window.innerHeight + 1 && metricas.top > 0, 'las métricas se ven enteras, abajo');
 
       document.querySelector('.pantalla-tema__volver').click();
     }
 
-    // El menú (opción E, 2026-10-28): Búsquedas y Grafos lado a lado y del
-    // mismo ancho, las externas debajo de las internas, y **cada tema
-    // construido en un solo renglón**, con su descripción a la vista. Se mide
-    // lo que se ve: la primera vez que hubo columnas, una regla más general
-    // ganaba y el dibujo no era el que el CSS decía.
-    function menuEnColumnas() {
-      registro.push('', '── Menú ──');
-      const partes = [...document.querySelectorAll('.indice__parte')];
-      const [busquedas, grafosParte] = partes.map((p) => p.getBoundingClientRect());
-      afirmar(
-        partes.length === 2 && Math.abs(busquedas.top - grafosParte.top) <= 1 && grafosParte.left > busquedas.right
-          && Math.abs(busquedas.width - grafosParte.width) <= 2,
-        `Búsquedas y Grafos van lado a lado y del mismo ancho (${Math.round(busquedas.width)} y ${Math.round(grafosParte.width)} px)`
-      );
-      const grupos = [...document.querySelectorAll('.indice__grupo-titulo')];
-      const internas = grupos.find((g) => g.textContent === 'Búsquedas internas');
-      const externas = grupos.find((g) => g.textContent === 'Búsquedas externas');
-      afirmar(
-        internas && externas && externas.getBoundingClientRect().top > internas.getBoundingClientRect().bottom
-          && Math.abs(externas.getBoundingClientRect().left - internas.getBoundingClientRect().left) <= 1,
-        'las búsquedas externas van debajo de las internas'
-      );
-      // Un renglón partido mide más de un renglón: se compara el alto de cada
-      // tema con el de su título.
-      const construidos = [...document.querySelectorAll('.indice__tema:not(.indice__tema--pendiente)')];
-      const partidos = construidos.filter((tema) => {
-        const descripcion = tema.querySelector('.indice__tema-descripcion');
-        return !descripcion || descripcion.getClientRects().length !== 1;
-      }).map((tema) => tema.querySelector('.indice__tema-titulo').textContent);
-      afirmar(partidos.length === 0, `cada tema construido, con su descripción en un solo renglón (${partidos.join(', ') || 'todos'})`);
-      const catalogo = document.querySelector('.pantalla-menu__catalogo').getBoundingClientRect();
-      afirmar(catalogo.bottom <= window.innerHeight + 1, `el índice cabe sin desplazar (termina en ${Math.round(catalogo.bottom)} de ${window.innerHeight})`);
-      const grafos = [...document.querySelectorAll('.indice__parte')].find((p) => p.textContent.startsWith('Grafos'));
-      const sellos = grafos.querySelectorAll('.indice__estado');
-      const visibles = [...sellos].filter((el) => el.getClientRects().length > 0);
-      afirmar(visibles.length === 1, `Grafos lleva el «En desarrollo» una sola vez (se ven ${visibles.length})`);
-      // Desde Floyd (2026-10-22) Grafos tiene un tema construido: va primero,
-      // y el rótulo encima de los pendientes, no en la cabecera.
-      const temasGrafos = [...grafos.querySelectorAll('.indice__tema')];
-      afirmar(
-        temasGrafos[0].textContent.includes('Floyd') && !temasGrafos[0].classList.contains('indice__tema--pendiente')
-          && visibles[0] && visibles[0].getBoundingClientRect().top > temasGrafos[0].getBoundingClientRect().bottom,
-        'en Grafos, Floyd va primero y el «En desarrollo» encima de los pendientes'
-      );
+    // El menú por niveles (2026-11-25): dos módulos, sus submódulos y sus temas.
+    // Se recorre entero con clics: cada bloque con su dibujo, nada se sale, y
+    // se vuelve por donde se vino.
+    function menuPorNiveles() {
+      registro.push('', '── Menú por niveles ──');
+      const bloques = () => [...document.querySelectorAll('.bloque-menu')];
+      const nombres = () => bloques().map((b) => b.querySelector('.bloque-menu__nombre').textContent);
+      afirmar(nombres().join(' | ') === 'Búsquedas | Grafos', `el inicio ofrece Búsquedas y Grafos (${nombres().join(', ')})`);
+      const [a, b] = bloques().map((el) => el.getBoundingClientRect());
+      afirmar(Math.abs(a.top - b.top) <= 1 && Math.abs(a.width - b.width) <= 2, 'van lado a lado y del mismo ancho');
+      let paginas = 0;
+      const temas = [];
+      const malos = [];
+      const recorrer = () => {
+        paginas++;
+        const pantalla = document.querySelector('.pantalla-menu-app');
+        if (pantalla.getBoundingClientRect().bottom > window.innerHeight + 1) malos.push(`la página ${paginas} se sale por abajo`);
+        for (const bloque of bloques()) {
+          const nombre = bloque.querySelector('.bloque-menu__nombre').textContent;
+          const caja = bloque.getBoundingClientRect();
+          if (!bloque.querySelector('.miniatura').childElementCount) malos.push(`${nombre}: sin dibujo`);
+          if (caja.bottom > window.innerHeight || caja.right > window.innerWidth) malos.push(`${nombre}: fuera de la ventana`);
+          if (bloque.scrollWidth > bloque.clientWidth + 1 || bloque.scrollHeight > bloque.clientHeight + 1) malos.push(`${nombre}: no cabe en su bloque`);
+          if (/módulo/i.test(nombre) || /^\s*\d/.test(nombre)) malos.push(`${nombre}: lleva «módulo» o número`);
+          if (!bloque.dataset.categoria) temas.push(nombre);
+        }
+        for (const id of bloques().filter((el) => el.dataset.categoria).map((el) => el.dataset.nodo)) {
+          document.querySelector(`.bloque-menu[data-nodo="${id}"]`).click();
+          recorrer();
+          document.querySelector('.menu__volver').click();
+        }
+      };
+      recorrer();
+      afirmar(malos.length === 0, `los bloques llevan dibujo y caben (${malos.join(' · ') || 'todos'})`);
+      afirmar(paginas === 9 && temas.length === 19 && new Set(temas).size === 19, `nueve páginas y los diecinueve temas (${paginas} y ${temas.length})`);
+      afirmar(!temas.some((nombre) => /Euler|isomorfismo|corte/.test(nombre)), 'los temas sin construir no se muestran');
+      afirmar(nombres().join(' | ') === 'Búsquedas | Grafos', 'y se vuelve al inicio por donde se vino');
+      // Salir de un tema deja en su submódulo, y las migas dicen dónde se está.
+      entrarATema('Coloreado y particionamiento');
+      afirmar(document.querySelector('.pantalla-tema').dataset.modulo === 'grafos', 'un tema de grafos lleva el color de su módulo');
+      document.querySelector('.pantalla-tema__volver').click();
+      afirmar((document.querySelector('.migas__actual') || {}).textContent === 'Coloreado y conjuntos', 'volver de un tema deja en su submódulo');
+      document.querySelector('.migas__nivel').click();
+      afirmar(nombres().length === 2, 'y desde las migas se vuelve al inicio');
+      // El «atrás» del navegador sube un nivel y no deja nada corriendo.
+      entrarATema('Búsqueda secuencial');
+      const formularios = [...document.querySelectorAll('form.panel')];
+      enviar(formularios[0], { n: 12, l: 2 });
+      operar(formularios, 'insertar', 10);
+      operar(formularios, 'buscar', 10);
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { ruta: ['busquedas'] } }));
+      afirmar((document.querySelector('.migas__actual') || {}).textContent === 'Búsquedas' && !document.querySelector('.pantalla-tema'),
+        'el «atrás» del navegador sale del tema a su nivel');
+      document.querySelector('.migas__nivel').click();
+      try { window.localStorage.removeItem('cc2:recientes'); } catch (error) { /* sin almacenamiento */ }
+    }
+
+    // La cinta de cada tema cabe sin desplazarse desde 1240 px de ancho, con
+    // cualquier opción elegida: si no, «Crear» queda escondido a la derecha.
+    function cintaDeCadaTema() {
+      registro.push('', '── La cinta de cada tema ──');
+      const titulos = [];
+      const listar = () => {
+        for (const id of [...document.querySelectorAll('.bloque-menu')].map((el) => el.dataset.nodo)) {
+          const bloque = document.querySelector(`.bloque-menu[data-nodo="${id}"]`);
+          if (!bloque.dataset.categoria) { titulos.push(bloque.querySelector('.bloque-menu__nombre').textContent); continue; }
+          bloque.click();
+          listar();
+          document.querySelector('.menu__volver').click();
+        }
+      };
+      const inicio = document.querySelector('.migas__nivel');
+      if (inicio) inicio.click();
+      listar();
+      const malos = new Set();
+      const medir = (titulo, donde) => {
+        const hoja = document.querySelector('.cinta__hoja:not([hidden])');
+        const sobra = hoja.scrollWidth - hoja.clientWidth;
+        if (sobra > 1) malos.add(`${titulo}, ${donde}: ${sobra} px`);
+        for (const boton of document.querySelectorAll('.cinta .cinta-boton')) {
+          if (aLaVista(boton) && (boton.scrollWidth > boton.clientWidth + 1 || boton.scrollHeight > boton.clientHeight + 1)) malos.add(`${titulo}: «${boton.textContent}» no cabe en su botón`);
+        }
+      };
+      for (const titulo of titulos) {
+        entrarATema(titulo);
+        for (const pestana of document.querySelectorAll('.cinta__pestana')) {
+          pestana.disabled = false;
+          pestana.click();
+          medir(titulo, pestana.textContent);
+          for (const select of document.querySelectorAll('.cinta__hoja:not([hidden]) select')) {
+            for (const opcion of select.options) {
+              select.value = opcion.value;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+              medir(titulo, opcion.text);
+            }
+          }
+        }
+        // Cada control explica lo suyo al pasar el mouse.
+        const mudo = [...document.querySelectorAll('.cinta__cuerpo .cinta-boton[data-accion]')].find((el) => !el.dataset.pista);
+        if (mudo) malos.add(`${titulo}: «${mudo.textContent}» no explica qué hace`);
+        document.querySelector('.pantalla-tema__volver').click();
+      }
+      if (window.innerWidth >= 1240) afirmar(malos.size === 0, `la cinta de los ${titulos.length} temas cabe entera (${[...malos].join(' · ') || 'todas'})`);
+      else registro.push(`  a ${window.innerWidth} px: ${[...malos].join(' · ') || 'caben todas'}`);
+      entrarATema('Búsqueda secuencial');
+      document.querySelector('.cinta__pestana[data-hoja="archivo"]').click();
+      control('cargar').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      const pista = document.querySelector('.pista');
+      const caja = pista.getBoundingClientRect();
+      afirmar(aLaVista(pista) && pista.textContent.includes('.cc2') && caja.left >= 0 && caja.right <= window.innerWidth, `pasar el mouse explica el botón (${pista.textContent})`);
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // El panel de escribir (2026-11-25): se abre al entrar, el grafo se dibuja
+    // al lado mientras se escribe, y se cierra al crear.
+    function panelDeEscribir() {
+      registro.push('', '── Panel de escribir ──');
+      entrarATema('Caminos mínimos');
+      const formulario = document.querySelector('form.panel');
+      const panel = document.querySelector('.escritura');
+      const lienzo = () => document.querySelector('.pantalla-tema__lienzo').getBoundingClientRect();
+      afirmar(aLaVista(panel), 'al entrar, el panel de escribir está abierto');
+      const caja = panel.getBoundingClientRect();
+      afirmar(caja.right <= lienzo().left && Math.abs(caja.top - lienzo().top) <= 1 && Math.abs(caja.bottom - lienzo().bottom) <= 1,
+        `va al lado del lienzo, de su mismo alto (${Math.round(caja.top)}–${Math.round(caja.bottom)} y ${Math.round(lienzo().top)}–${Math.round(lienzo().bottom)})`);
+      const area = formulario.querySelector('textarea');
+      area.value = '1 2\n2 3';
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      afirmar(document.querySelectorAll('.grafo__vertice').length === 3, 'lo que se escribe se dibuja al lado');
+      control('escribir').click();
+      afirmar(!aLaVista(panel), 'el botón de la cinta lo cierra');
+      control('escribir').click();
+      afirmar(aLaVista(panel), 'y lo vuelve a abrir');
+      document.querySelector('.cinta__pestana[data-hoja="ver"]').click();
+      afirmar(!aLaVista(panel), 'en otra pestaña no está');
+      control('editar-configuracion').click();
+      enviar(formulario, { aristas: '1 2\n2 3' });
+      afirmar(!aLaVista(panel) && control('crear').textContent === 'Crear otro', 'al crear se cierra, y el botón ofrece crear otro');
+      document.querySelector('.pantalla-tema__volver').click();
     }
 
     function controlDeElision() {
@@ -3076,13 +3172,13 @@
 
       entrarATema('Búsqueda secuencial');
       const formularios = [...document.querySelectorAll('form.panel')];
-      const control = () => document.querySelector('.lienzo__control');
+      const control = () => document.querySelector('[data-control="mostrar-completa"]');
 
       enviar(formularios[0], { n: 8, l: 2 });
       for (const clave of [10, 20, 30]) operar(formularios, 'insertar', clave);
       afirmar(
-        control().hidden,
-        'con una estructura que cabe entera, el control no se muestra'
+        control().disabled,
+        'con una estructura que cabe entera, el control está apagado'
       );
 
       // Con l = 2 solo existen 90 claves distintas y n = 100 se rechaza
@@ -3090,16 +3186,16 @@
       enviar(formularios[0], { n: 100, l: 3 });
       for (const clave of [100, 200, 300, 400, 500]) operar(formularios, 'insertar', clave);
       afirmar(
-        !control().hidden,
-        'con una estructura elidida, el control aparece'
+        !control().disabled,
+        'con una estructura elidida, el control se enciende'
       );
 
       // Si el control se escondiera al desaparecer los tramos, no habría forma
       // de volver: quedaría marcado y fuera de la vista.
       document.querySelector('[data-control="mostrar-completa"]').click();
       afirmar(
-        !control().hidden,
-        'con "ver estructura completa" marcada el control sigue a la vista, para poder desmarcarla'
+        !control().disabled,
+        'con "ver estructura completa" marcada el control sigue encendido, para poder desmarcarla'
       );
 
       document.querySelector('.pantalla-tema__volver').click();
@@ -3275,27 +3371,21 @@
       // Se mide lo que se ve y no el atributo: con `hidden` puesto, el
       // `display` de `.boton` los seguía dibujando (2026-09-30), y una
       // comprobación que miraba el atributo pasaba sin verlo.
-      const seVe = (accion) => {
-        const el = document.querySelector(`[data-accion="${accion}"]`);
-        return !!el && el.getClientRects().length > 0;
-      };
+      const encendido = (accion) => !document.querySelector(`[data-accion="${accion}"]`).disabled;
       afirmar(
-        seVe('cargar') && !seVe('guardar') && !seVe('vaciar') && !seVe('cancelar-configuracion'),
-        'al entrar ofrece cargar, y todavía no guardar, vaciar ni cancelar: no hay estructura'
+        encendido('cargar') && !encendido('guardar') && !encendido('vaciar'),
+        'al entrar ofrece abrir, y todavía no guardar ni vaciar: no hay estructura'
       );
 
       enviar(formularios[0], { r: 500000, B: 4096, R: 120, Ri: 15, tipo: 'primario', niveles: 'un-nivel' });
 
       afirmar(
-        seVe('guardar') && seVe('vaciar'),
-        'guardar y vaciar aparecen en cuanto hay estructura'
+        encendido('guardar') && encendido('vaciar'),
+        'guardar y vaciar se encienden en cuanto hay estructura'
       );
-      // Construida, la configuración se pliega como en los demás temas, con
-      // su resumen en la cabecera de la reproducción (2026-10-14).
-      afirmar(
-        formularios[0].hidden && seVe('editar-configuracion'),
-        'al construir, la configuración se pliega y queda el enlace «Editar»'
-      );
+      // Sin operaciones, la cinta se queda en Crear: ahí se cambia el ejercicio.
+      afirmar(aLaVista(formularios[0]) && !document.querySelector('.cinta__pestana[data-hoja="operaciones"]'),
+        'construida, la cinta sigue en Crear y no ofrece Operaciones');
 
       // Crear es la operación: la derivación tiene que estar en marcha sin que
       // nadie pulse nada más.
@@ -3490,7 +3580,7 @@
       const boton = (accion) => document.querySelector(`[data-accion="${accion}"]`);
       afirmar(!!boton('cargar'), 'el botón de cargar está desde que se entra al tema');
       afirmar(
-        boton('guardar') && boton('guardar').hidden,
+        boton('guardar') && boton('guardar').disabled,
         'guardar no se ofrece mientras no hay estructura'
       );
       afirmar(
@@ -3500,7 +3590,7 @@
 
       const formularios = [...document.querySelectorAll('form.panel')];
       enviar(formularios[0], { n: 12, l: 2 });
-      afirmar(!boton('guardar').hidden, 'con estructura, guardar aparece');
+      afirmar(!boton('guardar').disabled, 'con estructura, guardar se enciende');
 
       // El nombre propuesto dice de qué es el archivo sin abrirlo.
       const nombre = CC2.persistencia.archivo.nombreSugerido({
@@ -3601,7 +3691,7 @@
         formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       };
       const aLaVista = () => ['tipo', 'inicio', 'fin']
-        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('[data-campo]').getClientRects().length).join(' ');
       const etiqueta = (v) => document.querySelector(`.grafo__etiqueta[data-de="${v}"]`).textContent;
       const verdes = () => [...document.querySelectorAll('.grafo__vertice--encontrada')].map((g) => g.dataset.vertice).join(' ');
 
@@ -3648,7 +3738,7 @@
         // En un proyector XGA una lista de ocho sumas no cabe: se desplaza.
         if (window.innerWidth >= 1200) afirmarGrafoCabe(`${algoritmo}, 8 vértices y 28 aristas`);
       }
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Bellman A → H'));
       afirmar(!!pastilla, 'la reciente dice el algoritmo y de dónde a dónde');
     }
@@ -3806,7 +3896,7 @@
       afirmarGrafoCabe('composición de 4 × 4');
 
       // Se abre desde las recientes con el resultado dibujado.
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Operaciones'));
       afirmar(!!pastilla && pastilla.textContent.includes('G₁[G₂]'), `la reciente dice la operación (${pastilla ? pastilla.textContent : 'ninguna'})`);
       if (pastilla) {
@@ -3895,7 +3985,7 @@
         formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       };
       const aLaVista = () => ['vertice', 'vecinos', 'arista', 'fusion']
-        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('[data-campo]').getClientRects().length).join(' ');
       const pedir = (operacion) => {
         const selector = formulario.querySelector('[name="operacion"]');
         selector.value = operacion;
@@ -3934,7 +4024,7 @@
       afirmar(enResultado().split(' ').length === 21, 'complemento del camino de 8: 28 − 7 = 21 aristas');
       afirmarGrafoCabe('complemento de 8 vértices');
 
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('Operaciones sobre un grafo'));
       afirmar(!!pastilla && pastilla.textContent.includes('Complemento'), `la reciente dice la operación (${pastilla ? pastilla.textContent : 'ninguna'})`);
       if (pastilla) {
@@ -4008,7 +4098,7 @@
         formulario.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       };
       const aLaVista = () => ['metodo', 'puntos', 'aristas', 'pareamiento', 'caminos']
-        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('label').getClientRects().length).join(' ');
+        .filter((n) => formulario.querySelector(`[name="${n}"]`).closest('[data-campo]').getClientRects().length).join(' ');
       const verdes = () => [...document.querySelectorAll('.grafo__vertice--encontrada')].map((g) => g.dataset.vertice).sort().join(' ');
       const cierre = () => document.querySelectorAll('.grafo--plano .grafo__arista--encontrada').length;
 
@@ -4041,7 +4131,7 @@
         afirmar(verdes() === 'J a b c f g h i' && cierre() === 8, `${metodo}: los extremos de la pág. 7 (${verdes()})`);
         afirmarGrafoCabe(`${metodo}, al terminar`);
       }
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const pastilla = [...document.querySelectorAll('.tira-recientes__item')].find((el) => el.textContent.includes('10 puntos · Jarvis'));
       afirmar(!!pastilla, 'la reciente dice cuántos puntos y el método');
     }
@@ -4207,7 +4297,7 @@
       control('editar-configuracion').click();
       crear('kruskal', '1 2\n2 3\n3 4');
       for (let i = 0; i < 40 && !textoDelResumen().includes('Radio'); i++) control('siguiente').click();
-      const metricas = [...document.querySelectorAll('.panel')].map((p) => p.textContent).find((t) => /Diámetro/.test(t)) || '';
+      const metricas = [...document.querySelectorAll('.pantalla-tema__lienzo .pareamiento-resumen, .pantalla-tema__estado')].map((el) => el.textContent).find((texto) => /Diámetro/.test(texto)) || '';
       afirmar(metricas !== '' && !metricas.includes('Bicentro'), `el bicentro no se adelanta a su paso (${metricas.trim().replace(/\s+/g, ' ')})`);
       agotarTraza(20);
       afirmar(textoDelResumen().includes('Bicentro = {2, 3}'), `el camino 1–2–3–4 tiene bicentro (${textoDelResumen()})`);
@@ -4232,31 +4322,6 @@
       }
     }
 
-    // El panel lateral se desvanece donde queda algo por ver (2026-10-28):
-    // abajo si sigue, arriba si ya se bajó, y nada si todo cabe. Se entra con
-    // la configuración abierta, que es cuando más mide.
-    function panelLateralDesvanecido() {
-      registro.push('', '── Panel lateral desvanecido ──');
-      entrarATema('Búsqueda por transformación de claves');
-      const panel = document.querySelector('.pantalla-tema__panel-lateral');
-      const marcar = () => panel.dispatchEvent(new Event('scroll'));
-      const cortes = () => ['arriba', 'abajo'].filter((lado) => panel.classList.contains(`pantalla-tema__panel-lateral--corte-${lado}`)).join(' y ') || 'ninguno';
-      marcar();
-      if (panel.scrollHeight <= panel.clientHeight + 1) {
-        afirmar(cortes() === 'ninguno', `todo cabe a ${window.innerHeight} px: sin desvanecido (${cortes()})`);
-      } else {
-        afirmar(cortes() === 'abajo', `arriba del todo, se desvanece solo abajo (${cortes()})`);
-        panel.scrollTop = panel.scrollHeight;
-        marcar();
-        afirmar(cortes() === 'arriba', `abajo del todo, solo arriba (${cortes()})`);
-        // El velo no tapa los clics: el último control sigue respondiendo.
-        const ultimo = [...panel.querySelectorAll('.panel')].pop().getBoundingClientRect();
-        const encima = document.elementFromPoint(ultimo.left + 20, ultimo.bottom - 5);
-        afirmar(!!encima && panel.contains(encima), 'el velo no se interpone a los clics');
-      }
-      document.querySelector('.pantalla-tema__volver').click();
-    }
-
     // La tira de recientes se desplaza en horizontal con la rueda (pedido del
     // usuario, 2026-10-28), y el desvanecido va del lado donde queda algo.
     // Shift + rueda lo hace el navegador y un evento sintético no lo imita:
@@ -4270,7 +4335,7 @@
       });
       try { window.localStorage.setItem('cc2:recientes', JSON.stringify([0, 1, 2, 3, 4].map(una))); } catch (error) { return; }
       entrarATema('Búsqueda secuencial');
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const lista = document.querySelector('.tira-recientes__lista');
       if (lista.scrollWidth <= lista.clientWidth + 1) {
         registro.push(`  las cinco caben a ${window.innerWidth} px: no hay nada que desplazar`);
@@ -4306,7 +4371,7 @@
       try { window.localStorage.setItem('cc2:recientes', JSON.stringify([vieja])); } catch (error) { return; }
       // El menú lee las recientes al dibujarse: se entra a un tema y se vuelve.
       entrarATema('Búsqueda secuencial');
-      document.querySelector('.pantalla-tema__volver').click();
+      document.querySelector('.pantalla-tema__inicio').click();
       const pastilla = document.querySelector('.tira-recientes__item');
       afirmar(!!pastilla && pastilla.textContent.includes('Búsqueda por transformación de claves')
         && pastilla.textContent.includes('Truncamiento · n = 12 · l = 4'),
@@ -4331,7 +4396,7 @@
       try { window.localStorage.removeItem('cc2:recientes'); } catch (error) { /* sin almacenamiento */ }
       const guardadas = () => CC2.persistencia.recientes.obtener();
       const pastillas = () => [...document.querySelectorAll('.tira-recientes__item')];
-      const volver = () => document.querySelector('.pantalla-tema__volver').click();
+      const volver = () => document.querySelector('.pantalla-tema__inicio').click();
       const clavesEnPantalla = () => [...document.querySelectorAll('.estructura-horizontal .casilla')]
         .map((casilla) => casilla.dataset.clave).filter((clave) => !clave.startsWith('vacia-'));
 
