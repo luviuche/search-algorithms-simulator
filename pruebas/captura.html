@@ -708,7 +708,7 @@
     });
     function preparar() {
       const vista = parametros.get('vista') || 'menu';
-      if (vista === 'menu') return;
+      if (vista === 'menu') { for (const id of (parametros.get('ruta') || '').split('/').filter(Boolean)) document.querySelector(`.bloque-menu[data-nodo="${id}"]`).click(); return; }
       // La pantalla recién entrada, sin operar: ?vista=entrar&titulo=<tema del
       // índice>. Es lo primero que ve el estudiante y lo que más fácil se
       // olvida revisar (el cuadro vacío de Reproducción, 2026-09-30).

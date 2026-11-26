@@ -102,7 +102,7 @@
               const renglones = 1 + columnasDelAnidado.length;
               tramoEl.classList.add(segmento.claves ? 'tramo-elidido--claves' : 'tramo-elidido--vacias', 'tramo-elidido--cubetas');
               if (segmento.claves) tramoEl.classList.remove('tramo-elidido--vacias');
-              tramoEl.style.height = `calc(${renglones} * var(--alto-casilla) + ${renglones - 1} * var(--espacio-1))`;
+              tramoEl.style.height = `calc(${renglones} * var(--alto-casilla) + ${renglones - 1} * var(--junta))`;
             }
             grupo.appendChild(tramoEl);
             dom.estructuraEl.appendChild(grupo);
@@ -143,7 +143,7 @@
             ? casillasAnidadas(paso, indice, columnasDelAnidado)
             : [];
           if (vertical && esEncadenada()) {
-            grupo.style.gridTemplateColumns = '3ch var(--ancho-casilla) auto';
+            grupo.style.gridTemplateColumns = 'calc(3ch + var(--espacio-2)) var(--ancho-casilla) auto';
           } else if (vertical) {
             // Pistas de ancho fijo, una por casilla. Con `auto` cada fila era
             // un grid aparte que repartía el sobrante a su manera: la fila con
@@ -151,16 +151,16 @@
             // dejaban de coincidir entre filas. El tramo elidido es la
             // excepción —se dimensiona por su contenido— porque lleva dentro
             // un conteo y no una clave.
-            const pistas = columnasDelAnidado.map((segmento, columna) => {
-              if (segmento.tipo === 'tramo') return 'max-content';
-              // La primera columna del arreglo lleva el canal que la separa de
-              // la tabla: su pista tiene que contarlo, o la casilla se saldría
-              // de ella y se montaría sobre la siguiente.
-              return columna === 0
-                ? 'calc(var(--ancho-casilla) + var(--espacio-3))'
-                : 'var(--ancho-casilla)';
-            });
-            grupo.style.gridTemplateColumns = ['3ch', 'var(--ancho-casilla)', ...pistas].join(' ');
+            // **Pegadas** (2026-11-25): cada pista mide una casilla menos la
+            // junta, y la casilla, que mide entera, se monta sobre la
+            // siguiente: comparten el borde. Los tramos miden lo que una
+            // casilla, así que caben en la misma pista. La primera columna del
+            // arreglo lleva el canal que la separa de la tabla: su pista tiene
+            // que contarlo, o la casilla se saldría de ella.
+            const pistas = columnasDelAnidado.map((segmento, columna) => (columna === 0
+              ? 'calc(var(--ancho-casilla) + var(--canal-anidado) + var(--junta))'
+              : 'calc(var(--ancho-casilla) + var(--junta))'));
+            grupo.style.gridTemplateColumns = ['calc(3ch + var(--espacio-2))', 'var(--ancho-casilla)', ...pistas].join(' ');
           }
 
           const secundarias = cadenaEl ? [cadenaEl] : anidadas;

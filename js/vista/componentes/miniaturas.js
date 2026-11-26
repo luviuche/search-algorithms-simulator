@@ -9,7 +9,7 @@
   const T = (x, y, t, c = '', k) => `<text x="${x}" y="${y}" class="${c}"${paso(k)}>${t}</text>`;
   const L = (x1, y1, x2, y2, c = '', k) => `<path d="M${x1},${y1}L${x2},${y2}" class="linea ${c}"${paso(k)}/>`;
   const P = (d, c = '', k) => `<path d="${d}" class="linea ${c}"${paso(k)}/>`;
-  const C = (x, y, w, h, t = '', c = '', k) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" class="forma ${c}"${paso(k)}/>` + (t === '' ? '' : T(x + w / 2, y + h / 2 + 1, t, c.includes('apagada') ? 'apagada' : ''));
+  const C = (x, y, w, h, t = '', c = '', k) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="forma ${c}"${paso(k)}/>` + (t === '' ? '' : T(x + w / 2, y + h / 2 + 1, t, c.includes('apagada') ? 'apagada' : ''));
   const N = (x, y, t = '', c = '', k, r = 16) => `<circle cx="${x}" cy="${y}" r="${r}" class="opaca"/><circle cx="${x}" cy="${y}" r="${r}" class="forma ${c}"${paso(k)}/>` + (t === '' ? '' : T(x, y + 1, t));
   const peso = (x, y, t) => `<circle cx="${x}" cy="${y}" r="10" class="opaca"/>` + T(x, y + 1, t, 'rot');
   // Grafo: vértices {nombre:[x,y]}, aristas [a, b, peso, clase, k].
@@ -26,8 +26,10 @@
   const flecha = (x1, y, x2, c = '', k) => P(`M${x1},${y}H${x2}M${x2 - 8},${y - 6}L${x2},${y}L${x2 - 8},${y + 6}`, c, k);
   const abajo = (x, y1, y2, c = '', k) => P(`M${x},${y1}V${y2}M${x - 6},${y2 - 8}L${x},${y2}L${x + 6},${y2 - 8}`, c, k);
 
+  // Las casillas van pegadas, como en la pantalla de trabajo (2026-11-25).
+  const centro = (i, cuantas, w) => 160 - (cuantas * w) / 2 + i * w + w / 2;
   const arreglo = (claves, y, w, h, clases = {}, x0) => claves.map((t, i) => {
-    const x = (x0 === undefined ? 160 - (claves.length * (w + 4) - 4) / 2 : x0) + i * (w + 4);
+    const x = (x0 === undefined ? 160 - (claves.length * w) / 2 : x0) + i * w;
     const [c, k] = clases[i] || [];
     return C(x, y, w, h, t, c || '', k);
   }).join('');
@@ -37,7 +39,7 @@
   // ---- Módulos ----
   E.busquedas = () => {
     const claves = [12, 25, 31, 47, 58, 63];
-    return claves.map((_, i) => T(38 + i * 49, 42, i + 1, 'rot')).join('')
+    return claves.map((_, i) => T(centro(i, 6, 45), 42, i + 1, 'rot')).join('')
       + arreglo(claves, 56, 45, 48, { 0: ['apagada', 1], 1: ['apagada', 2], 2: ['apagada', 3] })
       + P('M213,112 L250,160', 'hall', 4) + '<path d="M222,124L250,160" stroke="var(--estado-encontrada-borde)" stroke-width="10"/>'
       + '<circle cx="185" cy="80" r="46" class="opaca"/><circle cx="185" cy="80" r="46" class="forma hall" data-k="4"/>' + T(185, 82, '47', 'gra');
@@ -52,20 +54,20 @@
     + [58, 92, 126, 160, 194, 228, 262].map((x) => L(x, 14, x, 26) + L(x, 154, x, 166)).join('')
     + T(160, 48, 'memoria', 'rot')
     + arreglo([8, 15, 23, 42, 57], 68, 42, 42, { 0: ['apagada', 1], 1: ['apagada', 2], 2: ['hall', 3] })
-    + [1, 2, 3, 4, 5].map((t, i) => T(160 - 113 + i * 46 + 21, 126, t, 'rot')).join('');
+    + [1, 2, 3, 4, 5].map((t, i) => T(centro(i, 5, 42), 126, t, 'rot')).join('');
   E.externas = () => {
     let s = '<path d="M20,40a46,15 0 0 1 92,0v100a46,15 0 0 1 -92,0z" class="forma"/><path d="M20,40a46,15 0 0 0 92,0M20,74a46,15 0 0 0 92,0M20,107a46,15 0 0 0 92,0" class="linea"/>';
     s += flecha(122, 90, 160, 'eval', 1);
     [[0, 'apagada'], [1, 'eval'], [2, '']].forEach(([i, c]) => {
-      for (let j = 0; j < 4; j++) s += C(178 + j * 31, 30 + i * 49, 29, 34, '', j === 2 && i === 1 ? 'hall' : c, i + 1 + (j === 2 && i === 1 ? 1 : 0));
+      for (let j = 0; j < 4; j++) s += C(181 + j * 29, 30 + i * 49, 29, 34, '', j === 2 && i === 1 ? 'hall' : c, i + 1 + (j === 2 && i === 1 ? 1 : 0));
     });
     return s + T(177 + 62, 16, 'bloques', 'rot');
   };
   E.lineal = () => {
     const claves = [58, 12, 31, 47, 25, 63];
     return arreglo(claves, 74, 44, 44, { 0: ['apagada', 1], 1: ['apagada', 2], 2: ['apagada', 3], 3: ['hall', 4] })
-      + claves.map((_, i) => T(18 + i * 48 + 22, 134, i + 1, 'rot')).join('')
-      + P('M40,62 q24,-34 48,0 q24,-34 48,0 q24,-34 48,0 M176,53 L184,62 L189,50') + T(184, 28, '47', 'hall');
+      + claves.map((_, i) => T(centro(i, 6, 44), 134, i + 1, 'rot')).join('')
+      + P('M50,62 q22,-34 44,0 q22,-34 44,0 q22,-34 44,0 M174,53 L182,62 L187,50') + T(182, 28, '47', 'hall');
   };
   E.binaria = () => {
     const c = ['05', 12, 23, 31, 47, 58, 63];
@@ -78,7 +80,7 @@
     let s = C(14, 70, 56, 40, '31') + flecha(76, 90, 100, 'eval', 1)
       + '<rect x="106" y="62" width="92" height="56" rx="8" class="forma eval" data-k="2"/>' + T(152, 82, '31 mod 7') + T(152, 101, '+ 1 = 4', 'rot')
       + flecha(204, 90, 228, 'eval', 3);
-    for (let i = 0; i < 7; i++) s += C(254, 13 + i * 22, 52, 20, i === 3 ? '31' : { 0: '28', 5: '12' }[i] || '', i === 3 ? 'hall' : i === 0 || i === 5 ? '' : 'vacia', i === 3 ? 4 : 0) + T(242, 24 + i * 22, i + 1, 'rot');
+    for (let i = 0; i < 7; i++) s += C(254, 20 + i * 20, 52, 20, i === 3 ? '31' : { 0: '28', 5: '12' }[i] || '', i === 3 ? 'hall' : i === 0 || i === 5 ? '' : 'vacia', i === 3 ? 4 : 0) + T(242, 31 + i * 20, i + 1, 'rot');
     return s;
   };
   const arbol = (v, aristas, clases, r = 15) => {
@@ -106,7 +108,7 @@
     [['r', 'A', 0], ['r', 'q', 1, '', 0], ['q', 'B', 0], ['q', 'C', 1]],
     { r: ['hall', 3, '1', 18], q: ['eval', 2, '2/4', 22], A: ['', 0, 'A', 18], B: ['', 1, 'B', 18], C: ['', 1, 'C', 18] })
     + T(62, 86, '2/4', 'rot') + T(145, 148, '1/4', 'rot') + T(300, 148, '1/4', 'rot');
-  const bloque = (x, y, cl, k, marcada) => [0, 1, 2, 3].map((j) => C(x + j * 22, y, 21, 26, '', j === marcada ? 'hall' : cl, j === marcada ? k + 1 : k)).join('');
+  const bloque = (x, y, cl, k, marcada) => [0, 1, 2, 3].map((j) => C(x + j * 21, y, 21, 26, '', j === marcada ? 'hall' : cl, j === marcada ? k + 1 : k)).join('');
   E['externa-secuencial'] = () => {
     let s = '';
     [['apagada', 1], ['apagada', 2], ['eval', 3], ['', 0]].forEach(([c, k], i) => { s += T(66, 31 + i * 40, `Bloque ${i + 1}`, 'rot') + bloque(124, 18 + i * 40, c, k, i === 2 ? 1 : -1); });
@@ -120,18 +122,18 @@
   E.indices = () => {
     let s = T(62, 16, 'índice', 'rot') + T(254, 16, 'datos', 'rot');
     ['01', '12', '23'].forEach((t, i) => {
-      s += C(30, 58 + i * 26, 64, 24, t, i === 1 ? 'eval' : '', i === 1 ? 1 : 0);
-      s += P(`M94,${70 + i * 26} C150,${70 + i * 26} 150,${47 + i * 52} 204,${47 + i * 52}`, i === 1 ? 'eval' : '', i === 1 ? 2 : 0);
-      for (let j = 0; j < 4; j++) s += C(208 + j * 24, 30 + i * 52, 22, 34, '', i === 1 ? (j === 2 ? 'hall' : 'eval') : '', i === 1 ? 3 : 0);
+      s += C(30, 58 + i * 24, 64, 24, t, i === 1 ? 'eval' : '', i === 1 ? 1 : 0);
+      s += P(`M94,${70 + i * 24} C150,${70 + i * 24} 150,${47 + i * 52} 204,${47 + i * 52}`, i === 1 ? 'eval' : '', i === 1 ? 2 : 0);
+      for (let j = 0; j < 4; j++) s += C(208 + j * 22, 30 + i * 52, 22, 34, '', i === 1 ? (j === 2 ? 'hall' : 'eval') : '', i === 1 ? 3 : 0);
     });
     return s;
   };
   E.cubetas = () => {
     let s = '';
-    const cubeta = (x, claves, c, k) => [0, 1, 2].map((i) => { const t = claves[2 - i]; return C(x, 26 + i * 40, 40, 36, t === undefined ? '' : t, c || (t === undefined ? 'vacia' : ''), k); }).join('');
-    s += cubeta(22, [14, 22]) + cubeta(70, [27, 31, 35], 'col', 1) + flecha(122, 88, 158, 'eval', 2);
-    s += cubeta(172, [27]) + cubeta(220, [22, 31]) + cubeta(268, [14, 35]);
-    return s + T(42, 160, 1, 'rot') + T(90, 160, 2, 'rot') + T(192, 160, 1, 'rot') + T(240, 160, 2, 'rot') + T(288, 160, 3, 'rot');
+    const cubeta = (x, claves, c, k) => [0, 1, 2].map((i) => { const t = claves[2 - i]; return C(x, 32 + i * 36, 40, 36, t === undefined ? '' : t, c || (t === undefined ? 'vacia' : ''), k); }).join('');
+    s += cubeta(26, [14, 22]) + cubeta(66, [27, 31, 35], 'col', 1) + flecha(118, 86, 152, 'eval', 2);
+    s += cubeta(170, [27]) + cubeta(210, [22, 31]) + cubeta(250, [14, 35]);
+    return s + T(46, 20, 1, 'rot') + T(86, 20, 2, 'rot') + T(190, 20, 1, 'rot') + T(230, 20, 2, 'rot') + T(270, 20, 3, 'rot');
   };
 
   // ---- Grafos ----

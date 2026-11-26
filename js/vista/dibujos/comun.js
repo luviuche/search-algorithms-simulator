@@ -106,7 +106,9 @@
       el.className = 'tramo-elidido'
         + (vacias ? ' tramo-elidido--vacias' : '')
         + (claves ? ' tramo-elidido--claves' : '');
-      el.textContent = `⋯ ${hasta - desde + 1} ⋯`;
+      // Con tres cifras o más, sin espacios: el tramo mide lo que una casilla.
+      const cantidad = hasta - desde + 1;
+      el.textContent = cantidad >= 100 ? `⋯${cantidad}⋯` : `⋯ ${cantidad} ⋯`;
       // El tramo es el mismo mientras resuma las mismas casillas: con esa
       // identidad se desliza con la fila; si cambia lo que resume, es nuevo y
       // entra desvanecido (ver `animarFlip`).

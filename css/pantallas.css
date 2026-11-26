@@ -246,7 +246,8 @@
      que su grupo es más bajo que los de las casillas y alinearlo al pie lo
      dejaría hundido a la altura de la numeración. */
   align-items: flex-start;
-  gap: var(--espacio-2);
+  /* Pegadas: el borde compartido lo da `--junta` (ver «Casillas pegadas»). */
+  gap: 0;
   /* Centrada en el lienzo (CLAUDE.md 6.2). Si aun con elisión no cabe a lo
      ancho, scrollea ella y no la página. */
   place-self: center;
@@ -260,7 +261,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--espacio-1);
+  gap: 0;
 }
 
 .tramo-elidido {
@@ -414,7 +415,7 @@
 .bloque__registros {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-1);
+  gap: 0;
 }
 
 /* Renglones elididos dentro de un bloque. Todos los bloques y la escala se
@@ -445,7 +446,7 @@
 .tramo-registros__grupo {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-1);
+  gap: 0;
   flex-shrink: 0;
 }
 
@@ -511,7 +512,7 @@
    como tal. */
 .estructura-apilada {
   display: grid;
-  column-gap: var(--espacio-2);
+  column-gap: 0;
   row-gap: var(--espacio-1);
   align-items: center;
   justify-content: center;
@@ -637,7 +638,7 @@
 .estructura-vertical {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-1);
+  gap: 0;
   max-height: 100%;
   overflow-y: auto;
   padding-right: var(--espacio-2);
@@ -647,20 +648,22 @@
    elisión da a los tramos una altura propia y la numeración debe seguirlos. */
 .fila-casilla {
   display: grid;
-  grid-template-columns: 3ch auto;
+  grid-template-columns: calc(3ch + var(--espacio-2)) auto;
   align-items: center;
-  gap: var(--espacio-2);
+  gap: 0;
 }
 
 .fila-casilla .escala__marca {
   text-align: right;
+  padding-right: var(--espacio-2);
 }
 
 /* Un canal separa la tabla de su arreglo anidado. Sin él la fila se lee como
    un arreglo de k+1 casillas iguales y se pierde cuál es la dirección, que es
    justo lo que la primera columna significa (CLAUDE.md 5.4). */
-.fila-casilla .casilla--anidada:nth-child(3) {
-  margin-left: var(--espacio-3);
+.fila-casilla .casilla--anidada:nth-child(3),
+.fila-casilla .tramo-elidido--anidado:nth-child(3) {
+  margin-left: var(--canal-anidado);
 }
 
 .fila-casilla .tramo-elidido {
@@ -1026,7 +1029,109 @@
 /* Entre fila y fila, separado de las casillas: pegado, el borde punteado se
    confundía con el de la casilla vecina. */
 .fila-casilla .tramo-elidido--vacias:not(.tramo-elidido--anidado) {
-  margin: 2px 0;
+  margin: 0;
+}
+
+/* ── Casillas pegadas (pedido del docente, 2026-11-25) ──────────────────────
+   En las estructuras de búsquedas las casillas van pegadas, como en el
+   tablero: cada una se monta `--junta` sobre la anterior y comparten el
+   borde. Los tramos elididos miden lo que una casilla (pedido del usuario),
+   así que la cuadrícula no se descuadra. Lo que sigue separado, separado: los
+   bloques del archivo, las filas del apilado de binaria —cada una es un
+   paso—, el canal entre la tabla y su arreglo anidado, los nodos de una
+   cadena y la fila «Col» de las cubetas. */
+.pantalla-tema {
+  --canal-anidado: calc(var(--espacio-3) + var(--espacio-2));
+}
+
+/* La fila: casillas y tramos seguidos. */
+.estructura-horizontal > * + * {
+  margin-left: var(--junta);
+}
+
+/* La columna de una cubeta, y la de los números de renglón: los renglones
+   pegados, la marca de arriba o de abajo con su aire. */
+.columna-casilla > :not(.escala__marca) + :not(.escala__marca) {
+  margin-top: var(--junta);
+}
+
+.columna-casilla > .escala__marca:first-child {
+  margin-bottom: var(--espacio-1);
+}
+
+.columna-casilla > .escala__marca:last-child {
+  margin-top: var(--espacio-1);
+}
+
+.columna-casilla > .en-col--primera:not(.escala__marca) {
+  margin-top: var(--espacio-3);
+}
+
+/* Los números de renglón de las cubetas no son parte de la tabla: van con su
+   aire, como la numeración de la tabla vertical. */
+.estructura-horizontal > .columna-etiquetas + .columna-casilla {
+  margin-left: var(--espacio-2);
+}
+
+/* La tabla vertical: una fila bajo otra. */
+.estructura-vertical > .fila-casilla + .fila-casilla {
+  margin-top: var(--junta);
+}
+
+/* Los registros de un bloque, y los números de renglón de su escala. */
+.bloque__registros > * + *,
+.tramo-registros__grupo > * + * {
+  margin-top: var(--junta);
+}
+
+/* Las casillas, rectas como en el tablero, y lo que se mira por encima de
+   sus vecinas: si no, su borde de color quedaría a medias bajo el de al lado. */
+.estructura-horizontal .casilla,
+.estructura-vertical .casilla,
+.estructura-apilada .casilla,
+.bloque__registros .casilla,
+.estructura-horizontal .tramo-elidido,
+.estructura-vertical .tramo-elidido,
+.estructura-apilada .tramo-elidido,
+.tramo-registros {
+  position: relative;
+  border-radius: 0;
+}
+
+:is(.estructura-horizontal, .estructura-vertical, .estructura-apilada, .bloque__registros) .casilla--ocupada {
+  z-index: 1;
+}
+
+:is(.estructura-horizontal, .estructura-vertical, .estructura-apilada, .bloque__registros)
+  :is(.casilla--en-evaluacion, .casilla--encontrada, .casilla--insertada, .casilla--colision, .casilla--eliminada) {
+  z-index: 2;
+}
+
+/* El tramo elidido mide lo que una casilla y se dibuja como un tramo de la
+   misma estructura: punteado, con el conteo dentro. */
+.estructura-horizontal > .columna-casilla > .tramo-elidido:not(.tramo-elidido--cubetas),
+.estructura-vertical .tramo-elidido,
+.estructura-apilada .tramo-elidido {
+  box-sizing: border-box;
+  width: var(--ancho-casilla);
+  min-width: 40px;
+  height: var(--alto-casilla);
+  padding: 0;
+  border: 1px dashed var(--borde-fuerte);
+  background: var(--superficie-hundida);
+  white-space: nowrap;
+}
+
+.estructura-horizontal .tramo-elidido--cubetas {
+  width: var(--ancho-casilla);
+  padding: 0;
+}
+
+/* El que salta filas enteras de la matriz de anidados cruza la fila de punta
+   a punta: es lo que dice que se saltaron direcciones completas. */
+.estructura-vertical .tramo-elidido--matriz {
+  justify-self: stretch;
+  width: auto;
 }
 
 /* Panel del cálculo de la dirección (CLAUDE.md 5.3): el desarrollo se revela

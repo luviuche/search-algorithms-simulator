@@ -2819,9 +2819,11 @@
       const despues = escala();
       registro.push(`  escala: ${antes} → completa ${conCompleta} → otra vez elidida ${despues}`);
       // Si en esta ventana el apilado no crece, no hay escala que recuperar:
-      // lo ejercitan las ventanas anchas (`--zoom`).
+      // lo ejercitan las ventanas anchas (`--zoom`). Con las casillas pegadas
+      // (2026-11-25) la completa puede caber a la misma escala: lo que importa
+      // es que al apagarla vuelva a la de antes.
       afirmar(
-        antes <= 1 || (conCompleta < antes && Math.abs(despues - antes) < 0.0001),
+        antes <= 1 || (conCompleta <= antes && Math.abs(despues - antes) < 0.0001),
         `al apagar «Ver estructura completa» a mitad de la búsqueda, la escala vuelve a la de antes (${antes} → ${conCompleta} → ${despues})`
       );
       document.querySelector('.pantalla-tema__volver').click();

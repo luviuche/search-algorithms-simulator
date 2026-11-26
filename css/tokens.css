@@ -114,6 +114,12 @@
      varios archivos hacía que cambiarlo desalineara la escala. */
   --alto-casilla: 40px;
 
+  /* **Las casillas de una estructura de búsquedas van pegadas** (pedido del
+     docente, 2026-11-25): cada una se monta un píxel sobre la anterior y
+     comparten el borde, como en el tablero. Es lo que se descuenta entre dos
+     casillas seguidas, y lo usan también las cuentas de alto de la vista. */
+  --junta: -1px;
+
   /* Diámetro del nodo de un árbol (CLAUDE.md 6.7). Mayor que el alto de la
      casilla porque una caja redonda pierde las esquinas: con 40 px, una clave
      con su marca —«a ◂»— quedaba pegada al borde. Lo acompaña

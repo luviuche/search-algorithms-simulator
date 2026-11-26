@@ -43,7 +43,9 @@
     // y a 950 px el final quedaba fuera. Una casilla y media, y no una, para
     // que el tramo partido en claves y libres tenga aire y para que un tramo
     // no se confunda con una casilla.
-    const CASILLAS_POR_TRAMO = 1.5;
+    // Lo que una casilla (pedido del usuario, 2026-11-25): pegados, los tramos
+    // miden lo mismo que los registros, punteados y con su conteo dentro.
+    const CASILLAS_POR_TRAMO = 1;
 
     // **En una ventana baja la matriz se aprieta para caber** (opción D de las
     // maquetas, elegida por el usuario el 2026-10-17). Con N = 400 medía 429 px
@@ -62,7 +64,7 @@
     function altoDeSegmentos(segmentos) {
       const tramos = segmentos.filter((segmento) => segmento.tipo === 'tramo').length;
       const unidades = segmentos.length - tramos + tramos * CASILLAS_POR_TRAMO;
-      return `calc(${unidades} * var(--alto-casilla) + ${segmentos.length - 1} * var(--espacio-1))`;
+      return `calc(${unidades} * var(--alto-casilla) + ${segmentos.length - 1} * var(--junta))`;
     }
 
     // Numera los renglones una sola vez, a la izquierda de la matriz: todos

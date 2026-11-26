@@ -37,9 +37,9 @@
       dom.estructuraEl.className = 'estructura-apilada';
       // Una pista por segmento, del ancho único de casilla; el tramo elidido
       // se dimensiona por su conteo, que no es una clave.
-      const pistas = segmentos.map(
-        (segmento) => (segmento.tipo === 'tramo' ? 'max-content' : 'var(--ancho-casilla)')
-      );
+      // Pegadas (2026-11-25): la pista mide una casilla menos la junta y la
+      // casilla se monta sobre la siguiente. El tramo mide lo que una casilla.
+      const pistas = segmentos.map(() => 'calc(var(--ancho-casilla) + var(--junta))');
       // Sin columna de rótulos (pedido del usuario, 2026-10-09): el aviso de
       // arriba ya dice en qué paso se va —«Paso 3 de 5»— y el orden de las
       // filas cuenta la secuencia, de la primera arriba a la actual abajo. El
