@@ -83,3 +83,29 @@ test('con menos colores que χ, P(λ) = 0 y se dice cuántos hacen falta', () =>
   assert.equal(final.valor, 0);
   assert.match(final.mensaje, /hacen falta 3/);
 });
+
+// **Dirigidos** (2026-11-26): colorear no depende de la dirección. En un
+// dirigido, la ida y la vuelta entre dos vértices son dos aristas.
+const leerDirigido = (texto) => grafos.leerGrafo(texto, grafos.TIPOS.DIRIGIDO).grafo;
+
+test('un dirigido se colorea como su no dirigido: los vértices, y el polinomio', () => {
+  const dirigido = leerDirigido('a 1 3\nb 2 1\nc 3 2\nd 2 4\ne 4 3');
+  const final = ultimo(recorrer(dirigido, { modo: MODOS.VERTICES }));
+  assert.equal(letras(final.colores), 'RNAR');
+  assert.equal(final.minimo, 3);
+  const valor = (g) => ultimo(recorrer(g, { modo: MODOS.POLINOMIO, lambda: 3 })).valor;
+  assert.equal(valor(dirigido), valor(HOJA_1));
+  // Con ida y vuelta, los vértices siguen siendo vecinos una sola vez.
+  assert.equal(ultimo(recorrer(leerDirigido('1 2\n2 1\n2 3'), { modo: MODOS.VERTICES })).minimo, 2);
+});
+
+test('al colorear aristas de un dirigido, la ida y la vuelta llevan colores distintos', () => {
+  const final = ultimo(recorrer(leerDirigido('1 2\n2 1'), { modo: MODOS.ARISTAS }));
+  assert.equal(letras(final.colores), 'RN');
+  // El triángulo con ida y vuelta: seis aristas que se tocan todas. Δ = 4 y
+  // hacen falta 6, más que el Δ + 1 de un grafo simple, y se dice.
+  const doble = ultimo(recorrer(leerDirigido('1 2\n2 1\n2 3\n3 2\n1 3\n3 1'), { modo: MODOS.ARISTAS }));
+  assert.equal(doble.delta, 4);
+  assert.equal(doble.minimo, 6);
+  assert.match(doble.mensaje, /χ′\(G\) = Δ \+ 2/);
+});

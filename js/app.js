@@ -416,8 +416,8 @@
   // lee de ellos cada vez que hace falta.
   function grafoDeLaEstructura(estructura) {
     const p = estructura && estructura.parametros;
-    // Sin tipo —el coloreado no lo pide, no depende de la dirección— es no
-    // dirigido.
+    // Sin tipo —los coloreados guardados antes del 2026-11-26, cuando el tema
+    // no lo pedía— es no dirigido.
     return p && p.aristas ? dominio.grafo.leerGrafo(p.aristas, p.tipo || dominio.grafo.TIPOS.NO_DIRIGIDO).grafo : null;
   }
   const describirGrafo = (grafo) => `${grafo.vertices.length} vértices · ${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}`
@@ -1475,8 +1475,9 @@
     // Coloreado y particionamiento (CLAUDE.md 5.14): colorear los vértices o
     // las aristas en orden con el primer color libre de R, N, A, V, o armar
     // el polinomio cromático con la fórmula general. Se arma como los otros
-    // temas de grafos; no pide si el grafo es dirigido, porque el coloreado
-    // no depende de la dirección.
+    // temas de grafos. **Acepta dirigidos** (pedido del usuario, 2026-11-26):
+    // colorear no depende de la dirección, y así el grafo de la matricial o de
+    // caminos mínimos se colorea tal cual (CLAUDE.md 5.14).
     coloreado: {
       // La descripción larga va en el encabezado del tema; el menú lleva una
       // corta (2026-10-28).
@@ -1503,12 +1504,13 @@
       mensajeDerivacion: 'Coloreado iniciado.',
       mensajeCreacion: (estructura) => {
         const grafo = grafoDeLaEstructura(estructura);
-        return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas (${grafo.aristas.map((a) => a.nombre).join(', ')}).`;
+        const tipo = grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? ' dirigido' : '';
+        return `Grafo${tipo} creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas (${grafo.aristas.map((a) => a.nombre).join(', ')}).`;
       },
       detalleReciente: (estructura) => {
         const grafo = grafoDeLaEstructura(estructura);
         const que = { vertices: 'vértices', aristas: 'aristas', polinomio: 'polinomio cromático' }[estructura.parametros.modo];
-        return `${grafo.vertices.length} vértices · ${que}`;
+        return `${describirGrafo(grafo)} · ${que}`;
       },
       alCrear: ({ estructura }) => algoritmos.coloreado.recorrer(grafoDeLaEstructura(estructura), {
         modo: estructura.parametros.modo,
@@ -1532,6 +1534,14 @@
           validar: (entrada) => (Object.values(dominio.coloreado.MODOS).includes(entrada)
             ? { valido: true, valor: entrada }
             : { valido: false, mensaje: 'Elija qué colorear.' })
+        },
+        // No dirigido de entrada, que es como se colorea en clase. En un
+        // dirigido, «1 2» y «2 1» son dos aristas: al colorear aristas se
+        // tocan en sus dos extremos y llevan colores distintos.
+        {
+          ...PARAMETRO_TIPO_DE_GRAFO,
+          opciones: PARAMETRO_TIPO_DE_GRAFO.opciones.slice().reverse(),
+          ayuda: 'Colorear no depende de la dirección. En un dirigido se dibujan las flechas, y «1 2» y «2 1» son dos aristas.'
         },
         {
           nombre: 'lambda',

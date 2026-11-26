@@ -3952,7 +3952,8 @@
       registro.push('', '── Coloreado ──');
       entrarATema('Coloreado y particionamiento');
       const formulario = document.querySelector('form.panel');
-      afirmar(!formulario.querySelector('[name="tipo"]'), 'no pide si el grafo es dirigido: el coloreado no depende de la dirección');
+      // Acepta dirigidos desde el 2026-11-26, y entra en no dirigido.
+      afirmar(formulario.querySelector('[name="tipo"]').value === 'no-dirigido', 'pide si el grafo es dirigido, y entra en no dirigido');
       const crear = (modo) => {
         formulario.querySelector('[name="modo"]').value = modo;
         formulario.querySelector('[name="lambda"]').value = '3';

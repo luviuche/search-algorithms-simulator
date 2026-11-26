@@ -28,6 +28,9 @@
     const minimo = coloreado.minimoDeColores(ev);
     const cosa = deAristas ? 'Arista' : 'Vértice';
     const delta = coloreado.gradoMaximo(grafo);
+    // χ′(G) es Δ o Δ + 1 en un grafo simple (Vizing). En un dirigido, la ida y
+    // la vuelta entre dos vértices se tocan en sus dos extremos y puede pasar.
+    const extra = (k) => (k <= 0 ? 'Δ' : `Δ + ${k}`);
     const tabla = filas.map((f) => ({
       clave: f.clave,
       vecinos: f.vecinosColoreados.map((v) => `${v.clave} (${letra(v.color)})`).join(', ') || '—',
@@ -104,7 +107,7 @@
       calculo: lineas.map((l, i) => ({ ...l, activa: i === lineas.length - 1 })),
       tituloCalculo: deAristas ? 'Índice cromático' : 'Número cromático',
       mensaje: `Se usaron ${usados} ${usados === 1 ? 'color' : 'colores'}, y no se puede con menos: ${porque.largo}. ${simbolo} = ${minimo.minimo}.`
-        + (deAristas ? ` El grado máximo es Δ = ${delta}${minimo.minimo === delta ? ', y χ′(G) = Δ' : ', y χ′(G) = Δ + 1'}.` : '')
+        + (deAristas ? ` El grado máximo es Δ = ${delta}, y χ′(G) = ${extra(minimo.minimo - delta)}.` : '')
     }));
     return pasos;
   }
