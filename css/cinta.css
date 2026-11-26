@@ -600,3 +600,282 @@ form .escritura__campo {
   .cinta-boton { font-size: 13px; }
   .cinta-campos { gap: 7px 8px; }
 }
+
+/* ── El editor de un grafo (2026-11-26, CLAUDE.md 6.13): cuántos vértices,
+   cada arista de cuál a cuál y, si es ponderado, su peso. ── */
+form .escritura__campo--grafo {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.editor-grafo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  font-weight: 400;
+}
+
+.editor-grafo [hidden] {
+  display: none !important;
+}
+
+.editor-grafo__vertices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-2) var(--espacio-3);
+}
+
+.editor-grafo__dato {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--tinta-suave);
+}
+
+.editor-grafo select,
+.editor-grafo input[type='number'],
+.editor-grafo__peso {
+  box-sizing: border-box;
+  height: 31px;
+  padding: 0 6px;
+  border: 1.5px solid #7C8FAA;
+  border-radius: var(--radio-control);
+  background-color: var(--superficie);
+  color: var(--tinta);
+  font: 400 15px var(--fuente-mono);
+}
+
+.editor-grafo select {
+  padding: 0 4px;
+}
+
+.editor-grafo__dato > select {
+  width: 104px;
+  font-size: 14px;
+}
+
+.editor-grafo__contador {
+  display: flex;
+}
+
+.editor-grafo__contador input[type='number'] {
+  width: 58px;
+  padding: 0 2px;
+  border-radius: 0;
+  text-align: center;
+  appearance: textfield;
+}
+
+.editor-grafo input[type='number']::-webkit-inner-spin-button {
+  display: none;
+}
+
+.editor-grafo__dato > input[type='number'] {
+  width: 56px;
+  padding: 0 6px;
+  appearance: textfield;
+}
+
+.editor-grafo__paso {
+  width: 31px;
+  height: 31px;
+  border: 1.5px solid #7C8FAA;
+  background: var(--modulo-ficha);
+  color: var(--tinta);
+  font: 500 18px/1 var(--fuente-texto);
+  cursor: pointer;
+}
+
+.editor-grafo__paso:first-child { border-radius: var(--radio-control) 0 0 var(--radio-control); border-right: 0; }
+.editor-grafo__paso:last-child { border-radius: 0 var(--radio-control) var(--radio-control) 0; border-left: 0; }
+
+.editor-grafo__paso:hover:not(:disabled) {
+  background: var(--modulo);
+  color: #fff;
+}
+
+.editor-grafo__paso:disabled {
+  color: #A3B0C2;
+  cursor: default;
+}
+
+.editor-grafo .editor-grafo__ponderado {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.editor-grafo .editor-grafo__ponderado input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--modulo);
+}
+
+/* La tabla: [nombre] desde → hasta [peso] quitar. */
+.editor-grafo__tabla {
+  --columnas: 54px 14px 54px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.editor-grafo__tabla--con-peso { --columnas: 54px 14px 54px 52px 30px; }
+.editor-grafo__tabla--con-rotulo { --columnas: 18px 54px 14px 54px 30px; }
+.editor-grafo__tabla--con-rotulo.editor-grafo__tabla--con-peso { --columnas: 18px 54px 14px 54px 52px 30px; }
+
+.editor-grafo__fila {
+  display: grid;
+  grid-template-columns: var(--columnas);
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: var(--radio-control);
+}
+
+.editor-grafo__fila--encabezado {
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12.5px;
+  color: var(--tinta-suave);
+}
+
+.editor-grafo__fila--mal {
+  background: var(--estado-colision-relleno);
+  box-shadow: inset 0 0 0 1.5px var(--estado-colision-borde);
+}
+
+@keyframes editor-grafo-avisar {
+  from { background: var(--estado-evaluacion-relleno); }
+}
+
+.editor-grafo__fila--avisada {
+  animation: editor-grafo-avisar 900ms ease-out;
+}
+
+.editor-grafo__rotulo {
+  font: italic 400 14px var(--fuente-mono);
+  color: var(--tinta-suave);
+  text-align: center;
+}
+
+.editor-grafo__flecha {
+  text-align: center;
+  color: var(--tinta-suave);
+}
+
+.editor-grafo__peso {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+.editor-grafo__peso::placeholder {
+  color: #8A98AD;
+}
+
+.editor-grafo select:focus,
+.editor-grafo input:focus {
+  border-color: var(--modulo);
+  outline: 2px solid var(--modulo);
+  outline-offset: -1px;
+}
+
+.editor-grafo__quitar {
+  width: 30px;
+  height: 30px;
+}
+
+.editor-grafo__agregar {
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+.editor-grafo__guia {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--tinta-suave);
+}
+
+.editor-grafo__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editor-grafo__texto textarea {
+  min-height: 150px;
+}
+
+.editor-grafo__aviso {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--radio-control);
+  background: var(--estado-evaluacion-relleno);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.editor-grafo__arriba {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+.editor-grafo__titulo {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.editor-grafo__modos {
+  display: flex;
+}
+
+.editor-grafo__modos button {
+  height: 27px;
+  padding: 0 12px;
+  border: 1.5px solid #7C8FAA;
+  background: var(--superficie);
+  color: var(--tinta);
+  font: 400 13px var(--fuente-texto);
+  cursor: pointer;
+}
+
+.editor-grafo__modos button:first-child { border-radius: var(--radio-control) 0 0 var(--radio-control); border-right-width: 0; }
+.editor-grafo__modos button:last-child { border-radius: 0 var(--radio-control) var(--radio-control) 0; }
+
+.editor-grafo__modos button[aria-pressed='true'] {
+  border-color: var(--modulo);
+  background: var(--modulo);
+  color: #fff;
+  font-weight: 500;
+}
+
+.editor-grafo__modos button:first-child[aria-pressed='true'] + button {
+  border-left-color: var(--modulo);
+}
+
+/* Unir dos vértices con el mouse, en la vista previa. */
+.pantalla-tema--uniendo .estructura-grafo--previa [data-vertice] {
+  cursor: pointer;
+}
+
+.pantalla-tema--uniendo .estructura-grafo--previa [data-vertice]:hover circle {
+  stroke: var(--modulo);
+  stroke-width: 3;
+}
+
+.estructura-grafo--previa .grafo__vertice--elegido circle,
+.pantalla-tema--uniendo .estructura-grafo--previa .grafo__vertice--elegido:hover circle {
+  fill: var(--estado-evaluacion-relleno);
+  stroke: var(--estado-evaluacion-borde);
+  stroke-width: 3.5;
+}

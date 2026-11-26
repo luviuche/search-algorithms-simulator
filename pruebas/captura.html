@@ -723,6 +723,22 @@
           campo.dispatchEvent(new Event('change', { bubbles: true }));
         }
         if (parametros.get('hoja')) document.querySelector(`.cinta__pestana[data-hoja="${parametros.get('hoja')}"]`).click();
+        // `&pasos=clic:<selector>~poner:<selector>=<valor>~…`: lo que haría el
+        // estudiante, en orden (el editor de grafo, 2026-11-26). Poner un valor
+        // despacha `change`, como al salir del campo.
+        for (const paso of (parametros.get('pasos') || '').split('~').filter(Boolean)) {
+          const [accion, resto] = [paso.slice(0, paso.indexOf(':')), paso.slice(paso.indexOf(':') + 1)];
+          if (accion === 'clic') {
+            const el = document.querySelector(resto);
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          } else if (accion === 'poner') {
+            const corte = resto.lastIndexOf('=');
+            const el = document.querySelector(resto.slice(0, corte));
+            el.value = resto.slice(corte + 1);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
         return;
       }
       if (vista === 'hash') return prepararHash({ colisiona: true });

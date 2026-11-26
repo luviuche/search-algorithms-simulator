@@ -442,6 +442,12 @@
     tipo: 'texto-largo',
     renglones: 7,
     marcador: '1 2\n2 3\n3 1 4',
+    // **Se arma en el editor** (pedido del docente, 2026-11-26, CLAUDE.md
+    // 6.13): cuántos vértices y cada arista de cuál a cuál. `esquemas` son
+    // los nombres que el lector acepta —`n:1` es 1, 2, 3…; `n:*`, empezar
+    // donde se quiera—; `rotulos`, si se ve el nombre de cada arista, que la
+    // matriz de incidencia y el coloreado de aristas usan.
+    grafo: { esquemas: ['n:1'], maximo: dominio.grafo.VERTICES_MAXIMOS, rotulos: true },
     ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Para nombrarla, la letra delante («a 1 2»); sin ella toma la siguiente en orden. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices, numerados.`,
     // Va después del tipo: un no dirigido no admite «2 1» si ya está «1 2».
     validar: (entrada, { parametros }) => {
@@ -1171,7 +1177,7 @@
         ? `${NOMBRES[algoritmoDe(estructura.parametros)]} reiniciado: el grafo queda sin marcar.`
         : 'Floyd reiniciado: la matriz vuelve a la inicial.'),
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para hallar sus caminos mínimos'
+        titulo: 'Defina el grafo para hallar sus caminos mínimos'
       },
       mensajeDerivacion: (estructura) => ({
         [ALGORITMOS.FLOYD]: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
@@ -1226,6 +1232,15 @@
         { ...PARAMETRO_TIPO_DE_GRAFO, soloCon: { parametro: 'algoritmo', valor: [ALGORITMOS.FLOYD, ALGORITMOS.DIJKSTRA] } },
         {
           ...PARAMETRO_ARISTAS,
+          // Floyd numera desde 1; Dijkstra y Bellman, desde 0 como el docente,
+          // o con letras. Bellman es dirigido siempre.
+          grafo: {
+            esquemas: (datos) => (algoritmoDe({ algoritmo: datos.get('algoritmo') }) === ALGORITMOS.FLOYD ? ['n:1'] : ['n:0', 'n:1', 'A']),
+            pesos: true,
+            ponderadoPorDefecto: true,
+            maximo: dominio.grafo.VERTICES_MAXIMOS,
+            dirigido: (datos) => datos.get('algoritmo') === ALGORITMOS.BELLMAN || datos.get('tipo') === TIPOS.DIRIGIDO
+          },
           ayuda: `Una por renglón: origen, destino y, si tiene, su peso. Sin peso vale 1. Hasta ${dominio.grafo.VERTICES_MAXIMOS} vértices: en Floyd, numerados desde 1; en Dijkstra y Bellman, desde 0 o con letras.`,
           validar: (entrada, { parametros }) => {
             const lectura = leer(entrada, parametros);
@@ -1359,7 +1374,7 @@
       nombreEstructura: 'grafo',
       mensajeReinicio: 'Matriz vaciada: sus filas vuelven a estar sin llenar.',
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para ver sus matrices'
+        titulo: 'Defina el grafo para ver sus matrices'
       },
       mensajeDerivacion: 'Llenado iniciado: una fila por paso.',
       mensajeCreacion: (estructura) => {
@@ -1483,7 +1498,7 @@
       nombreEstructura: 'grafo',
       mensajeReinicio: 'Coloreado borrado: el grafo vuelve a estar sin colores.',
       mensajeLienzoVacio: {
-        titulo: 'Escriba las aristas del grafo para colorearlo'
+        titulo: 'Defina el grafo para colorearlo'
       },
       mensajeDerivacion: 'Coloreado iniciado.',
       mensajeCreacion: (estructura) => {
@@ -1615,6 +1630,11 @@
         tipo: 'texto-largo',
         renglones: 4,
         marcador,
+        grafo: {
+          esquemas: ['n:1', 'n:0', 'A', 'a', 'n:*'],
+          maximo: (datos) => (reune(String(datos.get('operacion'))) ? dominio.combinaciones.VERTICES_MAXIMOS : dominio.operaciones.VERTICES_MAXIMOS),
+          dirigido: false
+        },
         ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${dominio.combinaciones.VERTICES_MAXIMOS} vértices, o ${dominio.operaciones.VERTICES_MAXIMOS} en los productos.`,
         validar: (entrada, { parametros }) => {
           const { operacion } = parametros;
@@ -1649,7 +1669,7 @@
         nombreEstructura: 'operación',
         mensajeReinicio: 'Operación borrada: quedan los dos grafos, sin resultado.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas de G₁ y de G₂ para operarlos'
+          titulo: 'Defina G₁ y G₂ para operarlos'
         },
         mensajeDerivacion: 'Operación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1790,7 +1810,7 @@
         nombreEstructura: 'operación',
         mensajeReinicio: 'Operación borrada: queda G como se escribió.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo'
+          titulo: 'Defina el grafo: sus vértices y sus aristas'
         },
         mensajeDerivacion: 'Operación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1833,6 +1853,7 @@
             tipo: 'texto-largo',
             renglones: 6,
             marcador: '1 2\n2 3\n3 4',
+            grafo: { esquemas: ['n:1', 'n:0', 'A', 'a', 'n:*'], maximo: VERTICES_MAXIMOS, dirigido: false },
             ayuda: `Una por renglón, sus dos vértices: números o letras. Un vértice solo en su renglón queda aislado. Hasta ${VERTICES_MAXIMOS} vértices.`,
             validar: (entrada) => {
               const lectura = modelo.leer(entrada);
@@ -1944,7 +1965,7 @@
         nombreEstructura: 'grafo',
         mensajeReinicio: 'Comprobación borrada: el grafo queda sin marcar.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo'
+          titulo: 'Defina el grafo: sus vértices y sus aristas'
         },
         mensajeDerivacion: 'Comprobación iniciada.',
         mensajeCreacion: (estructura) => {
@@ -1990,6 +2011,7 @@
           {
             ...PARAMETRO_ARISTAS,
             renglones: 6,
+            grafo: { esquemas: ['n:1'], maximo: VERTICES_MAXIMOS, dirigido: false },
             ayuda: `Una por renglón: sus dos vértices. Un vértice solo en su renglón queda aislado. Hasta ${VERTICES_MAXIMOS} vértices, numerados.`,
             validar: (entrada) => {
               const lectura = leer(entrada);
@@ -2098,7 +2120,7 @@
           ? 'Envolvente borrada: quedan los puntos.'
           : 'Pareamiento borrado: el grafo queda sin marcar.'),
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo, o los puntos'
+          titulo: 'Defina el grafo, o escriba los puntos'
         },
         mensajeDerivacion: (estructura) => (deEnvolvente(estructura) ? `${tituloDe(estructura)} iniciado.` : 'Pareamiento iniciado.'),
         mensajeCreacion: (estructura) => {
@@ -2178,6 +2200,7 @@
             soloCon: soloPareamiento,
             renglones: 7,
             marcador: 'a 1 2\nb 2 3\nc 3 4',
+            grafo: { esquemas: ['n:1', 'n:0', 'A', 'n:*'], maximo: VERTICES_MAXIMOS, dirigido: false, rotulos: true },
             ayuda: `Una por renglón: su nombre, si se quiere, y sus dos vértices, números o letras. Hasta ${VERTICES_MAXIMOS} vértices.`,
             validar: (entrada) => {
               const lectura = leer(entrada);
@@ -2329,7 +2352,7 @@
         nombreEstructura: 'grafo',
         mensajeReinicio: 'Árbol borrado: el grafo queda sin marcar.',
         mensajeLienzoVacio: {
-          titulo: 'Escriba las aristas del grafo, con su peso'
+          titulo: 'Defina el grafo, con el peso de cada arista'
         },
         mensajeDerivacion: 'Árbol de expansión iniciado.',
         mensajeCreacion: (estructura) => {
@@ -2387,6 +2410,10 @@
             ...PARAMETRO_ARISTAS,
             renglones: 7,
             marcador: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
+            grafo: {
+              esquemas: ['n:1', 'n:0', 'A', 'a', 'n:*'], pesos: true, ponderadoPorDefecto: true,
+              maximo: VERTICES_MAXIMOS, dirigido: false, rotulos: true
+            },
             ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. Se nombran a, b, c… en el orden escrito. El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
             validar: (entrada) => {
               const lectura = leer(entrada);

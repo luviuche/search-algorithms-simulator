@@ -36,6 +36,7 @@
     'dominio/conjuntos.js',
     'dominio/pareamientos.js',
     'dominio/expansion.js',
+    'dominio/tabla-de-aristas.js',
 
     'algoritmos/traza.js',
     'algoritmos/secuencial.js',
@@ -84,6 +85,7 @@
     'vista/componentes/iconos.js',
     'vista/componentes/miniaturas.js',
     'vista/componentes/cinta.js',
+    'vista/componentes/editor-grafo.js',
     'vista/componentes/panel.js',
     'vista/componentes/bitacora.js',
     'vista/componentes/calculo.js',

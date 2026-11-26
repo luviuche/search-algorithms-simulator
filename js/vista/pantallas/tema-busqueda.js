@@ -4,6 +4,7 @@
   const persistencia = window.CC2.persistencia;
   const { TIPOS_PASO } = window.CC2.algoritmos.traza;
   const cinta = vista.componentes.cinta;
+  const { crearEditorGrafo } = vista.componentes.editorGrafo;
   const { crearIcono } = vista.componentes.iconos;
 
   // Ancho de casilla para los temas sin `l` (`config.sinLongitud`, CLAUDE.md
@@ -414,11 +415,18 @@
       if (!estado.estructura) {
         // Un grafo se ve mientras se escriben sus aristas (ver
         // `config.vistaPrevia`), antes de crearlo.
-        const previa = config.vistaPrevia && dom.configuracion
+        let previa = config.vistaPrevia && dom.configuracion
           ? config.vistaPrevia(new FormData(dom.configuracion))
           : null;
+        // Sin aristas todavía, o con una a medias, el lector no da grafo; el
+        // editor da los vértices, para que se puedan unir con el mouse.
+        if (!previa && !config.operaciones && !config.transformaciones) {
+          const editor = editorDelDibujo();
+          previa = editor ? editor.grafoProvisional() : null;
+        }
         if (previa) renderizarVistaPrevia(previa);
         else renderizarLienzoVacio();
+        marcarVerticeElegido();
         return;
       }
       dibujar(paso, indicePaso, opciones);
@@ -1302,7 +1310,7 @@
         // lienzo, y en la cinta queda el botón que lo abre.
         if (parametro.tipo === 'texto-largo') {
           if (!escritura) {
-            escritura = crearEscritura();
+            escritura = crearEscritura(contenedor);
             agregar(config.nombreEstructura === 'grafo' ? 'Grafo' : 'Datos', dom.botonEscritura);
           }
           escritura.agregar(parametro, acotar);
@@ -1446,7 +1454,7 @@
     // izquierda del lienzo: mientras se escribe, el grafo se dibuja al lado
     // (`vistaPrevia`). Es parte del formulario de la hoja «Crear», aunque se
     // dibuje fuera de la cinta.
-    function crearEscritura() {
+    function crearEscritura(formulario) {
       const el = document.createElement('section');
       el.className = 'escritura';
       el.hidden = true;
@@ -1477,34 +1485,83 @@
       dom.botonEscritura.addEventListener('click', () => ponerEscritura(!estado.escribiendo));
 
       function agregar(parametro, acotar) {
-        const campo = document.createElement('label');
-        campo.className = 'escritura__campo';
-        const nombre = document.createElement('span');
-        nombre.textContent = parametro.etiqueta;
         const area = document.createElement('textarea');
         area.name = parametro.nombre;
         area.rows = parametro.renglones || 6;
         area.spellcheck = false;
         area.placeholder = parametro.marcador || '';
-        const ayuda = document.createElement('span');
-        ayuda.className = 'campo__ayuda';
-        ayuda.textContent = parametro.ayuda || '';
-        campo.append(nombre, area, ayuda);
-        campos.appendChild(acotar(campo, parametro));
+        // **Un grafo se arma en su editor** (2026-11-26, CLAUDE.md 6.13): el
+        // número de vértices y cada arista de cuál a cuál; el texto queda
+        // como otra forma de escribirlo, y sigue siendo el campo.
+        if (parametro.grafo) {
+          const campo = document.createElement('div');
+          campo.className = 'escritura__campo escritura__campo--grafo';
+          const editor = crearEditorGrafo({
+            area,
+            formulario,
+            etiqueta: parametro.etiqueta,
+            ayudaDeTexto: parametro.ayuda,
+            // Con un solo grafo, el panel ya dice qué es.
+            conTitulo: (config.parametros || []).filter((otro) => otro.grafo).length > 1,
+            config: { ...parametro.grafo, alDibujo: () => editoresVisibles().length === 1 }
+          });
+          campo.appendChild(editor.el);
+          campos.appendChild(acotar(campo, parametro));
+          editores.push(editor);
+        } else {
+          const campo = document.createElement('label');
+          campo.className = 'escritura__campo';
+          const nombre = document.createElement('span');
+          nombre.textContent = parametro.etiqueta;
+          const ayuda = document.createElement('span');
+          ayuda.className = 'campo__ayuda';
+          ayuda.textContent = parametro.ayuda || '';
+          campo.append(nombre, area, ayuda);
+          campos.appendChild(acotar(campo, parametro));
+        }
         // Con una sola cosa que escribir, el botón la nombra.
-        const nombres = (config.parametros || []).filter((otro) => otro.tipo === 'texto-largo');
-        const texto = nombres.every((otro) => /^Aristas/.test(otro.etiqueta)) ? 'Escribir aristas' : 'Escribir datos';
+        const largos = (config.parametros || []).filter((otro) => otro.tipo === 'texto-largo');
+        const deGrafo = largos.filter((otro) => otro.grafo);
+        const texto = deGrafo.length === largos.length ? (deGrafo.length > 1 ? 'Definir los grafos' : 'Definir el grafo')
+          : deGrafo.length ? 'Definir los datos' : 'Escribir datos';
         titulo.textContent = texto;
         cinta.escribir(dom.botonEscritura, texto);
+        if (deGrafo.length) {
+          dom.botonEscritura.dataset.pista = 'Abre el panel donde se dan sus vértices y sus aristas: de cuál a cuál van y, si es ponderado, su peso.';
+        }
       }
       return { el, agregar };
+    }
+
+    // Los editores de grafo a la vista, en su tabla. El clic en el dibujo solo
+    // vale con uno: con los dos operandos no se sabría de cuál es el vértice.
+    const editores = [];
+    function editoresVisibles() {
+      if (!dom.escritura || dom.escritura.hidden) return [];
+      return editores.filter((editor) => editor.enTabla() && !editor.el.closest('[hidden]'));
+    }
+    function editorDelDibujo() {
+      const visibles = editoresVisibles();
+      return visibles.length === 1 ? visibles[0] : null;
+    }
+
+    // El vértice elegido con el primer clic, marcado en la vista previa.
+    function marcarVerticeElegido() {
+      const editor = editorDelDibujo();
+      pantalla.classList.toggle('pantalla-tema--uniendo', Boolean(editor) && !estado.estructura);
+      if (!editor || estado.estructura || !dom.estructuraEl) return;
+      const elegido = editor.elegido();
+      for (const vertice of dom.estructuraEl.querySelectorAll('[data-vertice]')) {
+        vertice.classList.toggle('grafo__vertice--elegido', elegido !== null && vertice.dataset.vertice === elegido);
+      }
     }
 
     function ponerEscritura(abierta) {
       estado.escribiendo = abierta;
       sincronizarEscritura();
       if (abierta) {
-        const area = [...dom.escritura.querySelectorAll('textarea')].find((campo) => campo.getClientRects().length > 0);
+        // Lo primero que se escribe: el número de vértices, o el texto.
+        const area = [...dom.escritura.querySelectorAll('textarea, [data-editor="vertices"]')].find((campo) => campo.getClientRects().length > 0);
         if (area) area.focus({ preventScroll: true });
       }
     }
@@ -1513,10 +1570,15 @@
     function sincronizarEscritura() {
       if (!dom.escritura || !dom.cinta) return;
       const abierta = estado.escribiendo && dom.cinta.actual() === 'crear' && !dom.cinta.plegada();
+      const cambia = dom.escritura.hidden === abierta;
       dom.escritura.hidden = !abierta;
       dom.botonEscritura.setAttribute('aria-pressed', String(abierta));
       pantalla.classList.toggle('pantalla-tema--escribiendo', abierta);
+      editores.forEach((editor) => editor.repintar());
+      // Cerrado el panel, el dibujo no se puede unir: la vista previa lo dice.
+      if (cambia && editores.length && !estado.estructura && dom.estructuraEl && dom.estructuraEl.isConnected) renderizarEstructura(null);
     }
+
 
     // Crear una estructura y reiniciarla son lo mismo: la nueva nace vacía y
     // la pantalla vuelve a su estado inicial. Por eso hay una sola función,
@@ -2455,6 +2517,14 @@
     const pantalla = document.createElement('div');
     pantalla.className = 'pantalla pantalla-tema';
     pantalla.dataset.modulo = config.modulo || 'busquedas';
+    // **Unir dos vértices con el mouse**, en la vista previa.
+    pantalla.addEventListener('click', (evento) => {
+      if (estado.estructura) return;
+      const vertice = evento.target.closest && evento.target.closest('.estructura-grafo--previa [data-vertice]');
+      const editor = editorDelDibujo();
+      if (!vertice || !editor) return;
+      if (editor.tocarVertice(vertice.dataset.vertice)) renderizarEstructura(null);
+    });
     pantalla.cerrar = cerrar;
     // Los dibujos fijan en ella el ancho de casilla (`ajustarAnchoDeCasilla`).
     dom.pantalla = pantalla;

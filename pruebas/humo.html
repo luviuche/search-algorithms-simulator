@@ -613,6 +613,7 @@
       afirmar(numerados.length === 0, 'ningún tema del catálogo aparece numerado');
       menuPorNiveles();
       panelDeEscribir();
+      editorDeGrafo();
       cintaDeCadaTema();
       camposDeCadaOpcion();
 
@@ -3238,6 +3239,91 @@
       control('editar-configuracion').click();
       enviar(formulario, { aristas: '1 2\n2 3' });
       afirmar(!aLaVista(panel) && control('crear').textContent === 'Crear otro', 'al crear se cierra, y el botón ofrece crear otro');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // **El editor de un grafo** (pedido del docente, 2026-11-26): cuántos
+    // vértices, cada arista de cuál a cuál —en la tabla o con dos clics en el
+    // dibujo— y su peso si es ponderado. Escribe el texto que el tema lee.
+    function editorDeGrafo() {
+      registro.push('', '── Editor de grafo ──');
+      entrarATema('Caminos mínimos');
+      const formulario = document.querySelector('form.panel');
+      const area = formulario.querySelector('textarea[name="aristas"]');
+      const editor = document.querySelector('.editor-grafo');
+      const de = (nombre) => editor.querySelector(`[data-editor="${nombre}"]`);
+      const poner = (el, valor) => {
+        el.value = valor;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const tocar = (v) => document.querySelector(`.estructura-grafo--previa [data-vertice="${v}"]`)
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const filas = () => editor.querySelectorAll('[data-fila]').length;
+      const texto = () => area.value.replace(/\n/g, ' · ');
+      afirmar(aLaVista(de('vertices')) && !aLaVista(area), 'se entra a la tabla, no al texto');
+      afirmar(de('agregar').disabled && document.querySelectorAll('.grafo__vertice').length === 0,
+        'sin vértices no se agregan aristas, y el lienzo sigue con su guía');
+
+      // Dijkstra numera desde 0: al elegirlo, la tabla también.
+      poner(formulario.querySelector('[name="algoritmo"]'), 'dijkstra');
+      poner(formulario.querySelector('[name="tipo"]'), 'dirigido');
+      afirmar(de('nombres').value === 'n:0', `con Dijkstra, los vértices desde 0 (${de('nombres').value})`);
+      poner(de('vertices'), '4');
+      afirmar(document.querySelectorAll('.estructura-grafo--previa .grafo__vertice').length === 4,
+        'con el número de vértices, se dibujan al lado para unirlos');
+      afirmar(area.value === '0\n1\n2\n3', `aún sin aristas, el texto los deja aislados («${texto()}»)`);
+
+      de('agregar').click();
+      afirmar(area.value.split('\n')[0] === '0 1', `agregar propone la primera arista que falta («${texto()}»)`);
+      tocar('2');
+      afirmar(document.querySelector('.estructura-grafo--previa [data-vertice="2"]').classList.contains('grafo__vertice--elegido'),
+        'el primer clic en el dibujo elige el vértice');
+      tocar('3');
+      afirmar(filas() === 2 && area.value.startsWith('0 1\n2 3'), `el segundo clic los une («${texto()}»)`);
+      const peso = editor.querySelector('[data-fila="1"] [data-parte="peso"]');
+      afirmar(Boolean(peso) && document.activeElement === peso, 'ponderado, el foco queda en su peso');
+      peso.value = '7';
+      peso.dispatchEvent(new Event('input', { bubbles: true }));
+      afirmar(area.value.startsWith('0 1\n2 3 7'), `el peso va al texto («${texto()}»)`);
+      tocar('3');
+      tocar('2');
+      afirmar(filas() === 3, 'dirigido, 3 → 2 es otra arista');
+      tocar('2');
+      tocar('3');
+      afirmar(filas() === 3, 'unir dos ya unidos no repite la arista');
+      poner(editor.querySelector('[data-fila="2"] [data-parte="desde"]'), '2');
+      afirmar(editor.querySelector('[data-fila="2"]').classList.contains('editor-grafo__fila--mal'), 'la que va de un vértice a sí mismo se marca');
+      editor.querySelector('[data-fila="2"] [data-parte="quitar"]').click();
+      afirmar(filas() === 2, 'y se quita con su botón');
+
+      de('ponderado').click();
+      afirmar(area.value === '0 1\n2 3', `sin ponderar, sin pesos («${texto()}»)`);
+      de('ponderado').click();
+      poner(de('vertices'), '3');
+      afirmar(area.value === '0 1\n2', `al quitar un vértice se van sus aristas («${texto()}»)`);
+
+      // En texto, y de vuelta: lo que no cabe en la tabla se dice.
+      de('texto').click();
+      afirmar(aLaVista(area) && !aLaVista(de('vertices')), 'en texto, el cuadro de siempre');
+      area.value = '0 1 4\n1 3';
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      de('tabla').click();
+      afirmar(aLaVista(area) && /falta el 2/.test(editor.querySelector('.editor-grafo__aviso').textContent),
+        'si al texto le falta un vértice, se dice y se sigue en texto');
+      area.value = '0 1 4\n1 2 2\n0 2 9';
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      de('tabla').click();
+      afirmar(!aLaVista(area) && de('vertices').value === '3' && filas() === 3, 'lo que cabe vuelve a la tabla, con sus pesos');
+
+      control('crear').click();
+      afirmar(Boolean(document.querySelector('.estructura-grafo:not(.estructura-grafo--previa)')), 'y con eso se crea el grafo');
+
+      // Un archivo, o lo puesto en el campo desde otro sitio, llega a la tabla.
+      control('editar-configuracion').click();
+      poner(formulario.querySelector('[name="algoritmo"]'), 'floyd');
+      area.value = '1 2\n2 3';
+      area.dispatchEvent(new Event('change', { bubbles: true }));
+      afirmar(de('nombres').value === 'n:1' && filas() === 2, 'lo que se pone en el campo, la tabla lo lee');
       document.querySelector('.pantalla-tema__volver').click();
     }
 

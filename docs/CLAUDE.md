@@ -310,7 +310,7 @@ En las pruebas, `entrarATema` recorre el menú con clics hasta dar con el bloque
 │   │   │   └── operaciones.js traza de insertar, buscar y eliminar
 │   │   └── colisiones/     reasignacion.js · anidados.js · encadenamiento.js
 │   ├── vista/
-│   │   ├── componentes/    casilla, panel, alerta, métrica, bitácora, cálculo, cinta, miniaturas
+│   │   ├── componentes/    casilla, panel, alerta, métrica, bitácora, cálculo, cinta, miniaturas, editor de grafo
 │   │   ├── pantallas/
 │   │   │   ├── menu.js           catálogo de temas y recientes
 │   │   │   └── tema-busqueda.js  pantalla de trabajo, parametrizada
@@ -1399,13 +1399,27 @@ De arriba abajo: cabecera del color del módulo —Inicio, volver al submódulo,
 - **Lo que se elige entre pocas opciones va en botones** (`botones: 'grandes' | 'chicos'` en el parámetro, `icono` o `cifra` en la opción). El `select` sigue siendo el campo del formulario, oculto: es lo que se lee al crear y lo que escribe abrir un archivo; la galería lo maneja y lo sigue por su `change`. **Quien ponga un valor a mano tiene que despachar ese evento.**
 - **Los nombres van cortos** (`corta`), y el completo con su ayuda sale al pasar el mouse (`crearPista`). Los campos de un mismo `grupo` se apilan de a dos. **Un grupo se oculta solo si todos sus campos lo están**, contados todos y no solo los que dependen de otro: con módulo y cuadrado se escondía «Colisiones» junto con las posiciones y la base (2026-11-25). Lo vigila `camposDeCadaOpcion`, que recorre cada opción de cada lista en los 19 temas.
 - **El ejemplo de un campo dice «ej. 82»**, en cursiva, y el campo mide lo que su ejemplo: junto al nombre, un «82» a secas se leía como un valor ya puesto, y al crear daba error.
-- **Lo que se escribe en varios renglones** —aristas, puntos— va en un panel a la izquierda del lienzo, abierto al entrar, y el grafo se dibuja al lado mientras se escribe. Es parte del formulario de Crear aunque se dibuje fuera de la cinta. El lienzo se corre para no quedar tapado.
+- **Lo que se escribe en varios renglones** —aristas, puntos— va en un panel a la izquierda del lienzo, abierto al entrar, y el grafo se dibuja al lado mientras se escribe. Las aristas se arman en el editor de grafo (§6.13). Es parte del formulario de Crear aunque se dibuje fuera de la cinta. El lienzo se corre para no quedar tapado.
 - **Guardar y Vaciar se apagan** cuando no aplican; antes desaparecían. Vaciar sigue pidiendo un segundo clic, en su propio botón.
 - **El lienzo vacío es una guía**: Crear, Operar, Reproducir, Guardar, con los símbolos de la cinta (el usuario los pidió dentro de cada tema y no en el menú).
 - **En un portátil** (menos de 690 px de alto) la cinta pierde el nombre de los grupos y todo se aprieta, y el número del paso va en el renglón del mensaje. Hasta 1599 px de ancho las cinco funciones hash van en dos columnas.
 - **El aviso se coloca antes de dibujar el paso**, para que el dibujo se ajuste ya al sitio que le deja.
 
 Lo vigilan en el humo `cintaDeCadaTema` —los 19 temas, con cada opción de cada lista, sin desplazarse desde 1240 px y con cada botón explicado—, `panelDeEscribir`, `menuPorNiveles` y `vigilarQueElGrafoQuepa`, que mira todos los pasos.
+
+### 6.13 El editor de un grafo (2026-11-26)
+
+El docente pidió que un grafo se cree **dando el número de vértices y cada arista de qué vértice a qué vértice va**, y si es ponderado, con sus pesos. El usuario eligió sobre opciones la **tabla con clic en el dibujo**, con el texto de antes como otra forma, y los nombres de los vértices a elegir.
+
+- **El editor escribe el texto de siempre** en el `textarea`, que sigue siendo el campo del formulario, como el `select` de una galería (§6.11). Cada tema lo lee con su lector, lo valida al crear y lo guarda igual: ni los lectores ni los archivos cambiaron. **Quien ponga el texto a mano tiene que despachar `input` o `change`**: es así como la tabla se entera (abrir un archivo ya lo hace).
+- **Arriba, cuántos vértices** (− n +) y cómo se nombran; **una fila por arista**: desde → hasta (o «entre — y» en un no dirigido), el peso si es ponderado y quitarla. *Agregar arista* propone la primera que falta. La que va de un vértice a sí mismo y la repetida se marcan en la tabla; lo demás lo dice el lector al crear.
+- **Dos clics en el dibujo unen dos vértices**: el primero lo marca naranja, el segundo agrega la arista y deja el foco en su peso. Tocar otra vez el marcado lo suelta; unir dos ya unidos no repite la arista. Solo con un grafo a la vista: con los dos operandos no se sabría de cuál es el vértice.
+- **Con el número de vértices ya se dibujan**: los sin arista se escriben solos en su renglón, como aislados. Donde el lector pide al menos una arista y todavía no la hay, la vista previa la da el editor (`grafoProvisional`).
+- **Los nombres** (`esquemas` en el parámetro): `n:1` es 1, 2, 3…; `n:0`, 0, 1, 2…; `A` y `a`, las letras; `n:*` deja empezar en otro número —en las operaciones G₂ suele empezar en 2—. Floyd, la matricial, el coloreado y los conjuntos, desde 1 (`dominio.grafo` lee letras como nombre de arista); Dijkstra y Bellman, desde 0 como el docente; pareamientos, sin minúsculas, que son los nombres de las aristas.
+- **Ponderado** solo donde el peso cuenta: caminos mínimos y árbol de expansión, marcado de entrada. Donde las aristas tienen nombre que se usa —incidencia, coloreado de aristas, pareamientos, ramas y cuerdas— la tabla lo muestra a la izquierda (`rotulos`), como lo pone el lector.
+- **Tabla o texto**, arriba del editor. Al volver a la tabla el texto se lee; si no cabe —vértices salteados, números y letras mezclados, más de los que caben— se dice por qué y se sigue en texto. Lo que no toca la pantalla —leer, escribir, nombrar— vive en `dominio/tabla-de-aristas.js`, con sus pruebas: lo que la tabla escribe lo lee cada tema como el grafo que se armó.
+
+Lo vigila en el humo `editorDeGrafo`.
 
 ---
 
