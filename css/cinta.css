@@ -391,6 +391,7 @@ form .cinta-campo--encima {
 .cinta .cinta-campo input::placeholder,
 .escritura textarea::placeholder {
   color: #6F7F99;
+  font-style: italic;
 }
 
 .cinta .cinta-campo input[type='number'] {

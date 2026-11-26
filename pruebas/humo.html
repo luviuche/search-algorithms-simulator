@@ -614,6 +614,7 @@
       menuPorNiveles();
       panelDeEscribir();
       cintaDeCadaTema();
+      camposDeCadaOpcion();
 
       ejercitarTema('Búsqueda secuencial', {
         n: 16, l: 2, claves: [10, 20, 30, 40, 50, 60, 70, 80],
@@ -777,6 +778,8 @@
         const visibles = propios.filter((nombre) => aLaVista(formulario.querySelector(`[data-campo="${nombre}"]`)));
         afirmar(visibles.join(',') === campos.join(','),
           `con ${funcion} se ve${campos.length ? ` solo ${campos.join(', ')}` : 'n solo n, l y el tratamiento'} (se ven: ${visibles.join(', ') || 'ninguno'})`);
+        afirmar(['n', 'l', 'tratamiento'].every((nombre) => aLaVista(formulario.querySelector(`[name="${nombre}"]`))),
+          `con ${funcion} se eligen el tamaño y las colisiones`);
       }
       document.querySelector('.pantalla-tema__volver').click();
     }
@@ -3137,6 +3140,75 @@
       const caja = pista.getBoundingClientRect();
       afirmar(aLaVista(pista) && pista.textContent.includes('.cc2') && caja.left >= 0 && caja.right <= window.innerWidth, `pasar el mouse explica el botón (${pista.textContent})`);
       document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // Cada campo de la hoja Crear aparece justo cuando le corresponde, con
+    // cada opción de cada lista, en los 19 temas (2026-11-25): un grupo que se
+    // escondía de más dejó la tabla hash sin «Colisiones» con módulo y cuadrado.
+    function camposDeCadaOpcion() {
+      registro.push('', '── Los campos de cada opción ──');
+      const titulos = [];
+      const listar = () => {
+        for (const id of [...document.querySelectorAll('.bloque-menu')].map((el) => el.dataset.nodo)) {
+          const bloque = document.querySelector(`.bloque-menu[data-nodo="${id}"]`);
+          if (!bloque.dataset.categoria) { titulos.push(bloque.querySelector('.bloque-menu__nombre').textContent); continue; }
+          bloque.click();
+          listar();
+          document.querySelector('.menu__volver').click();
+        }
+      };
+      const inicio = document.querySelector('.migas__nivel');
+      if (inicio) inicio.click();
+      listar();
+      const malos = new Set();
+      let combinaciones = 0;
+      for (const titulo of titulos) {
+        entrarATema(titulo);
+        const formulario = document.querySelector('form#configuracion');
+        if (!formulario) { document.querySelector('.pantalla-tema__volver').click(); continue; }
+        document.querySelector('.cinta__pestana[data-hoja="crear"]').click();
+        const tratamiento = formulario.querySelector('[name="tratamiento"]');
+        const revisar = (donde) => {
+          combinaciones++;
+          const valorDe = (nombre) => (formulario.querySelector(`[name="${nombre}"]`) || {}).value;
+          for (const campo of formulario.querySelectorAll('[data-campo]')) {
+            let debe = true;
+            if (campo.dataset.soloConTratamiento) debe = valorDe('tratamiento') === campo.dataset.soloConTratamiento;
+            else if (campo.dataset.soloConParametro) debe = campo.dataset.soloConValor.split(' ').includes(valorDe(campo.dataset.soloConParametro));
+            const enEscritura = campo.closest('.escritura');
+            const visto = enEscritura ? !campo.hidden : aLaVista(campo);
+            if (visto !== debe) malos.add(`${titulo} (${donde}): «${campo.dataset.campo}» ${debe ? 'no se ve' : 'se ve de más'}`);
+          }
+          for (const nombre of ['n', 'l', 'tratamiento']) {
+            const campo = formulario.querySelector(`[name="${nombre}"]`);
+            if (campo && !aLaVista(campo)) malos.add(`${titulo} (${donde}): «${nombre}» no se ve`);
+          }
+          for (const grupo of formulario.querySelectorAll('.cinta__grupo')) {
+            const algo = [...grupo.querySelectorAll('input, select, button')].some((el) => aLaVista(el) || (el.tagName === 'SELECT' && aLaVista(el.parentElement)));
+            if (aLaVista(grupo) && !algo) malos.add(`${titulo} (${donde}): el grupo «${grupo.getAttribute('aria-label')}» queda vacío`);
+          }
+          const escritura = formulario.querySelector('.escritura');
+          if (escritura && ![...escritura.querySelectorAll('.escritura__campo')].some((campo) => !campo.hidden)) malos.add(`${titulo} (${donde}): no hay nada que escribir`);
+        };
+        revisar('al entrar');
+        for (const select of [...formulario.querySelectorAll('select')]) {
+          for (const opcion of [...select.options]) {
+            select.value = opcion.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            revisar(`${select.name} = ${opcion.value}`);
+            // Con cada función hash, también cada tratamiento.
+            if (tratamiento && select !== tratamiento) {
+              for (const otro of [...tratamiento.options]) {
+                tratamiento.value = otro.value;
+                tratamiento.dispatchEvent(new Event('change', { bubbles: true }));
+                revisar(`${select.name} = ${opcion.value}, tratamiento = ${otro.value}`);
+              }
+            }
+          }
+        }
+        document.querySelector('.pantalla-tema__volver').click();
+      }
+      afirmar(malos.size === 0, `cada campo aparece cuando le corresponde (${combinaciones} combinaciones; ${[...malos].join(' · ') || 'ninguno falla'})`);
     }
 
     // El panel de escribir (2026-11-25): se abre al entrar, el grafo se dibuja

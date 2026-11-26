@@ -2696,8 +2696,20 @@
       modulo: ruta[0].id,
       volverA: ruta[ruta.length - 1].titulo
     });
-    const volver = (destino = ruta.map((nodo) => nodo.id)) => navegar(destino);
-    anotarEnHistorial(ruta.map((nodo) => nodo.id));
+    const submodulo = ruta.map((nodo) => nodo.id);
+    // **Volver al submódulo es lo mismo que el «atrás» del navegador**: se
+    // deshace la entrada del tema en vez de anotar otra. Anotando, el «atrás»
+    // siguiente volvía a ese mismo nivel y parecía no hacer nada (2026-11-25).
+    const volver = (destino = submodulo) => {
+      const delTema = window.history.state && window.history.state.tema;
+      if (delTema && destino.join('/') === submodulo.join('/')) {
+        mostrarMenu(destino);
+        window.history.back();
+      } else {
+        navegar(destino);
+      }
+    };
+    anotarEnHistorial(submodulo, { tema: tema.tema });
     montarPantalla(vista.pantallas.temaBusqueda.crearPantallaTema(configDelTema, volver, { reciente }));
   }
 
@@ -2753,6 +2765,7 @@
       alAbrirReciente: abrirReciente
     });
 
+    pantalla.dataset.ruta = ruta.join('/');
     const barra = pantalla.querySelector('.menu__cabecera');
     barra.after(elementosDomMenu.alertas);
 
@@ -2767,18 +2780,23 @@
   // **El «atrás» del navegador sube un nivel** en vez de salirse de la
   // aplicación. La dirección no cambia —desde `file://` no hay otra—: solo se
   // anota dónde se estaba. Un tema anota su submódulo, que es adonde se vuelve.
-  function anotarEnHistorial(ruta) {
+  function anotarEnHistorial(ruta, extra = {}) {
     try {
-      window.history.pushState({ ruta }, '');
+      window.history.pushState({ ruta, ...extra }, '');
     } catch (error) {
       // Sin historial la aplicación sigue: quedan sus propios botones.
     }
   }
 
   window.addEventListener('popstate', (evento) => {
+    const ruta = (evento.state && evento.state.ruta) || [];
+    // Si ya se ve ese nivel —volver de un tema lo dibuja antes de retroceder
+    // el historial—, no hay nada que hacer.
+    const menu = document.querySelector('#app > .pantalla-menu-app');
+    if (menu && menu.dataset.ruta === ruta.join('/')) return;
     const pantalla = document.querySelector('#app > .pantalla');
     if (pantalla && pantalla.cerrar) pantalla.cerrar();
-    mostrarMenu((evento.state && evento.state.ruta) || []);
+    mostrarMenu(ruta);
   });
 
   // **Se arranca con las fuentes ya cargadas** (2026-10-04). Las tipografías

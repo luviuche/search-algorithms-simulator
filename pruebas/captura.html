@@ -712,7 +712,19 @@
       // La pantalla recién entrada, sin operar: ?vista=entrar&titulo=<tema del
       // índice>. Es lo primero que ve el estudiante y lo que más fácil se
       // olvida revisar (el cuadro vacío de Reproducción, 2026-09-30).
-      if (vista === 'entrar') return entrarATema(parametros.get('titulo'));
+      // `&elegir=nombre:valor,…` elige opciones de la hoja Crear y `&hoja=ver`
+      // deja abierta otra pestaña de la cinta (2026-11-25).
+      if (vista === 'entrar') {
+        entrarATema(parametros.get('titulo'));
+        for (const par of (parametros.get('elegir') || '').split(',').filter(Boolean)) {
+          const [nombre, valor] = par.split(':');
+          const campo = document.querySelector(`#configuracion [name="${nombre}"]`);
+          campo.value = valor;
+          campo.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (parametros.get('hoja')) document.querySelector(`.cinta__pestana[data-hoja="${parametros.get('hoja')}"]`).click();
+        return;
+      }
       if (vista === 'hash') return prepararHash({ colisiona: true });
       if (vista === 'hash-libre') return prepararHash({ colisiona: false });
       if (vista === 'anidados') return prepararAnidados();

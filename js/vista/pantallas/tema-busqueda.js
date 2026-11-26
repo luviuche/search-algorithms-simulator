@@ -1310,10 +1310,13 @@
         }
         // Un parámetro corto se digita en la cinta misma.
         const control = crearEntrada({
-          type: parametro.tipo === 'numero' ? 'number' : 'text', name: parametro.nombre, placeholder: parametro.marcador || ''
+          type: parametro.tipo === 'numero' ? 'number' : 'text', name: parametro.nombre,
+          // «ej. 3» y no «3»: junto al nombre del campo, el ejemplo se leía
+          // como un valor ya puesto (2026-11-25).
+          placeholder: parametro.marcador ? `ej. ${parametro.marcador}` : ''
         });
-        // Un número largo —500000 registros— pide su campo a la medida.
-        if (parametro.tipo === 'numero' && control.placeholder.length > 4) control.style.width = `calc(${control.placeholder.length}ch + 28px)`;
+        // El campo, a la medida de su ejemplo: «ej. 500000» no cabía.
+        if (control.placeholder) control.style.width = `max(66px, calc(${control.placeholder.length}ch + 22px))`;
         agregar(parametro.grupo || corta, acotar(cinta.crearCampo({
           etiqueta: corta, titulo: parametro.etiqueta, ayuda: parametro.ayuda, control
         }), parametro), { campo: true });
@@ -1364,10 +1367,13 @@
       contenedor.append(...grupos.map((grupo) => grupo.el));
       if (escritura) contenedor.appendChild(escritura.el);
 
-      // Un grupo con todos sus campos ocultos no deja su nombre suelto.
+      // Un grupo con todos sus campos ocultos no deja su nombre suelto. Se
+      // cuentan todos sus campos y no solo los que dependen de otro: en la
+      // tabla hash, «Colisiones» comparte grupo con las posiciones y la base,
+      // y con módulo o cuadrado se escondía junto con ellas (2026-11-25).
       const ocultarGruposVacios = () => {
         for (const grupo of contenedor.querySelectorAll('.cinta__grupo')) {
-          const campos = [...grupo.querySelectorAll('[data-campo]')];
+          const campos = [...grupo.querySelectorAll('.cinta-campo, .cinta-galeria')];
           grupo.hidden = campos.length > 0 && campos.every((campo) => campo.hidden);
         }
       };

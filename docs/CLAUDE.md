@@ -260,7 +260,7 @@ El estado (`estructura`, `reproductor`, `pasoActual`) vive en el closure de cada
 - **Grafos se agrupa en cuatro**: Caminos y árboles, Operaciones, Representación matricial —un solo tema, el bloque lo abre directo— y Coloreado y conjuntos.
 - **Los temas sin construir no se muestran** (decisión del usuario): siguen en `CATALOGO` con `disponible: false`, y el menú los filtra (`seMuestra`).
 - **Dos o tres bloques van en fila; cuatro, de a dos con el dibujo a la izquierda.** En una fila quedaban altos, angostos y con el dibujo chico.
-- **Salir de un tema deja en su submódulo**, no en el inicio, y el «atrás» del navegador sube un nivel (`anotarEnHistorial`, `popstate`). La dirección no cambia: desde `file://` solo se anota el estado.
+- **Salir de un tema deja en su submódulo**, no en el inicio, y el «atrás» del navegador sube un nivel (`anotarEnHistorial`, `popstate`). La dirección no cambia: desde `file://` solo se anota el estado. **«Volver» desde un tema retrocede el historial** en vez de anotar otra entrada: anotándola, el «atrás» siguiente volvía al mismo nivel y parecía no hacer nada. El menú se dibuja al instante y el `popstate` que llega después no redibuja si ya se ve ese nivel (`dataset.ruta`).
 - Las recientes van solo en el inicio, rotuladas «Seguir con».
 - **Se dibuja a 1366 × 640 y se escala para llenar la ventana** (`escalarAlaVentana`, entre 0,75× y 2×), como antes. El alto lo fija el código y `.pantalla` no puede imponer su `100vh`: con el zoom se salía de la ventana.
 
@@ -1387,7 +1387,8 @@ De arriba abajo: cabecera del color del módulo —Inicio, volver al submódulo,
 - **La reproducción está siempre a la derecha**, en cualquier pestaña: separarla habría obligado a cambiar de pestaña a cada paso.
 - **La cinta mide lo mismo en cada pestaña**: si no, el dibujo saltaría. Se puede ocultar, y elegir una pestaña la trae de vuelta.
 - **Lo que se elige entre pocas opciones va en botones** (`botones: 'grandes' | 'chicos'` en el parámetro, `icono` o `cifra` en la opción). El `select` sigue siendo el campo del formulario, oculto: es lo que se lee al crear y lo que escribe abrir un archivo; la galería lo maneja y lo sigue por su `change`. **Quien ponga un valor a mano tiene que despachar ese evento.**
-- **Los nombres van cortos** (`corta`), y el completo con su ayuda sale al pasar el mouse (`crearPista`). Los campos de un mismo `grupo` se apilan de a dos.
+- **Los nombres van cortos** (`corta`), y el completo con su ayuda sale al pasar el mouse (`crearPista`). Los campos de un mismo `grupo` se apilan de a dos. **Un grupo se oculta solo si todos sus campos lo están**, contados todos y no solo los que dependen de otro: con módulo y cuadrado se escondía «Colisiones» junto con las posiciones y la base (2026-11-25). Lo vigila `camposDeCadaOpcion`, que recorre cada opción de cada lista en los 19 temas.
+- **El ejemplo de un campo dice «ej. 82»**, en cursiva, y el campo mide lo que su ejemplo: junto al nombre, un «82» a secas se leía como un valor ya puesto, y al crear daba error.
 - **Lo que se escribe en varios renglones** —aristas, puntos— va en un panel a la izquierda del lienzo, abierto al entrar, y el grafo se dibuja al lado mientras se escribe. Es parte del formulario de Crear aunque se dibuje fuera de la cinta. El lienzo se corre para no quedar tapado.
 - **Guardar y Vaciar se apagan** cuando no aplican; antes desaparecían. Vaciar sigue pidiendo un segundo clic, en su propio botón.
 - **El lienzo vacío es una guía**: Crear, Operar, Reproducir, Guardar, con los símbolos de la cinta (el usuario los pidió dentro de cada tema y no en el menú).
