@@ -3115,6 +3115,23 @@
         for (const boton of document.querySelectorAll('.cinta .cinta-boton')) {
           if (aLaVista(boton) && (boton.scrollWidth > boton.clientWidth + 1 || boton.scrollHeight > boton.clientHeight + 1)) malos.add(`${titulo}: «${boton.textContent}» no cabe en su botón`);
         }
+        // Los botones de un mismo apartado miden lo mismo (pedido del usuario,
+        // 2026-11-26): los grandes, todos; los chicos, los de cada columna.
+        for (const apartado of document.querySelectorAll('.cinta .cinta-galeria, .cinta .cinta-parejo')) {
+          const botones = [...apartado.children].filter((b) => b.classList.contains('cinta-boton') && aLaVista(b));
+          const chicos = apartado.matches('.cinta-galeria--chicos') || getComputedStyle(apartado).gridTemplateRows.split(' ').length > 1;
+          const grupos = new Map();
+          for (const b of botones) {
+            const clave = chicos ? Math.round(b.getBoundingClientRect().left) : 0;
+            grupos.set(clave, (grupos.get(clave) || []).concat(b));
+          }
+          for (const juntos of grupos.values()) {
+            const anchos = juntos.map((b) => b.getBoundingClientRect().width);
+            if (Math.max(...anchos) - Math.min(...anchos) > 1) {
+              malos.add(`${titulo}: «${juntos.map((b) => b.textContent).join(' / ')}» no miden lo mismo (${anchos.map(Math.round).join(', ')} px)`);
+            }
+          }
+        }
       };
       for (const titulo of titulos) {
         entrarATema(titulo);

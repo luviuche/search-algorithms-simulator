@@ -47,6 +47,36 @@
     if (viejo) viejo.replaceWith(crearIcono(icono));
   }
 
+  // **Los botones grandes seguidos de un grupo miden lo mismo** (pedido del
+  // usuario, 2026-11-26): «Reproducir» era más ancho que «Anterior», y
+  // «Vaciar» más angosto que «Guardar». Van juntos en una rejilla de columnas
+  // iguales, que miden lo que el más ancho.
+  const esGrande = (el) => el instanceof HTMLElement && el.classList.contains('cinta-boton')
+    && !el.classList.contains('cinta-boton--chico');
+
+  function emparejar(hijos) {
+    const salida = [];
+    let tanda = [];
+    const cerrar = () => {
+      if (tanda.length > 1) {
+        const parejo = document.createElement('div');
+        parejo.className = 'cinta-parejo';
+        parejo.append(...tanda);
+        salida.push(parejo);
+      } else salida.push(...tanda);
+      tanda = [];
+    };
+    for (const hijo of hijos) {
+      if (esGrande(hijo)) tanda.push(hijo);
+      else {
+        cerrar();
+        salida.push(hijo);
+      }
+    }
+    cerrar();
+    return salida;
+  }
+
   // Un grupo: lo suyo arriba y su nombre abajo, como en una hoja de cálculo.
   function crearGrupo(rotulo, ...hijos) {
     const grupo = document.createElement('div');
@@ -55,7 +85,7 @@
     grupo.setAttribute('aria-label', rotulo);
     const cuerpo = document.createElement('div');
     cuerpo.className = 'cinta__grupo-cuerpo';
-    cuerpo.append(...hijos);
+    cuerpo.append(...emparejar(hijos));
     const rotuloEl = document.createElement('div');
     rotuloEl.className = 'cinta__grupo-rotulo';
     rotuloEl.setAttribute('aria-hidden', 'true');

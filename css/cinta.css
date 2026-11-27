@@ -291,15 +291,39 @@ form.panel.cinta__hoja[hidden] {
   outline-offset: -2px;
 }
 
-.cinta-galeria {
-  display: flex;
+/* **Los botones de un mismo apartado miden lo mismo** (pedido del usuario,
+   2026-11-26): «Polinomio cromático», en dos renglones, era más ancho que
+   «Vértices» y «Aristas»; y en una columna de chicos el resaltado de lo
+   elegido cambiaba de ancho —«Dirigido» y «No dirigido»—. Columnas iguales,
+   del ancho del más ancho, y cada botón llena la suya. */
+.cinta-galeria,
+.cinta-parejo {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: var(--espacio-1);
 }
 
-/* Tres por columna, que es lo que cabe en el alto de la hoja. */
+.cinta-galeria > .cinta-boton,
+.cinta-parejo > .cinta-boton {
+  width: 100%;
+}
+
+/* Iguales, los tres de la reproducción miden lo que «Reproducir»: sin relleno a
+   los lados, para que la cinta de conjuntos y la de la tabla hash sigan
+   cabiendo a 1366 px. */
+.cinta__fija .cinta-parejo > .cinta-boton {
+  padding-inline: 2px;
+}
+
+/* Tres por columna, que es lo que cabe en el alto de la hoja. Los chicos se
+   igualan dentro de su columna y no entre columnas: con columnas iguales la
+   cinta de la tabla hash, la de conjuntos y la de envolventes ya no cabían a
+   1366 px. */
 .cinta-galeria--chicos {
   display: grid;
   grid-auto-flow: column;
+  grid-auto-columns: auto;
   grid-template-rows: repeat(var(--filas, 3), 25px);
   gap: 2px;
   align-content: center;
@@ -311,6 +335,7 @@ form.panel.cinta__hoja[hidden] {
   .cinta-galeria--muchas {
     display: grid;
     grid-auto-flow: column;
+    grid-auto-columns: auto;
     grid-template-rows: repeat(3, 25px);
     gap: 2px;
     align-content: center;
@@ -433,7 +458,9 @@ form .cinta-campo--encima {
 /* ── Velocidad ── */
 .pantalla-tema__velocidad {
   flex: none;
-  width: 130px;
+  /* 116 y no 130 desde que los tres botones de la reproducción miden lo
+     mismo (2026-11-26): la cinta de la tabla hash ya iba justa. */
+  width: 116px;
   display: grid;
   grid-template-columns: auto auto;
   justify-content: space-between;
