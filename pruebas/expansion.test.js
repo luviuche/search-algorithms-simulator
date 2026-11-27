@@ -28,7 +28,7 @@ test('el grafo admite números o letras, y sin peso la arista vale 1', () => {
   assert.equal(expansion.leerGrafo(expansion.comoTexto(FIGURA_12)).grafo.aristas.length, 7);
 });
 
-test('Kruskal en la figura 12: entran 4–5, 4–2, 3–5 y 3–1, peso 9, y lo demás no se revisa', () => {
+test('Kruskal en la figura 12: entran 4–5, 4–2, 3–5 y 3–1, peso 9, y las que quedan cerrarían un ciclo', () => {
   const pasos = recorrer(FIGURA_12, { metodo: METODOS.KRUSKAL });
   assert.deepEqual(pasos[0].tabla.map((f) => f.etiqueta), ['4–5', '4–2', '3–5', '3–1', '2–1', '4–3', '2–3']);
   assert.equal(pasos.length, 1 + 4 + 1 + 2 + 4, 'el orden, cuatro aristas que entran, el árbol, ramas y cuerdas, y cuatro sobre las distancias');
@@ -36,9 +36,9 @@ test('Kruskal en la figura 12: entran 4–5, 4–2, 3–5 y 3–1, peso 9, y lo 
   assert.deepEqual(etiquetas(FIGURA_12, final.T), ['4–5', '4–2', '3–5', '3–1']);
   assert.equal(final.total, 9);
   assert.equal(final.suma, '1 + 2 + 2 + 4 = 9');
-  assert.deepEqual(final.tabla.map((f) => f.decision), ['entra', 'entra', 'entra', 'entra', 'sobra', 'sobra', 'sobra']);
+  assert.deepEqual(final.tabla.map((f) => f.decision), ['entra', 'entra', 'entra', 'entra', 'ciclo', 'ciclo', 'ciclo']);
   assert.equal(final.propiedades[1].valor, true, 'es el único árbol mínimo');
-  assert.match(final.mensaje, /las 3 que quedan \(2–1, 4–3, 2–3\) no hace falta revisarlas/);
+  assert.match(final.mensaje, /las 3 que quedan \(2–1, 4–3, 2–3\) no se agregan, porque sus extremos ya están unidos/);
 });
 
 test('Kruskal descarta la arista que cerraría un ciclo y dice por dónde', () => {
@@ -101,7 +101,7 @@ test('árbol máximo de la figura 12: 2–3, 4–3, 2–1 y 3–5, peso 25', () 
   const final = delArbol(pasos);
   assert.deepEqual(etiquetas(FIGURA_12, final.T), ['2–3', '4–3', '2–1', '3–5']);
   assert.equal(final.total, 25);
-  assert.deepEqual(final.tabla.map((f) => f.decision), ['entra', 'entra', 'entra', 'ciclo', 'ciclo', 'entra', 'sobra']);
+  assert.deepEqual(final.tabla.map((f) => f.decision), ['entra', 'entra', 'entra', 'ciclo', 'ciclo', 'entra', 'ciclo']);
   assert.match(final.mensaje, /Árbol de expansión máximo/);
   assert.equal(final.propiedades[1].valor, true, 'es el único máximo');
   assert.match(final.propiedades[1].detalle, /pesa menos/);
@@ -162,12 +162,13 @@ test('documento de apoyo: con el árbol a, b, e, f, ramas y rango 4, cuerdas c, 
   const ramas = pasos[2];
   assert.deepEqual(ramas.ramas, ['a', 'b', 'e', 'f']);
   assert.equal(ramas.rango, 4);
-  assert.match(ramas.mensaje, /Rango = n − 1 = 5 − 1 = 4/);
+  assert.match(ramas.mensaje, /Rango = n − k = 5 − 1 = 4/);
+  assert.doesNotMatch(ramas.mensaje, /de peso/, 'sin pesos, el peso no se dice');
   const final = deCuerdas(pasos);
   assert.deepEqual(final.cuerdas, ['c', 'd', 'g', 'h']);
   assert.equal(final.nulidad, 4);
   assert.match(final.mensaje, /G′ = \(S′, A′\), con S′ = \{1, 2, 3, 4, 5\} y A′ = \{c, d, g, h\}/);
-  assert.match(final.mensaje, /Nulidad = m − n \+ 1 = 8 − 5 \+ 1 = 4/);
+  assert.match(final.mensaje, /Nulidad = m − n \+ k = 8 − 5 \+ 1 = 4/);
   assert.equal(final.propiedades.find((p) => p.nombre === 'Mínimo').valor, true, 'sin pesos, todos los árboles pesan 4');
 });
 
@@ -252,4 +253,34 @@ test('con aristas de peso 0 el centro puede tener más de dos vértices, y no es
   assert.equal(final.conceptos.centro.length, 3);
   assert.equal(final.conceptos.esBicentro, false);
   assert.match(pasos[2].mensaje, /más de dos por las aristas de peso 0/);
+});
+
+// **El taller del usuario** (docs/Grafos/Taller Grafo Árbol Exp.pdf,
+// 2026-11-26): vértices de letra, las aristas nombradas por sus extremos,
+// Kruskal con T = {ab, bd, be, ac} de peso 11, las cuerdas de peso 27, y
+// r = n − k = 4 y μ = m − n + k = 4.
+const TALLER = 'a b 2\nb d 2\nb e 3\na c 4\nc d 5\nd e 7\nc b 7\na d 8';
+
+test('el taller del usuario: con vértices de letra, las aristas por sus extremos', () => {
+  const grafo = leer(TALLER);
+  assert.deepEqual(grafo.aristas.map((a) => a.nombre), ['ab', 'bd', 'be', 'ac', 'cd', 'de', 'cb', 'ad']);
+  // Con números siguen a, b, c…, como el grafo verde del docente.
+  assert.deepEqual(FIGURA_12.aristas.map((a) => a.nombre).slice(0, 3), ['a', 'b', 'c']);
+  // El árbol escrito se da por esos nombres, y «a-b» vale por «ab».
+  assert.equal(expansion.leerArbol('ab, b-d, be, ac', grafo).valido, true);
+});
+
+test('el taller del usuario: Kruskal, ramas, rango, cuerdas y nulidad', () => {
+  const grafo = leer(TALLER);
+  const pasos = recorrer(grafo, { metodo: METODOS.KRUSKAL });
+  const final = delArbol(pasos);
+  assert.deepEqual(final.T, ['ab', 'bd', 'be', 'ac']);
+  assert.equal(final.total, 11);
+  assert.deepEqual(final.tabla.map((f) => f.decision), ['entra', 'entra', 'entra', 'entra', 'ciclo', 'ciclo', 'ciclo', 'ciclo']);
+  assert.match(final.mensaje, /las 4 que quedan \(c–d, d–e, c–b, a–d\) no se agregan/);
+  const ramas = pasos.find((p) => p.fase === 'ramas');
+  assert.match(ramas.mensaje, /\{ab, bd, be, ac\}, de peso 11\. Rango = n − k = 5 − 1 = 4/);
+  const cuerdas = deCuerdas(pasos);
+  assert.deepEqual(cuerdas.cuerdas, ['cd', 'de', 'cb', 'ad']);
+  assert.match(cuerdas.mensaje, /de peso 27\. Nulidad = m − n \+ k = 8 − 5 \+ 1 = 4/);
 });

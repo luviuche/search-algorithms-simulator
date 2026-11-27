@@ -54,11 +54,14 @@ test('lo que escribe la tabla lo lee cada tema como el grafo que se armó', () =
   assert.deepEqual(dijkstra.grafo.vertices, ['0', '1', '2']);
   assert.deepEqual(dijkstra.grafo.aristas.map((a) => a.peso), [5, 1]);
 
-  // Árbol de expansión con letras: las aristas se nombran a, b… como en la tabla.
+  // Árbol de expansión con letras: las aristas se nombran por sus extremos,
+  // AB, BC…, como las muestra la tabla (`porExtremos`); con números, a, b…
   const filas = [fila(0, 1, '2'), fila(1, 2, '7'), fila(0, 2, '4')];
   const arbol = expansion.leerGrafo(comoTexto({ n: 3, esquema: 'A', filas, ponderado: true }, true));
   assert.equal(arbol.valido, true);
-  assert.deepEqual(arbol.grafo.aristas.map((a) => a.nombre), rotulosDeAristas(filas));
+  assert.deepEqual(arbol.grafo.aristas.map((a) => a.nombre), ['AB', 'BC', 'AC']);
+  const numerado = expansion.leerGrafo(comoTexto({ n: 3, esquema: 'n:1', filas, ponderado: true }, true));
+  assert.deepEqual(numerado.grafo.aristas.map((a) => a.nombre), rotulosDeAristas(filas));
 
   // Pareamientos: sin pesos, y el aislado se queda.
   const par = pareamientos.leerGrafo(comoTexto({ n: 4, esquema: 'n:1', filas: [fila(0, 1), fila(1, 2)], ponderado: false }, false));

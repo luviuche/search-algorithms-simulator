@@ -2449,9 +2449,9 @@
             marcador: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5',
             grafo: {
               esquemas: ['n:1', 'n:0', 'A', 'a', 'n:*'], pesos: true, ponderadoPorDefecto: true,
-              maximo: VERTICES_MAXIMOS, dirigido: false, rotulos: true
+              maximo: VERTICES_MAXIMOS, dirigido: false, rotulos: true, porExtremos: true
             },
-            ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. Se nombran a, b, c… en el orden escrito. El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
+            ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. Con vértices numerados se nombran a, b, c… en el orden escrito; con letras, por sus extremos (ab). El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
             validar: (entrada) => {
               const lectura = leer(entrada);
               return lectura.valido

@@ -92,6 +92,15 @@
       aristas.push({ origen, destino, peso, nombre: nombreEnOrden(aristas.length), orden: aristas.length });
     }
     if (aristas.length === 0) return { valido: false, mensaje: 'Escriba al menos una arista: sus dos vértices y su peso, por ejemplo «1 2 5».' };
+    // **Con vértices de letra, la arista se nombra por sus extremos**, «ab»,
+    // como en el taller del usuario (2026-11-26): con a, b, c… se confundía
+    // con los vértices —«Ramas: {a, b, c, d}»—. Con números siguen a, b, c…,
+    // como el grafo verde del docente. Si dos nombres saldrían iguales
+    // («1 23» y «12 3»), se queda el orden.
+    if ([...vertices].some((v) => !esNumero(v))) {
+      const porExtremos = aristas.map((a) => `${a.origen}${a.destino}`);
+      if (new Set(porExtremos).size === porExtremos.length) aristas.forEach((a, i) => { a.nombre = porExtremos[i]; });
+    }
     if (vertices.size > VERTICES_MAXIMOS) {
       return { valido: false, mensaje: `El grafo tiene ${vertices.size} vértices; caben hasta ${VERTICES_MAXIMOS}.` };
     }
@@ -152,17 +161,19 @@
 
   // Kruskal: las aristas de menor a mayor peso —o al revés, para el máximo;
   // las de igual peso, en el orden escrito— y cada una entra si une dos componentes. Se detiene al
-  // tener n − 1: las que quedan ya no hace falta mirarlas.
+  // tener n − 1; las que quedan se anotan igual, como en el taller del
+  // usuario (2026-11-26): sus extremos ya están unidos y cerrarían un ciclo
+  // (`sobrante`, para decirlas todas juntas).
   function kruskal(grafo, objetivo = OBJETIVOS.MINIMO) {
     const orden = grafo.aristas.slice().sort(porPeso(objetivo));
     const arbol = [];
     const decisiones = [];
     for (const a of orden) {
-      if (arbol.length === grafo.vertices.length - 1) break;
+      const sobrante = arbol.length === grafo.vertices.length - 1;
       const antes = componentes(grafo, arbol);
       const de = (v) => antes.find((c) => c.includes(v));
       if (de(a.origen) === de(a.destino)) {
-        decisiones.push({ arista: a, entra: false, ciclo: caminoEn(arbol, a.origen, a.destino), componentes: antes });
+        decisiones.push({ arista: a, entra: false, ciclo: caminoEn(arbol, a.origen, a.destino), componentes: antes, sobrante });
       } else {
         arbol.push(a);
         decisiones.push({ arista: a, entra: true, une: [de(a.origen), de(a.destino)], componentes: antes });
@@ -209,7 +220,9 @@
   // Un árbol escrito por el nombre de sus aristas, «a b e f»: tiene que tener
   // n − 1, sin ciclos (con n − 1 y sin ciclos, toca a todos los vértices).
   function leerArbol(texto, grafo) {
-    const partes = String(texto || '').replace(/[{}]/g, ' ').split(/[\s,;]+/).filter(Boolean);
+    // «a-b» vale por «ab», que es como se nombra con vértices de letra.
+    const partes = String(texto || '').replace(/[{}]/g, ' ').split(/[\s,;]+/).filter(Boolean)
+      .map((p) => (grafo.aristas.some((a) => a.nombre === p) ? p : p.replace(/[-–]/g, '')));
     const arbol = [];
     for (const parte of partes) {
       const a = grafo.aristas.find((x) => x.nombre === parte);
@@ -235,7 +248,9 @@
     const cuerdas = grafo.aristas.filter((a) => !arbol.includes(a));
     const n = grafo.vertices.length;
     const m = grafo.aristas.length;
-    return { ramas, cuerdas, rango: n - 1, nulidad: m - n + 1, n, m };
+    // r = n − k y μ = m − n + k, con k los componentes: 1, porque el grafo
+    // es conexo (como las escribe el taller del usuario).
+    return { ramas, cuerdas, rango: n - 1, nulidad: m - n + 1, n, m, k: 1, pesoRamas: peso(ramas), pesoCuerdas: peso(cuerdas) };
   }
 
   // **Centro y bicentro se calculan sobre el árbol** (decisión del usuario,

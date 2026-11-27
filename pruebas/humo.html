@@ -4454,7 +4454,7 @@
         `la primera que entra va resaltada (${enArbol()})`);
       if (window.innerWidth >= 1200) afirmarGrafoCabe('Kruskal, una arista');
       hastaLasCuerdas();
-      afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('Nulidad = m − n + 1 = 7 − 5 + 1 = 3'),
+      afirmar(enArbol() === 4 && !!aviso() && aviso().textContent.includes('Nulidad = m − n + k = 7 − 5 + 1 = 3'),
         `al terminar, cuatro ramas y nulidad 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
       afirmar(document.querySelectorAll('.grafo__arista--cuerda').length === 3, 'las tres cuerdas, en azul punteado');
       afirmarGrafoCabe('Kruskal, cuerdas');
@@ -4503,8 +4503,10 @@
       control('editar-configuracion').click();
       crear('kruskal', 'A B 4\nA H 8\nB H 11\nB C 8\nH I 7\nH G 1\nI G 6\nC I 2\nC F 4\nC D 7\nG F 2\nD F 14\nD E 9\nE F 10');
       hastaLasCuerdas();
-      afirmar(enArbol() === 8 && document.querySelectorAll('.expansion-tabla__fila--ciclo').length === 3,
-        `nueve vértices: ocho en el árbol y tres ciclos (${enArbol()})`);
+      // Las que quedan al completar el árbol también se marcan «ciclo» (taller del
+      // usuario, 2026-11-26): las 14 − 8 = 6 que no entran.
+      afirmar(enArbol() === 8 && document.querySelectorAll('.expansion-tabla__fila--ciclo').length === 6,
+        `nueve vértices: ocho en el árbol y seis que cierran ciclo (${enArbol()})`);
       // A 1024 × 650 (el proyector XGA, que ya no es requisito) sobran unos
       // 30 px aun a 0,5×, como el caso extremo de los conjuntos.
       if (window.innerWidth >= 1280) afirmarGrafoCabe('Kruskal con nueve vértices');

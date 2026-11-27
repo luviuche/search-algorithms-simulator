@@ -210,6 +210,17 @@
       pintar();
     });
 
+    // El nombre de cada arista, como lo pone el lector. Donde el tema nombra
+    // por los extremos cuando los vértices son letras (`porExtremos`: árbol
+    // de expansión, 2026-11-26), «ab».
+    function rotulosDe() {
+      if (config.porExtremos && (estado.esquema === 'A' || estado.esquema === 'a') && estado.n) {
+        const nombres = nombresDe(estado.esquema, estado.n);
+        return estado.filas.map((f) => f.nombre || `${nombres[f.desde]}${nombres[f.hasta]}`);
+      }
+      return rotulosDeAristas(estado.filas);
+    }
+
     // ── Dibujar el editor ──
     function pintarNombres(esquemas) {
       const libre = esquemas.includes('n:*');
@@ -286,7 +297,7 @@
       }
       tabla.appendChild(encabezado);
 
-      const rotulos = rotulosDeAristas(estado.filas);
+      const rotulos = rotulosDe();
       const vistas = new Map();
       estado.filas.forEach((fila, i) => {
         const el = document.createElement('div');
@@ -515,7 +526,7 @@
       const c = ctx();
       const nombres = nombresDe(estado.esquema, estado.n);
       const vistas = new Set();
-      const rotulos = rotulosDeAristas(estado.filas);
+      const rotulos = rotulosDe();
       const aristas = [];
       estado.filas.forEach((fila, i) => {
         const clave = claveDe(fila, c.dirigido);

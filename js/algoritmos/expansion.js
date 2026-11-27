@@ -74,7 +74,8 @@
     })];
     const T = [];
     const descartadas = [];
-    decisiones.forEach((d, i) => {
+    const sobrantes = decisiones.filter((d) => d.sobrante).map((d) => d.arista);
+    decisiones.filter((d) => !d.sobrante).forEach((d, i) => {
       const a = d.arista;
       if (d.entra) T.push(a);
       else descartadas.push(a);
@@ -95,11 +96,12 @@
           : `${etiqueta(a)}, peso ${a.peso}: ${a.origen} y ${a.destino} ya están unidos en el árbol por ${d.ciclo.map(etiqueta).join(', ')}. Cerraría un ciclo: se descarta.`
       }));
     });
-    const sobran = orden.slice(decisiones.length);
+    // Las que quedan no se agregan: con n − 1 aristas el árbol ya une todos
+    // los vértices, así que cada una cerraría un ciclo.
     return pasos.concat(conclusion(grafo, arbol, {
-      metodo: METODOS.KRUSKAL, objetivo, descartadas: nombres(descartadas), tabla: tabla(decisiones.length),
-      antes: sobran.length
-        ? `Ya hay ${n - 1} aristas: ${sobran.length === 1 ? 'la que queda' : `las ${sobran.length} que quedan`} (${sobran.map(etiqueta).join(', ')}) no hace falta revisarlas. `
+      metodo: METODOS.KRUSKAL, objetivo, descartadas: nombres(descartadas.concat(sobrantes)), tabla: tabla(decisiones.length),
+      antes: sobrantes.length
+        ? `Ya hay ${n - 1} aristas: ${sobrantes.length === 1 ? 'la que queda' : `las ${sobrantes.length} que quedan`} (${sobrantes.map(etiqueta).join(', ')}) no se ${sobrantes.length === 1 ? 'agrega' : 'agregan'}, porque sus extremos ya están unidos y ${sobrantes.length === 1 ? 'cerraría' : 'cerrarían'} un ciclo. `
         : ''
     }));
   }
@@ -188,29 +190,35 @@
   // «se encuentra el complemento», G′ = (S′, A′); «se identifican las
   // cuerdas y la nulidad».
   function pasosDeRamasYCuerdas(grafo, arbol, delArbol) {
-    const { ramas, cuerdas, rango, nulidad, n, m } = expansion.ramasYCuerdas(grafo, arbol);
+    const { ramas, cuerdas, rango, nulidad, n, m, k, pesoRamas, pesoCuerdas } = expansion.ramasYCuerdas(grafo, arbol);
     const conRamas = { ...delArbol, ramas: nombres(ramas), rango };
+    // Como el taller del usuario (2026-11-26): r = n − k y μ = m − n + k,
+    // con k = 1 porque el grafo es conexo, y el peso de cada lado.
+    const rangoEscrito = `n − k = ${n} − ${k} = ${rango}`;
+    const nulidadEscrita = `m − n + k = ${m} − ${n} + ${k} = ${nulidad}`;
     return [
       crearPaso(TIPOS_PASO.CALCULO, {
         ...conRamas, fase: 'ramas',
         calculo: [
           { etiqueta: 'Ramas', expresion: llaves(nombres(ramas)), resultado: '', activa: false },
-          { etiqueta: 'Rango', expresion: `n − 1 = ${n} − 1`, resultado: String(rango), activa: true }
+          ...(grafo.conPesos ? [{ etiqueta: 'Peso', expresion: '', resultado: String(pesoRamas), activa: false }] : []),
+          { etiqueta: 'Rango', expresion: `n − k = ${n} − ${k}`, resultado: String(rango), activa: true }
         ],
         tituloCalculo: 'Ramas y rango',
-        mensaje: `Ramas: las aristas del árbol, ${llaves(nombres(ramas))}. Rango = n − 1 = ${n} − 1 = ${rango}, el número de ramas.`
+        mensaje: `Ramas: las aristas del árbol, ${llaves(nombres(ramas))}${grafo.conPesos ? `, de peso ${pesoRamas}` : ''}. Rango = ${rangoEscrito}, el número de ramas (k = ${k}: el grafo es conexo).`
       }),
       crearPaso(TIPOS_PASO.CALCULO, {
         ...conRamas, fase: 'cuerdas', cuerdas: nombres(cuerdas), nulidad, m, n,
         calculo: [
           { etiqueta: 'Ramas', expresion: llaves(nombres(ramas)), resultado: String(rango), activa: false },
           { etiqueta: 'Cuerdas', expresion: llaves(nombres(cuerdas)), resultado: '', activa: false },
-          { etiqueta: 'Nulidad', expresion: `m − n + 1 = ${m} − ${n} + 1`, resultado: String(nulidad), activa: true }
+          ...(grafo.conPesos ? [{ etiqueta: 'Peso', expresion: '', resultado: String(pesoCuerdas), activa: false }] : []),
+          { etiqueta: 'Nulidad', expresion: `m − n + k = ${m} − ${n} + ${k}`, resultado: String(nulidad), activa: true }
         ],
         tituloCalculo: 'Cuerdas y nulidad',
         mensaje: cuerdas.length
-          ? `Complemento del árbol: G′ = (S′, A′), con S′ = ${llaves(grafo.vertices)} y A′ = ${llaves(nombres(cuerdas))}. Sus aristas son las cuerdas. Nulidad = m − n + 1 = ${m} − ${n} + 1 = ${nulidad}, el número de cuerdas.`
-          : `El grafo ya es un árbol: no le quedan aristas fuera, así que no tiene cuerdas. Nulidad = m − n + 1 = ${m} − ${n} + 1 = 0.`
+          ? `Complemento del árbol: G′ = (S′, A′), con S′ = ${llaves(grafo.vertices)} y A′ = ${llaves(nombres(cuerdas))}. Sus aristas son las cuerdas${grafo.conPesos ? `, de peso ${pesoCuerdas}` : ''}. Nulidad = ${nulidadEscrita}, el número de cuerdas.`
+          : `El grafo ya es un árbol: no le quedan aristas fuera, así que no tiene cuerdas. Nulidad = ${nulidadEscrita}.`
       })
     ];
   }
