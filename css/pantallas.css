@@ -1951,6 +1951,8 @@
 }
 
 .matriz-grafo__celda--infinita { color: var(--tinta-suave); }
+/* La fila que Dijkstra todavía no llenó (conceptos con Dijkstra, 2026-11-26). */
+.matriz-grafo__celda--pendiente { background: var(--superficie-hundida); }
 .matriz-grafo__celda--fila { background: var(--estado-rango-relleno); border-color: var(--estado-rango-borde); }
 .matriz-grafo__celda--operando,
 .matriz-grafo__celda--evaluacion { background: var(--estado-evaluacion-relleno); border: 2px solid var(--estado-evaluacion-borde); }

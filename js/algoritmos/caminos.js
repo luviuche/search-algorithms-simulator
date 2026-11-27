@@ -27,6 +27,97 @@
     ? bellman(grafo, { inicio, fin })
     : dijkstra(grafo, { inicio, fin }));
 
+  // ── Los conceptos con Dijkstra (2026-11-26) ─────────────────────────────
+  // El material: «Calcular mediante el algoritmo de Dijkstra, las distancias
+  // mínimas para todos los vértices del grafo G dado. Sumar todas las
+  // distancias obtenidas…». Un paso por vértice: Dijkstra desde él, que llena
+  // su fila de la matriz de distancias, con el árbol de caminos que deja en
+  // el dibujo. Después, los conceptos, los mismos pasos que detrás de Floyd.
+  // El Dijkstra de cada uno, entero, se ve eligiendo «Ruta mínima».
+
+  // Dijkstra sin traza: la menor temporal se hace permanente y desde ella se
+  // miran sus vecinos. Cuenta las comparaciones y las etiquetas que mejoran.
+  function distanciasDesde(grafo, inicio) {
+    const distancias = Object.fromEntries(grafo.vertices.map((v) => [v, Infinity]));
+    const predecesores = { [inicio]: null };
+    const permanentes = [];
+    let comparaciones = 0;
+    let mejoras = 0;
+    distancias[inicio] = 0;
+    for (;;) {
+      const pendientes = grafo.vertices.filter((v) => !permanentes.includes(v) && Number.isFinite(distancias[v]));
+      if (pendientes.length === 0) break;
+      const actual = pendientes.reduce((m, v) => (distancias[v] < distancias[m] ? v : m));
+      permanentes.push(actual);
+      for (const { arista, hasta } of caminos.salidas(grafo, actual)) {
+        if (permanentes.includes(hasta)) continue;
+        comparaciones++;
+        if (distancias[actual] + arista.peso < distancias[hasta]) {
+          distancias[hasta] = distancias[actual] + arista.peso;
+          predecesores[hasta] = actual;
+          mejoras++;
+        }
+      }
+    }
+    return { distancias, predecesores, permanentes, comparaciones, mejoras };
+  }
+
+  function conceptos(grafo) {
+    const { vertices } = grafo;
+    const matriz = vertices.map(() => vertices.map(() => null));
+    const pasos = [];
+    let comparaciones = 0;
+    let mejoras = 0;
+    vertices.forEach((inicio, i) => {
+      const r = distanciasDesde(grafo, inicio);
+      comparaciones += r.comparaciones;
+      mejoras += r.mejoras;
+      matriz[i] = vertices.map((v) => r.distancias[v]);
+      // El árbol de caminos que deja: de cada vértice, la arista por la que
+      // se llegó a él.
+      const marcadas = {};
+      for (const v of vertices) {
+        const desde = r.predecesores[v];
+        if (desde === undefined || desde === null) continue;
+        caminos.aristasDe(grafo, [desde, v]).forEach((a) => { marcadas[a.nombre] = 'encontrada'; });
+      }
+      const sinLlegar = vertices.filter((v) => !Number.isFinite(r.distancias[v]));
+      const otros = vertices.filter((v) => v !== inicio && Number.isFinite(r.distancias[v]));
+      pasos.push(crearPaso(TIPOS_PASO.CALCULO, {
+        caminos: true,
+        algoritmo: ALGORITMOS.DIJKSTRA,
+        fase: 'dijkstra-filas',
+        matriz: matriz.map((fila) => fila.slice()),
+        tituloMatriz: `Distancias mínimas con Dijkstra (fila ${inicio})`,
+        resaltar: { tipo: 'dijkstra', vertices: [inicio] },
+        estados: { ...Object.fromEntries(r.permanentes.map((v) => [v, 'rango'])), [inicio]: 'evaluacion' },
+        marcadas,
+        etiquetas: {},
+        comparaciones,
+        cambios: mejoras,
+        filasLlenas: i + 1,
+        tituloCalculo: `Dijkstra desde ${inicio}`,
+        calculo: vertices.map((v) => ({
+          etiqueta: v,
+          expresion: v === inicio ? 'inicio' : r.predecesores[v] === undefined ? 'no se llega' : `[${valor(r.distancias[v])}, ${r.predecesores[v]}]`,
+          resultado: valor(r.distancias[v]),
+          activa: false
+        })),
+        mensaje: `${i === 0 ? 'Las distancias mínimas, con Dijkstra desde cada vértice. ' : ''}Dijkstra desde ${inicio}: `
+          + (otros.length ? otros.map((v) => `a ${v}, ${r.distancias[v]}`).join('; ') : 'no llega a ningún otro')
+          + (sinLlegar.length ? `; a ${enLista(sinLlegar)} no llega (∞)` : '')
+          + `. Es la fila ${inicio} de la matriz.`
+      }));
+    });
+    const resumen = `Dijkstra desde los ${vertices.length} vértices: ${comparaciones} comparaciones, ${mejoras} ${mejoras === 1 ? 'etiqueta mejorada' : 'etiquetas mejoradas'}.`;
+    pasos.push(...window.CC2.algoritmos.floyd.pasosDeConceptos({
+      grafo, matriz, comparaciones, cambios: mejoras, resumen,
+      faseSinConceptos: 'dijkstra-filas',
+      extra: { algoritmo: ALGORITMOS.DIJKSTRA, filasLlenas: vertices.length }
+    }));
+    return pasos;
+  }
+
   // El cierre de los dos: la ruta en verde y su distancia.
   function cierre({ grafo, comun, inicio, fin, predecesores, distancias, estados, mensajeInicial }) {
     const camino = caminos.ruta(predecesores, inicio, fin);
@@ -288,5 +379,5 @@
     return pasos;
   }
 
-  window.CC2.algoritmos.caminos = { recorrer };
+  window.CC2.algoritmos.caminos = { recorrer, conceptos, distanciasDesde };
 })();

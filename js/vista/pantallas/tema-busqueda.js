@@ -1283,6 +1283,12 @@
         else if (parametro.soloCon) {
           el.dataset.soloConParametro = parametro.soloCon.parametro;
           el.dataset.soloConValor = [].concat(parametro.soloCon.valor).join(' ');
+          // `salvo`: y no cuando otro parámetro tiene ese valor (el inicio y
+          // el final de Dijkstra, que con los conceptos no se usan).
+          if (parametro.soloCon.salvo) {
+            el.dataset.salvoParametro = parametro.soloCon.salvo.parametro;
+            el.dataset.salvoValor = [].concat(parametro.soloCon.salvo.valor).join(' ');
+          }
         }
         return el;
       };
@@ -1403,7 +1409,12 @@
       function sincronizarCamposDeParametros() {
         for (const campo of camposDeOtroParametro) {
           const control = contenedor.querySelector(`[name="${campo.dataset.soloConParametro}"]`);
-          campo.hidden = !control || !campo.dataset.soloConValor.split(' ').includes(control.value);
+          // `salvo` cuenta solo si su parámetro está a la vista: con Bellman,
+          // el «conceptos» que quedó elegido para Dijkstra no oculta nada.
+          const campoSalvo = campo.dataset.salvoParametro && contenedor.querySelector(`[data-campo="${campo.dataset.salvoParametro}"]`);
+          const salvo = campoSalvo && !campoSalvo.hidden && contenedor.querySelector(`[name="${campo.dataset.salvoParametro}"]`);
+          campo.hidden = !control || !campo.dataset.soloConValor.split(' ').includes(control.value)
+            || Boolean(salvo && campo.dataset.salvoValor.split(' ').includes(salvo.value));
         }
         ocultarGruposVacios();
       }
@@ -1679,8 +1690,10 @@
     // Si un parámetro va con esta estructura: los de `soloCon`, solo cuando
     // el otro parámetro —leído antes— tiene ese valor.
     function aplica(parametro, parametros) {
-      return !parametro.soloCon
-        || [].concat(parametro.soloCon.valor).includes(parametros[parametro.soloCon.parametro]);
+      if (!parametro.soloCon) return true;
+      const { salvo } = parametro.soloCon;
+      return [].concat(parametro.soloCon.valor).includes(parametros[parametro.soloCon.parametro])
+        && !(salvo && [].concat(salvo.valor).includes(parametros[salvo.parametro]));
     }
 
     function leerParametros(datos, tamano) {

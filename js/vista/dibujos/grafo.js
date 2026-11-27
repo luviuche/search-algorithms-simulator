@@ -136,7 +136,7 @@
       }
       if (paso.resaltar) {
         const { tipo, vertices: elegidos } = paso.resaltar;
-        const estadoElegido = tipo === 'diametro' ? 'evaluacion' : 'encontrada';
+        const estadoElegido = tipo === 'diametro' || tipo === 'dijkstra' ? 'evaluacion' : 'encontrada';
         for (const e of elegidos) vertices.set(e, estadoElegido);
         // Centro y mediana son subgrafos inducidos (hoja del docente): se ven
         // los vértices y sus aristas, y lo demás se apaga.
@@ -457,7 +457,9 @@
           const td = document.createElement('td');
           const clases = ['matriz-grafo__celda'];
           if (i === k) clases.push('matriz-grafo__celda--diagonal');
-          if (!Number.isFinite(distancia)) clases.push('matriz-grafo__celda--infinita');
+          // Con Dijkstra desde cada vértice, las filas que faltan van vacías.
+          if (distancia === null) clases.push('matriz-grafo__celda--pendiente');
+          else if (!Number.isFinite(distancia)) clases.push('matriz-grafo__celda--infinita');
           const clave = `${i},${k}`;
           if (enFloyd) {
             if (cambiadas.has(clave)) clases.push('matriz-grafo__celda--cambio');
@@ -473,7 +475,7 @@
             antes.textContent = valor(cambiadas.get(clave));
             td.appendChild(antes);
           }
-          td.appendChild(document.createTextNode(valor(distancia)));
+          td.appendChild(document.createTextNode(distancia === null ? '' : valor(distancia)));
           tr.appendChild(td);
         });
         for (const columna of columnas) {
@@ -501,7 +503,8 @@
     function filasDeConceptos(paso, grafo) {
       const filas = new Map();
       if (!paso || !paso.resaltar) return filas;
-      const estadoFila = paso.resaltar.tipo === 'diametro' ? 'evaluacion' : 'encontrada';
+      // La fila que llena Dijkstra va en naranja, como el diámetro.
+      const estadoFila = paso.resaltar.tipo === 'diametro' || paso.resaltar.tipo === 'dijkstra' ? 'evaluacion' : 'encontrada';
       for (const vertice of paso.resaltar.vertices) filas.set(grafo.vertices.indexOf(vertice), estadoFila);
       return filas;
     }
@@ -1324,7 +1327,10 @@
         ajustarGrafo();
         return;
       }
-      const matriz = paso && paso.matriz ? paso.matriz : dominio.grafo.matrizInicial(grafo);
+      // Antes del primer paso, la matriz con la que se empieza: la de las
+      // aristas en Floyd, vacía con Dijkstra desde cada vértice.
+      const matriz = paso && paso.matriz ? paso.matriz
+        : (config.matrizAntes && config.matrizAntes(estado.estructura, grafo)) || dominio.grafo.matrizInicial(grafo);
       dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
       dom.estructuraEl.appendChild(crearMatriz(grafo, paso, matriz));
       ajustarGrafo();

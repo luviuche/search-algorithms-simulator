@@ -110,17 +110,21 @@
   // Los conceptos, uno por paso, sobre la matriz que dejó Floyd. Las líneas
   // del panel se acumulan —cada concepto se apoya en los anteriores— y la
   // tabla por vértice se llena con ellas.
-  function pasosDeConceptos({ grafo, matriz, comparaciones, cambios }) {
+  //
+  // **Dijkstra también llega aquí** (2026-11-26): el material dice calcular
+  // las distancias con Dijkstra desde cada vértice, y su matriz es la misma.
+  // Trae su `resumen` y su `extra` —lo que sus pasos llevan además—.
+  function pasosDeConceptos({ grafo, matriz, comparaciones, cambios, resumen, faseSinConceptos = 'floyd', extra = {} }) {
     const { vertices } = grafo;
     const resultado = grafos.conceptos(matriz, vertices);
-    const comun = { fase: 'conceptos', matriz: copia(matriz), comparaciones, cambios };
-    const resumenFloyd = `Floyd terminado: ${comparaciones} comparaciones, ${cambios} ${cambios === 1 ? 'cambio' : 'cambios'} en la matriz.`;
+    const comun = { fase: 'conceptos', matriz: copia(matriz), comparaciones, cambios, ...extra };
+    const resumenFloyd = resumen || `Floyd terminado: ${comparaciones} comparaciones, ${cambios} ${cambios === 1 ? 'cambio' : 'cambios'} en la matriz.`;
 
     if (!resultado.conexo) {
       const dirigido = grafo.tipo === grafos.TIPOS.DIRIGIDO;
       return [crearPaso(TIPOS_PASO.CONSTRUIDO, {
         ...comun,
-        fase: 'floyd',
+        fase: faseSinConceptos,
         conceptos: null,
         mensaje: `${resumenFloyd} Quedan pares en ∞ —sin camino—, así que no hay conceptos: piden un grafo ${dirigido ? 'en el que desde cada vértice se llegue a todos' : 'conexo'}.`
       })];
@@ -187,5 +191,5 @@
 
   window.CC2 = window.CC2 || {};
   window.CC2.algoritmos = window.CC2.algoritmos || {};
-  window.CC2.algoritmos.floyd = { recorrer, nombreCelda };
+  window.CC2.algoritmos.floyd = { recorrer, nombreCelda, pasosDeConceptos };
 })();

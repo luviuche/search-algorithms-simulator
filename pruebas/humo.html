@@ -614,6 +614,7 @@
       menuPorNiveles();
       panelDeEscribir();
       editorDeGrafo();
+      conceptosConDijkstra();
       cintaDeCadaTema();
       camposDeCadaOpcion();
 
@@ -3177,7 +3178,11 @@
           for (const campo of formulario.querySelectorAll('[data-campo]')) {
             let debe = true;
             if (campo.dataset.soloConTratamiento) debe = valorDe('tratamiento') === campo.dataset.soloConTratamiento;
-            else if (campo.dataset.soloConParametro) debe = campo.dataset.soloConValor.split(' ').includes(valorDe(campo.dataset.soloConParametro));
+            else if (campo.dataset.soloConParametro) {
+              debe = campo.dataset.soloConValor.split(' ').includes(valorDe(campo.dataset.soloConParametro))
+                && !(campo.dataset.salvoParametro && !formulario.querySelector(`[data-campo="${campo.dataset.salvoParametro}"]`).hidden
+                  && campo.dataset.salvoValor.split(' ').includes(valorDe(campo.dataset.salvoParametro)));
+            }
             const enEscritura = campo.closest('.escritura');
             const visto = enEscritura ? !campo.hidden : aLaVista(campo);
             if (visto !== debe) malos.add(`${titulo} (${donde}): «${campo.dataset.campo}» ${debe ? 'no se ve' : 'se ve de más'}`);
@@ -3324,6 +3329,40 @@
       area.value = '1 2\n2 3';
       area.dispatchEvent(new Event('change', { bubbles: true }));
       afirmar(de('nombres').value === 'n:1' && filas() === 2, 'lo que se pone en el campo, la tabla lo lee');
+      document.querySelector('.pantalla-tema__volver').click();
+    }
+
+    // **Los conceptos con Dijkstra** (2026-11-26), como dice el material: la
+    // figura 12, desde cada vértice, da lo mismo que con Floyd.
+    function conceptosConDijkstra() {
+      registro.push('', '── Conceptos con Dijkstra ──');
+      entrarATema('Caminos mínimos');
+      const formulario = document.querySelector('form.panel');
+      const poner = (nombre, valor) => {
+        const campo = formulario.querySelector(`[name="${nombre}"]`);
+        campo.value = valor;
+        campo.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const campo = (nombre) => formulario.querySelector(`[data-campo="${nombre}"]`);
+      poner('algoritmo', 'dijkstra');
+      afirmar(aLaVista(campo('hallar')) && aLaVista(campo('inicio')), 'con Dijkstra se elige qué hallar, y la ruta pide su inicio');
+      poner('hallar', 'conceptos');
+      afirmar(!aLaVista(campo('inicio')) && !aLaVista(campo('fin')), 'con los conceptos, el inicio y el final no se piden');
+      poner('algoritmo', 'bellman');
+      afirmar(!aLaVista(campo('hallar')) && aLaVista(campo('inicio')), 'Bellman no lo ofrece, y pide su inicio');
+      poner('algoritmo', 'dijkstra');
+      enviar(formulario, { tipo: 'no-dirigido', aristas: '4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5' });
+      afirmar(document.querySelectorAll('.matriz-grafo__celda--pendiente').length === 20,
+        `cada Dijkstra llena su fila: al crear, la primera (${document.querySelectorAll('.matriz-grafo__celda--pendiente').length} casillas vacías)`);
+      const siguiente = control('siguiente');
+      let vueltas = 0;
+      while (!siguiente.disabled && vueltas++ < 40) siguiente.click();
+      const metrica = (texto) => [...document.querySelectorAll('.metrica')]
+        .find((el) => el.textContent.includes(texto));
+      const radio = metrica('Radio');
+      const valorRadio = radio ? radio.querySelector('.metrica__valor').textContent.trim() : 'sin radio';
+      afirmar(document.querySelectorAll('.matriz-grafo__celda--pendiente').length === 0 && valorRadio === '5',
+        `al final, la matriz llena y el radio de la figura 12 (${valorRadio})`);
       document.querySelector('.pantalla-tema__volver').click();
     }
 

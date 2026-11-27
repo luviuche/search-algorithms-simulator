@@ -125,3 +125,42 @@ test('el grafo: vértices desde 0 o letras, hasta 8, y los errores con su rengl�
   assert.match(error('0 1\n2 3\n4 5\n6 7\n8 9'), /caben hasta 8/);
   assert.match(error(''), /al menos una arista/);
 });
+
+// **Los conceptos con Dijkstra** (2026-11-26): el material dice calcular las
+// distancias «mediante el algoritmo de Dijkstra» desde cada vértice. La
+// figura 12 del documento tiene que dar lo mismo que con Floyd.
+const { conceptos: conceptosConDijkstra } = CC2.algoritmos.caminos;
+const FIGURA_12 = CC2.dominio.caminos.leerGrafo('4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5', 'no-dirigido').grafo;
+
+test('conceptos con Dijkstra: la figura 12 da lo del docente, como con Floyd', () => {
+  const pasos = conceptosConDijkstra(FIGURA_12);
+  const filas = pasos.filter((p) => p.fase === 'dijkstra-filas');
+  assert.equal(filas.length, 5);
+  // Cada paso llena una fila más; las que faltan van vacías.
+  assert.deepEqual(filas[0].matriz[1], [null, null, null, null, null]);
+  assert.deepEqual(filas[0].matriz[0], [0, 5, 4, 7, 6]);
+  const final = pasos[pasos.length - 1];
+  const c = final.conceptos;
+  assert.deepEqual(c.distancias, [22, 15, 14, 13, 12]);
+  assert.deepEqual(c.excentricidades, [7, 5, 5, 7, 6]);
+  assert.equal(c.radio, 5);
+  assert.equal(c.diametro, 7);
+  assert.deepEqual(c.centro, ['2', '3']);
+  assert.deepEqual(c.mediana, ['5']);
+  assert.deepEqual(final.matriz, CC2.algoritmos.floyd.recorrer(CC2.dominio.grafo.leerGrafo('4 2 2\n4 3 8\n4 5 1\n2 3 10\n3 5 2\n3 1 4\n2 1 5', 'no-dirigido').grafo).at(-1).matriz);
+});
+
+test('conceptos con Dijkstra: el árbol de caminos de cada vértice va marcado', () => {
+  const primero = conceptosConDijkstra(FIGURA_12)[0];
+  // Desde 1: a 2 directo (5), a 3 directo (4), a 5 por 3 (6), a 4 por 5 (7).
+  assert.equal(Object.keys(primero.marcadas).length, 4);
+  assert.equal(primero.estados['1'], 'evaluacion');
+});
+
+test('conceptos con Dijkstra: si desde algún vértice no se llega a todos, no hay conceptos', () => {
+  const pasos = conceptosConDijkstra(CC2.dominio.caminos.leerGrafo('0 1 2\n1 2 3', 'dirigido').grafo);
+  const final = pasos[pasos.length - 1];
+  assert.equal(final.conceptos, null);
+  assert.match(final.mensaje, /desde cada vértice se llegue a todos/);
+  assert.match(pasos[2].mensaje, /no llega a ningún otro/);
+});

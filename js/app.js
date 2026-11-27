@@ -1127,7 +1127,13 @@
       const NOMBRES = { [ALGORITMOS.FLOYD]: 'Floyd', [ALGORITMOS.DIJKSTRA]: 'Dijkstra', [ALGORITMOS.BELLMAN]: 'Bellman' };
       // Vacío en los archivos guardados cuando solo estaba Floyd.
       const algoritmoDe = (parametros) => (parametros && parametros.algoritmo) || ALGORITMOS.FLOYD;
-      const deUnVertice = (estructura) => Boolean(estructura) && algoritmoDe(estructura.parametros) !== ALGORITMOS.FLOYD;
+      // **Dijkstra también da los conceptos** (2026-11-26): el material los
+      // calcula con Dijkstra desde cada vértice. Entonces se dibuja como Floyd,
+      // con la matriz, y no como la ruta de un vértice.
+      const conConceptos = (parametros) => algoritmoDe(parametros) === ALGORITMOS.DIJKSTRA && parametros.hallar === 'conceptos';
+      const deUnVertice = (estructura) => Boolean(estructura) && algoritmoDe(estructura.parametros) !== ALGORITMOS.FLOYD
+        && !conConceptos(estructura.parametros);
+      const nombreDe = (parametros) => (conConceptos(parametros) ? 'Dijkstra desde cada vértice' : NOMBRES[algoritmoDe(parametros)]);
       // Floyd lee el grafo de siempre; los otros dos, desde 0 o con letras.
       // Bellman es dirigido siempre.
       const leer = (texto, parametros) => {
@@ -1154,11 +1160,12 @@
           ? { valido: true, valor: texto }
           : { valido: false, mensaje: `El vértice «${texto}» no está en el grafo (${vertices.join(', ')}).` };
       };
-      const soloDeUno = { parametro: 'algoritmo', valor: [ALGORITMOS.DIJKSTRA, ALGORITMOS.BELLMAN] };
+      const soloDeUno = { parametro: 'algoritmo', valor: [ALGORITMOS.DIJKSTRA, ALGORITMOS.BELLMAN], salvo: { parametro: 'hallar', valor: 'conceptos' } };
       return {
       // La descripción larga va en el encabezado del tema; el menú lleva una
       // corta (2026-10-28).
-      descripcion: 'Floyd, entre todos los pares, con el centro, el radio y la mediana; Dijkstra y Bellman, desde un vértice',
+      descripcion: 'Floyd, entre todos los pares, con el centro, el radio y la mediana; Dijkstra y Bellman, desde un vértice, y Dijkstra desde cada uno para los mismos conceptos',
+      matrizAntes: (estructura, grafo) => (conConceptos(estructura.parametros) ? grafo.vertices.map(() => grafo.vertices.map(() => null)) : null),
       orientacion: 'grafo',
       deUnVertice,
       leerGrafo: leer,
@@ -1175,31 +1182,36 @@
       // la inicial, como antes de recorrer Floyd.
       mensajeReinicio: (estructura) => (deUnVertice(estructura)
         ? `${NOMBRES[algoritmoDe(estructura.parametros)]} reiniciado: el grafo queda sin marcar.`
-        : 'Floyd reiniciado: la matriz vuelve a la inicial.'),
+        : conConceptos(estructura.parametros) ? 'Reiniciado: la matriz de distancias vuelve a estar vacía.'
+          : 'Floyd reiniciado: la matriz vuelve a la inicial.'),
       mensajeLienzoVacio: {
         titulo: 'Defina el grafo para hallar sus caminos mínimos'
       },
-      mensajeDerivacion: (estructura) => ({
+      mensajeDerivacion: (estructura) => (conConceptos(estructura.parametros)
+        ? 'Dijkstra desde cada vértice iniciado: cada uno da su fila de distancias.'
+        : {
         [ALGORITMOS.FLOYD]: 'Floyd iniciado: cada vértice j se prueba como intermedio entre i y k.',
         [ALGORITMOS.DIJKSTRA]: 'Dijkstra iniciado: la menor etiqueta temporal se hace permanente.',
         [ALGORITMOS.BELLMAN]: 'Función ordinal iniciada; después, Bellman.'
-      })[algoritmoDe(estructura.parametros)],
+      }[algoritmoDe(estructura.parametros)]),
       mensajeCreacion: (estructura) => {
         const grafo = grafoDe(estructura);
         return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas, `
           + `${grafo.tipo === dominio.grafo.TIPOS.DIRIGIDO ? 'dirigido' : 'no dirigido'}, `
           + `${grafo.conPesos ? 'con pesos' : 'sin pesos (cada arista vale 1)'}.`
-          + (deUnVertice(estructura) ? ` ${NOMBRES[estructura.parametros.algoritmo]} de ${estructura.parametros.inicio} a ${estructura.parametros.fin}.` : '');
+          + (deUnVertice(estructura) ? ` ${NOMBRES[estructura.parametros.algoritmo]} de ${estructura.parametros.inicio} a ${estructura.parametros.fin}.`
+            : conConceptos(estructura.parametros) ? ' Dijkstra desde cada vértice, y los conceptos.' : '');
       },
       detalleReciente: (estructura) => {
         const p = estructura.parametros;
         return deUnVertice(estructura)
           ? `${NOMBRES[p.algoritmo]} ${p.inicio} → ${p.fin} · ${grafoDe(estructura).vertices.length} vértices`
-          : describirGrafo(grafoDe(estructura));
+          : `${conConceptos(p) ? 'Dijkstra · conceptos · ' : ''}${describirGrafo(grafoDe(estructura))}`;
       },
       alCrear: ({ estructura }) => (deUnVertice(estructura)
         ? algoritmos.caminos.recorrer(grafoDe(estructura), estructura.parametros)
-        : algoritmos.floyd.recorrer(grafoDe(estructura))),
+        : conConceptos(estructura.parametros) ? algoritmos.caminos.conceptos(grafoDe(estructura))
+          : algoritmos.floyd.recorrer(grafoDe(estructura))),
       // La matriz y los conceptos se dibujan desde el paso: el final los
       // hereda, con las líneas de los conceptos, pero sin resaltar nada.
       conservarAlFinal: ['matriz', 'conceptos', 'calculo', 'tituloCalculo', 'fase', 'cambios',
@@ -1207,7 +1219,7 @@
         'permanentes', 'numerados', 'evaluados'],
       nombreArchivo: (estructura) => {
         const grafo = grafoDe(estructura);
-        return `${algoritmoDe(estructura.parametros)}-${grafo.vertices.length}v-${grafo.tipo}`;
+        return `${algoritmoDe(estructura.parametros)}${conConceptos(estructura.parametros) ? '-conceptos' : ''}-${grafo.vertices.length}v-${grafo.tipo}`;
       },
       vistaPrevia: (datos) => {
         const lectura = leer(datos.get('aristas'), { algoritmo: datos.get('algoritmo'), tipo: String(datos.get('tipo') || TIPOS.NO_DIRIGIDO) });
@@ -1230,6 +1242,19 @@
           }
         },
         { ...PARAMETRO_TIPO_DE_GRAFO, soloCon: { parametro: 'algoritmo', valor: [ALGORITMOS.FLOYD, ALGORITMOS.DIJKSTRA] } },
+        {
+          nombre: 'hallar',
+          etiqueta: 'Qué hallar con Dijkstra',
+          corta: 'Hallar',
+          soloCon: { parametro: 'algoritmo', valor: ALGORITMOS.DIJKSTRA },
+          botones: 'chicos',
+          opciones: [
+            { valor: 'ruta', etiqueta: 'La ruta mínima de un vértice a otro', corta: 'Ruta mínima', cifra: 'a→b', ayuda: 'Dijkstra desde el vértice inicial, paso a paso, hasta el final.' },
+            { valor: 'conceptos', etiqueta: 'Centro, radio, diámetro y mediana', corta: 'Centro y radio', cifra: 'e(v)', ayuda: 'Dijkstra desde cada vértice da la matriz de distancias, y de ella salen los conceptos, como en el material.' }
+          ],
+          ayuda: 'La ruta, de un vértice a otro; o Dijkstra desde cada vértice, y los conceptos.',
+          validar: (entrada) => (entrada === 'conceptos' ? { valido: true, valor: 'conceptos' } : { valido: true, valor: 'ruta' })
+        },
         {
           ...PARAMETRO_ARISTAS,
           // Floyd numera desde 1; Dijkstra y Bellman, desde 0 como el docente,
@@ -1316,7 +1341,9 @@
             etiqueta: 'Cambios en D',
             etiquetaSegun: ({ paso, estructura }) => {
               if (deUnVertice(estructura)) return 'Distancia';
-              return conConceptos(paso) ? 'Diámetro' : 'Cambios en D';
+              // Con Dijkstra desde cada vértice, lo que cambia son las etiquetas.
+              const conDijkstra = estructura && algoritmoDe(estructura.parametros) === ALGORITMOS.DIJKSTRA;
+              return conConceptos(paso) ? 'Diámetro' : conDijkstra ? 'Mejoras' : 'Cambios en D';
             },
             valor: ({ paso, estructura }) => {
               if (deUnVertice(estructura)) return paso && paso.ruta !== undefined ? (paso.ruta ? String(paso.distancia) : '∞') : '—';
