@@ -2658,3 +2658,18 @@
 .expansion-resumen__numero {
   font-weight: 700;
 }
+
+/* ── Circuitos y conjuntos de corte (CLAUDE.md 5.22) ──────────────────────
+   La matriz y, al lado, la de vértices de los fundamentales; debajo, la
+   estructura de adyacencia. */
+.circuitos-columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.circuitos-matrices {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}

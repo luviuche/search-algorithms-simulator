@@ -36,6 +36,7 @@
     'dominio/conjuntos.js',
     'dominio/pareamientos.js',
     'dominio/expansion.js',
+    'dominio/circuitos.js',
     'dominio/tabla-de-aristas.js',
 
     'algoritmos/traza.js',

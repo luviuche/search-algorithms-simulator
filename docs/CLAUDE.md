@@ -1062,6 +1062,23 @@ En el mismo tema que Floyd, que pasó a llamarse «Caminos mínimos», con el **
 
 **Dudas para el docente**: cómo se desempata en Dijkstra —hoy, el primero en orden— y si sus vértices se hacen permanentes por la menor etiqueta o en el orden de su número. En las notas, 2 tiene [4, 0] y 3 tiene [3, 1], y [10, 2] aparece debajo de [4, 3], como si 2 se hubiera evaluado antes; con la menor etiqueta va antes el 3. Las etiquetas finales y las tachadas son las mismas.
 
+### 5.22 Circuitos y conjuntos de corte, en el árbol de expansión (2026-11-26)
+
+**Van dentro del árbol de expansión** (decisión del usuario): se elige **«Qué hallar»** —árbol, centro, circuitos, circuitos fundamentales, conjuntos de corte o cortes fundamentales— y **cada opción es un solo ejercicio**. Hasta entonces el árbol seguía con el centro en la misma traza y parecían dos operaciones (visto por el usuario). El árbol termina en las cuerdas; el centro y los fundamentales empiezan con el árbol ya hecho en un paso (`pasoDelArbolHecho`), con el método y el objetivo que se elijan; circuitos y conjuntos de corte no usan árbol, y entonces no se piden método, objetivo, inicio ni ramas (`soloCon.salvo`). Los guardados antes, sin `hallar`, son el árbol. El método pasó a botones chicos: con la galería nueva la cinta no cabía a 1366 px.
+
+**La referencia es el taller del usuario** (`docs/Grafos/Taller Grafo Árbol Exp.pdf`), que sigue las definiciones y cuyas cuatro matrices están bien (`pruebas/circuitos.test.js`):
+
+- **Circuito**: camino cerrado que no repite vértices. Todos, de los más cortos a los más largos y entre iguales en el orden de sus aristas: así salen los 12 del taller en su orden.
+- **Circuito fundamental**: una cuerda y el camino del árbol entre sus extremos, uno por cuerda; también por vértices, como en el taller.
+- **Conjunto de corte**: un conjunto mínimo de aristas que, quitadas, deja el grafo en dos partes, y mínimo es que las dos partes sigan conexas por dentro. Todos (el taller los ordena de otra forma; son los mismos 12).
+- **Corte fundamental**: la rama y las cuerdas que cruzan entre las dos partes en que su salida deja el árbol, uno por rama.
+
+**El documento de apoyo no sigue estas definiciones** (§5.12, «Lo que el material dejó abierto»): sus fundamentales son caras del dibujo ({d, c, e}, con otra cuerda dentro) y cortes que aíslan un vértice ({a, b, h}); lista 9 de los 12 circuitos del grafo verde. Lo fija una prueba.
+
+**Cómo se ve** (pedido del docente, vía el usuario: que cada circuito y cada corte se grafique o se señale en el mismo grafo): un paso por circuito o corte. En el grafo, el circuito en verde grueso con sus vértices; la cuerda en naranja y el camino del árbol en verde; el corte en naranja punteado, con una parte en verde y la otra en azul; en el fundamental, la rama en naranja y el resto del árbol en verde. Al lado, la matriz llenándose una fila por paso con su estructura de adyacencia —la misma tabla de la representación matricial (§5.13), con `r.titulo`— y, en los circuitos fundamentales, la matriz por vértices. Lo que el grafo marca va en `paso.marcas`, aparte del árbol. Las métricas cuentan cuántos van y dicen la nulidad o el rango, que son cuántos fundamentales hay. **Con más de 40** circuitos o cortes se rechaza al crear: cada uno es un paso.
+
+**Pendiente**: los dirigidos, con 1 y −1 según la orientación, como el grafo morado del documento (que sí está bien). El árbol de expansión es no dirigido.
+
 ### 5.21 Envolventes convexas (2026-11-24)
 
 En el tema de pareamientos, como otra opción de «Qué hacer» (§5.17). El material es `ENVOLVENTES 03-11-26.pdf`, 14 páginas: divide y vencerás y QuickHull a mano, y Graham, QuickHull, incremental y Jarvis en pseudocódigo. Construidos: **divide y vencerás, QuickHull, Graham y Jarvis**. El **incremental no está construido**.

@@ -31,7 +31,7 @@ test('el grafo admite números o letras, y sin peso la arista vale 1', () => {
 test('Kruskal en la figura 12: entran 4–5, 4–2, 3–5 y 3–1, peso 9, y las que quedan cerrarían un ciclo', () => {
   const pasos = recorrer(FIGURA_12, { metodo: METODOS.KRUSKAL });
   assert.deepEqual(pasos[0].tabla.map((f) => f.etiqueta), ['4–5', '4–2', '3–5', '3–1', '2–1', '4–3', '2–3']);
-  assert.equal(pasos.length, 1 + 4 + 1 + 2 + 4, 'el orden, cuatro aristas que entran, el árbol, ramas y cuerdas, y cuatro sobre las distancias');
+  assert.equal(pasos.length, 1 + 4 + 1 + 2, 'el orden, cuatro aristas que entran, el árbol, y ramas y cuerdas: el centro es otro ejercicio');
   const final = delArbol(pasos);
   assert.deepEqual(etiquetas(FIGURA_12, final.T), ['4–5', '4–2', '3–5', '3–1']);
   assert.equal(final.total, 9);
@@ -158,7 +158,7 @@ test('las aristas se nombran a, b, c… en el orden escrito, como las del grafo 
 test('documento de apoyo: con el árbol a, b, e, f, ramas y rango 4, cuerdas c, d, g, h y nulidad 4', () => {
   const { arbol } = expansion.leerArbol('a b e f', VERDE);
   const pasos = recorrer(VERDE, { metodo: METODOS.DADO, arbol: arbol.map((a) => a.nombre) });
-  assert.deepEqual(pasos.map((p) => p.fase), ['dado', 'arbol', 'ramas', 'cuerdas', 'centro', 'centro', 'centro', 'centro']);
+  assert.deepEqual(pasos.map((p) => p.fase), ['dado', 'arbol', 'ramas', 'cuerdas']);
   const ramas = pasos[2];
   assert.deepEqual(ramas.ramas, ['a', 'b', 'e', 'f']);
   assert.equal(ramas.rango, 4);
@@ -197,7 +197,8 @@ test('un grafo que ya es un árbol no tiene cuerdas: nulidad 0', () => {
 
 // Centro y bicentro sobre el árbol (pedido del usuario, 2026-11-24).
 const sobreElArbol = (texto, opciones = {}) => {
-  const pasos = recorrer(leer(texto), { metodo: METODOS.KRUSKAL, ...opciones });
+  // El centro es su propio ejercicio desde el 2026-11-26 (`hallar`).
+  const pasos = recorrer(leer(texto), { metodo: METODOS.KRUSKAL, hallar: 'centro', ...opciones });
   return { pasos: pasos.filter((p) => p.fase === 'centro'), final: ultimo(pasos) };
 };
 

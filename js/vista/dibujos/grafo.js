@@ -99,6 +99,11 @@
         // vale la arista, y el primer tramo del camino que se prueba.
         aristas = (a) => (unen(a, vi, vj, grafo) ? 'evaluacion' : undefined);
       }
+      // Circuitos y conjuntos de corte (CLAUDE.md 5.22): lo que el paso marca.
+      if (paso.marcas) {
+        for (const [vertice, estadoVertice] of Object.entries(paso.marcas.estados)) vertices.set(vertice, estadoVertice);
+        aristas = (a) => paso.marcas.marcadas[a.nombre];
+      }
       // Dijkstra y Bellman: lo que el paso diga de cada vértice y arista.
       if (paso.caminos) {
         for (const [vertice, estadoVertice] of Object.entries(paso.estados)) vertices.set(vertice, estadoVertice);
@@ -108,7 +113,7 @@
       // una arista— y lo que lleva 1 o −1 en ella en naranja, igual que en la
       // matriz. En la adyacencia de vértices se resaltan también las aristas
       // que los unen, que son las que ponen esos unos.
-      if (paso.representacion && paso.filaActual !== undefined) {
+      if (paso.representacion && paso.filaActual !== undefined && !paso.marcas) {
         const r = paso.representacion;
         const fila = r.filas[paso.filaActual];
         const valores = r.valores[paso.filaActual];
@@ -522,7 +527,7 @@
       tabla.className = 'matriz-grafo matriz-grafo--representacion';
       const titulo = document.createElement('caption');
       titulo.className = 'matriz-grafo__titulo';
-      titulo.textContent = config.tituloRepresentacion ? config.tituloRepresentacion(r) : '';
+      titulo.textContent = r.titulo || (config.tituloRepresentacion ? config.tituloRepresentacion(r) : '');
       tabla.appendChild(titulo);
       const cabecera = document.createElement('tr');
       cabecera.appendChild(document.createElement('th'));
@@ -1206,6 +1211,26 @@
         dom.estructuraEl.innerHTML = '';
         if (!grafo) return;
         dom.estructuraEl.appendChild(crearGrafo(grafo, paso));
+        // **Circuitos y conjuntos de corte** (CLAUDE.md 5.22): el circuito o
+        // el corte señalado en el grafo, y al lado su matriz, llenándose una
+        // fila por paso, con su estructura de adyacencia (y, en los circuitos
+        // fundamentales, la matriz por vértices, como en el taller).
+        if (paso && paso.representacion) {
+          const columna = document.createElement('div');
+          columna.className = 'estructura-grafo__columna circuitos-columna';
+          const matrices = document.createElement('div');
+          matrices.className = 'circuitos-matrices';
+          matrices.appendChild(crearMatrizRepresentacion(paso.representacion, paso));
+          if (paso.porVertices) {
+            const porVertices = crearMatrizRepresentacion(paso.porVertices, paso);
+            porVertices.classList.add('matriz-grafo--por-vertices');
+            matrices.appendChild(porVertices);
+          }
+          columna.append(matrices, crearEstructuraDeAdyacencia(paso.representacion, paso));
+          dom.estructuraEl.appendChild(columna);
+          ajustarGrafo();
+          return;
+        }
         if (paso && paso.T) {
           const columna = document.createElement('div');
           columna.className = 'estructura-grafo__columna conjunto-columna';

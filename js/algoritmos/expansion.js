@@ -34,11 +34,36 @@
     [OBJETIVOS.MAXIMO]: { nombre: 'máximo', Nombre: 'Máximo', orden: 'de mayor a menor peso', elegida: 'más pesada', ninguno: 'más', fuera: 'menos' }
   };
 
-  function recorrer(grafo, { metodo, inicio, arbol = [], objetivo = OBJETIVOS.MINIMO }) {
-    if (metodo === METODOS.DADO) return pasosDelArbolDado(grafo, arbol, objetivo);
-    return metodo === METODOS.PRIM
-      ? pasosDePrim(grafo, inicio || grafo.vertices[0], objetivo)
-      : pasosDeKruskal(grafo, objetivo);
+  // **Qué hallar** (pedido del usuario, 2026-11-26): cada recorrido es un
+  // solo ejercicio. Hasta entonces el árbol seguía con el centro en la misma
+  // traza, y parecían dos operaciones.
+  //
+  //   arbol                  Kruskal, Prim o el escrito, paso a paso, con
+  //                          ramas, rango, cuerdas y nulidad
+  //   centro                 el árbol en un paso, y su centro o bicentro
+  //   circuitos · cortes     todos los del grafo, sin árbol
+  //   fundamentales          el árbol en un paso, y uno por cuerda
+  //   cortes-fundamentales   el árbol en un paso, y uno por rama
+  const HALLAR = Object.freeze({
+    ARBOL: 'arbol', CENTRO: 'centro', CIRCUITOS: 'circuitos', FUNDAMENTALES: 'fundamentales',
+    CORTES: 'cortes', CORTES_FUNDAMENTALES: 'cortes-fundamentales'
+  });
+  const conArbol = (hallar) => ![HALLAR.CIRCUITOS, HALLAR.CORTES].includes(hallar);
+
+  function recorrer(grafo, { metodo, inicio, arbol = [], objetivo = OBJETIVOS.MINIMO, hallar = HALLAR.ARBOL }) {
+    if (hallar === HALLAR.CIRCUITOS) return pasosDeCircuitos(grafo);
+    if (hallar === HALLAR.CORTES) return pasosDeCortes(grafo);
+    const pasos = metodo === METODOS.DADO ? pasosDelArbolDado(grafo, arbol, objetivo)
+      : metodo === METODOS.PRIM ? pasosDePrim(grafo, inicio || grafo.vertices[0], objetivo)
+        : pasosDeKruskal(grafo, objetivo);
+    if (hallar === HALLAR.ARBOL || !hallar) return pasos.filter((p) => p.fase !== 'centro');
+    // Lo demás parte del árbol ya hecho: un paso que lo resume.
+    const delArbol = pasos.find((p) => p.fase === 'arbol');
+    const T = grafo.aristas.filter((a) => delArbol.T.includes(a.nombre));
+    const resumen = pasoDelArbolHecho(grafo, T, delArbol, metodo, hallar);
+    if (hallar === HALLAR.CENTRO) return [resumen, ...pasos.filter((p) => p.fase === 'centro')];
+    if (hallar === HALLAR.FUNDAMENTALES) return [resumen, ...pasosDeFundamentales(grafo, T)];
+    return [resumen, ...pasosDeCortesFundamentales(grafo, T)];
   }
 
   // ── Árbol escrito ────────────────────────────────────────────────────────
@@ -276,5 +301,152 @@
 
   window.CC2 = window.CC2 || {};
   window.CC2.algoritmos = window.CC2.algoritmos || {};
-  window.CC2.algoritmos.expansion = { recorrer };
+  // ── El árbol ya hecho, en un paso ────────────────────────────────────────
+  function pasoDelArbolHecho(grafo, T, delArbol, metodo, hallar) {
+    const { ramas, cuerdas, rango, nulidad, n, m, k } = expansion.ramasYCuerdas(grafo, T);
+    const como = metodo === METODOS.DADO ? 'el árbol escrito' : `${metodo === METODOS.PRIM ? 'Prim' : 'Kruskal'}`;
+    const { nombre } = PALABRAS[delArbol.objetivo];
+    const porque = {
+      [HALLAR.CENTRO]: 'Sobre él se buscan el centro y la mediana.',
+      [HALLAR.FUNDAMENTALES]: `Hay un circuito fundamental por cuerda: ${nulidad}, la nulidad.`,
+      [HALLAR.CORTES_FUNDAMENTALES]: `Hay un corte fundamental por rama: ${rango}, el rango.`
+    }[hallar];
+    return crearPaso(TIPOS_PASO.CALCULO, {
+      ...delArbol, fase: 'arbol', ramas: nombres(ramas), rango, cuerdas: nombres(cuerdas), nulidad, tabla: [], propiedades: null,
+      calculo: [
+        { etiqueta: 'Árbol', expresion: llaves(nombres(T)), resultado: String(delArbol.total), activa: false },
+        { etiqueta: 'Rango', expresion: `n − k = ${n} − ${k}`, resultado: String(rango), activa: hallar === HALLAR.CORTES_FUNDAMENTALES },
+        { etiqueta: 'Nulidad', expresion: `m − n + k = ${m} − ${n} + ${k}`, resultado: String(nulidad), activa: hallar === HALLAR.FUNDAMENTALES }
+      ],
+      tituloCalculo: 'El árbol',
+      mensaje: `Árbol de expansión ${metodo === METODOS.DADO ? '' : `${nombre} `}con ${como}: ${llaves(T.map(etiqueta))}, peso ${delArbol.suma}. `
+        + `Ramas ${llaves(nombres(ramas))} y cuerdas ${llaves(nombres(cuerdas))}. ${porque}`
+    });
+  }
+
+  // ── Circuitos y conjuntos de corte (CLAUDE.md 5.22) ──────────────────────
+  // Un paso por circuito o corte: se señala en el grafo y se llena su fila de
+  // la matriz, y su renglón de la estructura de adyacencia. Lo que el grafo
+  // marca va en `marcas` —estado por vértice y por arista—, aparte del árbol.
+  const circuitos = window.CC2.dominio.circuitos;
+  const conComas = (aristas) => lista(aristas.map((a) => a.nombre));
+
+  function pasosDeFilas({ grafo, lista: filas, r, intro, tituloCalculo, fase, cada, cierre, comun = {} }) {
+    const pasos = [crearPaso(TIPOS_PASO.CALCULO, {
+      ...comun, fase, representacion: r, filasLlenas: 0, total: filas.length, marcas: { estados: {}, marcadas: {} },
+      calculo: [], tituloCalculo, mensaje: intro
+    })];
+    filas.forEach((fila, i) => {
+      const { marcas, calculo, mensaje } = cada(fila, i);
+      const ultimo = i === filas.length - 1;
+      pasos.push(crearPaso(ultimo ? TIPOS_PASO.CONSTRUIDO : TIPOS_PASO.CALCULO, {
+        ...comun, fase, representacion: r, filasLlenas: i + 1, filaActual: i, total: filas.length, marcas,
+        actual: fila.nombre, calculo, tituloCalculo,
+        mensaje: ultimo ? `${mensaje} ${cierre}` : mensaje
+      }));
+    });
+    return pasos;
+  }
+
+  function pasosDeCircuitos(grafo) {
+    const { lista: filas } = circuitos.circuitos(grafo);
+    const r = circuitos.matriz(grafo, filas, { titulo: 'Matriz de circuitos' });
+    return pasosDeFilas({
+      grafo, lista: filas, r, fase: 'circuitos', tituloCalculo: 'Circuitos',
+      intro: `Un circuito es un camino cerrado que no repite vértices. Este grafo tiene ${filas.length}, y se recorren de los más cortos a los más largos. Cada uno es una fila de la matriz de circuitos: 1 en las aristas que tiene, 0 en las demás.`,
+      cada: (c) => ({
+        marcas: {
+          estados: Object.fromEntries(c.vertices.map((v) => [v, 'encontrada'])),
+          marcadas: Object.fromEntries(c.aristas.map((a) => [a.nombre, 'emparejada']))
+        },
+        calculo: [
+          { etiqueta: c.nombre, expresion: c.recorrido.join(' – '), resultado: '', activa: false },
+          { etiqueta: 'Aristas', expresion: llaves(nombres(c.aristas)), resultado: String(c.aristas.length), activa: true }
+        ],
+        mensaje: `${c.nombre}: ${c.recorrido.join('–')}, con las aristas ${llaves(nombres(c.aristas))}. Su fila lleva 1 en ${conComas(c.aristas)}.`
+      }),
+      cierre: `Matriz de circuitos: ${filas.length} circuitos por ${grafo.aristas.length} aristas.`
+    });
+  }
+
+  function pasosDeCortes(grafo) {
+    const { lista: filas } = circuitos.cortes(grafo);
+    const r = circuitos.matriz(grafo, filas, { titulo: 'Matriz de conjuntos de corte' });
+    return pasosDeFilas({
+      grafo, lista: filas, r, fase: 'cortes', tituloCalculo: 'Conjuntos de corte',
+      intro: `Un conjunto de corte es un conjunto mínimo de aristas que, al quitarlas, deja el grafo en dos partes. Mínimo: si se devuelve cualquiera de ellas, vuelve a ser conexo. Este grafo tiene ${filas.length}, de los más chicos a los más grandes; cada uno es una fila de la matriz.`,
+      cada: (c) => ({
+        marcas: {
+          estados: Object.fromEntries([...c.lado.map((v) => [v, 'encontrada']), ...c.otro.map((v) => [v, 'rango'])]),
+          marcadas: Object.fromEntries(c.aristas.map((a) => [a.nombre, 'del-camino']))
+        },
+        calculo: [
+          { etiqueta: c.nombre, expresion: llaves(nombres(c.aristas)), resultado: String(c.aristas.length), activa: true },
+          { etiqueta: 'Partes', expresion: `${llaves(c.lado)} y ${llaves(c.otro)}`, resultado: '', activa: false }
+        ],
+        mensaje: `${c.nombre} = ${llaves(nombres(c.aristas))}: al quitarlas, ${llaves(c.lado)} queda separado de ${llaves(c.otro)}.`
+      }),
+      cierre: `Matriz de conjuntos de corte: ${filas.length} cortes por ${grafo.aristas.length} aristas.`
+    });
+  }
+
+  function pasosDeFundamentales(grafo, T) {
+    const filas = circuitos.circuitosFundamentales(grafo, T);
+    const r = circuitos.matriz(grafo, filas, { titulo: 'Matriz de circuitos fundamentales' });
+    // Como en el taller: también por vértices.
+    const porVertices = circuitos.matriz(grafo, filas, { titulo: 'Por vértices', porVertices: true });
+    return pasosDeFilas({
+      grafo, lista: filas, r, fase: 'fundamentales', tituloCalculo: 'Circuitos fundamentales',
+      comun: { porVertices },
+      intro: '',
+      cada: (c) => ({
+        marcas: {
+          estados: Object.fromEntries(c.vertices.map((v) => [v, 'encontrada'])),
+          marcadas: Object.fromEntries([
+            ...T.map((a) => [a.nombre, c.camino.includes(a) ? 'emparejada' : undefined]),
+            [c.cuerda.nombre, 'evaluacion']
+          ].filter(([, e]) => e))
+        },
+        calculo: [
+          { etiqueta: 'Cuerda', expresion: etiqueta(c.cuerda), resultado: c.cuerda.nombre, activa: false },
+          { etiqueta: 'En el árbol', expresion: c.recorrido.slice(1).join(' – '), resultado: llaves(nombres(c.camino)), activa: false },
+          { etiqueta: c.nombre, expresion: llaves(nombres(c.aristas)), resultado: String(c.aristas.length), activa: true }
+        ],
+        mensaje: `${c.nombre}, de la cuerda ${c.cuerda.nombre}: el árbol une ${c.cuerda.destino} con ${c.cuerda.origen} por ${c.recorrido.slice(1).join('–')}, y con la cuerda cierra el circuito ${llaves(nombres(c.aristas))}.`
+      }),
+      cierre: `Matriz de circuitos fundamentales: ${filas.length}, uno por cuerda.`
+    }).slice(1);
+  }
+
+  function pasosDeCortesFundamentales(grafo, T) {
+    const filas = circuitos.cortesFundamentales(grafo, T);
+    const r = circuitos.matriz(grafo, filas, { titulo: 'Matriz de cortes fundamentales' });
+    return pasosDeFilas({
+      grafo, lista: filas, r, fase: 'cortes-fundamentales', tituloCalculo: 'Cortes fundamentales',
+      intro: '',
+      cada: (c) => {
+        const cuerdas = c.aristas.filter((a) => a !== c.rama);
+        return {
+          marcas: {
+            estados: Object.fromEntries([...c.lado.map((v) => [v, 'encontrada']), ...c.otro.map((v) => [v, 'rango'])]),
+            marcadas: Object.fromEntries([
+              ...T.filter((a) => a !== c.rama).map((a) => [a.nombre, 'emparejada']),
+              ...cuerdas.map((a) => [a.nombre, 'del-camino']),
+              [c.rama.nombre, 'evaluacion']
+            ])
+          },
+          calculo: [
+            { etiqueta: 'Rama', expresion: etiqueta(c.rama), resultado: c.rama.nombre, activa: false },
+            { etiqueta: 'Partes', expresion: `${llaves(c.lado)} y ${llaves(c.otro)}`, resultado: '', activa: false },
+            { etiqueta: c.nombre, expresion: llaves(nombres(c.aristas)), resultado: String(c.aristas.length), activa: true }
+          ],
+          mensaje: `${c.nombre}, de la rama ${c.rama.nombre}: sin ella el árbol queda en ${llaves(c.lado)} y ${llaves(c.otro)}; `
+            + (cuerdas.length ? `entre las dos partes cruzan ${conComas(cuerdas)}, así que el corte es ${llaves(nombres(c.aristas))}.` : `ninguna cuerda cruza entre ellas: el corte es solo ${c.rama.nombre}.`)
+        };
+      },
+      cierre: `Matriz de cortes fundamentales: ${filas.length}, uno por rama.`
+    }).slice(1);
+  }
+
+  window.CC2.algoritmos.expansion = { recorrer, HALLAR, conArbol };
 })();

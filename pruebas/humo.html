@@ -4421,7 +4421,14 @@
         selector.value = metodo;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
       };
-      const crear = (metodo, aristas, inicio = '', arbol = '') => {
+      // Qué hallar (2026-11-26): el árbol, o su centro, o circuitos y cortes.
+      const hallar = (que) => {
+        const selector = formulario.querySelector('[name="hallar"]');
+        selector.value = que;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const crear = (metodo, aristas, inicio = '', arbol = '', que = 'arbol') => {
+        hallar(que);
         elegir(metodo);
         formulario.querySelector('[name="aristas"]').value = aristas;
         formulario.querySelector('[name="inicio"]').value = inicio;
@@ -4458,6 +4465,11 @@
         `al terminar, cuatro ramas y nulidad 3 (${aviso() ? aviso().textContent.trim() : 'sin aviso'})`);
       afirmar(document.querySelectorAll('.grafo__arista--cuerda').length === 3, 'las tres cuerdas, en azul punteado');
       afirmarGrafoCabe('Kruskal, cuerdas');
+      agotarTraza(10);
+      afirmar(!document.querySelector('.matriz-grafo'), 'el árbol termina en las cuerdas: el centro es otro ejercicio');
+      control('editar-configuracion').click();
+      crear('kruskal', figura12, '', '', 'centro');
+      afirmar(textoDelResumen().includes('Nulidad'), 'el centro empieza con el árbol ya hecho, en un paso');
       agotarTraza(10);
       afirmar(textoDelResumen().includes('Centro = {3}') && textoDelResumen().includes('Mediana = {5}'),
         `sobre el árbol, centro 3 y mediana 5 (${textoDelResumen()})`);
@@ -4510,16 +4522,52 @@
       // A 1024 × 650 (el proyector XGA, que ya no es requisito) sobran unos
       // 30 px aun a 0,5×, como el caso extremo de los conjuntos.
       if (window.innerWidth >= 1280) afirmarGrafoCabe('Kruskal con nueve vértices');
+      control('editar-configuracion').click();
+      crear('kruskal', 'A B 4\nA H 8\nB H 11\nB C 8\nH I 7\nH G 1\nI G 6\nC I 2\nC F 4\nC D 7\nG F 2\nD F 14\nD E 9\nE F 10', '', '', 'centro');
       agotarTraza(20);
       if (window.innerWidth >= 1280) afirmarGrafoCabe('distancias del árbol de nueve vértices');
       // Un camino de cuatro vértices: dos en el centro.
       control('editar-configuracion').click();
-      crear('kruskal', '1 2\n2 3\n3 4');
+      crear('kruskal', '1 2\n2 3\n3 4', '', '', 'centro');
       for (let i = 0; i < 40 && !textoDelResumen().includes('Radio'); i++) control('siguiente').click();
       const metricas = [...document.querySelectorAll('.pantalla-tema__lienzo .pareamiento-resumen, .pantalla-tema__estado')].map((el) => el.textContent).find((texto) => /Diámetro/.test(texto)) || '';
       afirmar(metricas !== '' && !metricas.includes('Bicentro'), `el bicentro no se adelanta a su paso (${metricas.trim().replace(/\s+/g, ' ')})`);
       agotarTraza(20);
       afirmar(textoDelResumen().includes('Bicentro = {2, 3}'), `el camino 1–2–3–4 tiene bicentro (${textoDelResumen()})`);
+
+      // **Circuitos y conjuntos de corte** (2026-11-26), con el taller del
+      // usuario: cada uno señalado en el grafo y su fila en la matriz.
+      const taller = 'a b 2\nb d 2\nb e 3\na c 4\nc d 5\nd e 7\nc b 7\na d 8';
+      control('editar-configuracion').click();
+      hallar('circuitos');
+      afirmar(!seVe('metodo') && !seVe('objetivo') && !seVe('inicio'), 'los circuitos no piden árbol: sin método ni objetivo');
+      // Las de la matriz por aristas, la primera (la de vértices va al lado).
+      const filasLlenas = () => {
+        const matriz = document.querySelector('.matriz-grafo--representacion');
+        return matriz ? matriz.querySelectorAll('tr').length - 1 - matriz.querySelectorAll('tr:has(.matriz-grafo__celda--pendiente)').length : 0;
+      };
+      const casos = [
+        { que: 'circuitos', filas: 12, marca: 'emparejada', primero: 3 },
+        { que: 'fundamentales', filas: 4, marca: 'emparejada', primero: 3 },
+        { que: 'cortes', filas: 12, marca: 'del-camino', primero: 2 },
+        { que: 'cortes-fundamentales', filas: 4, marca: 'del-camino', primero: 3 }
+      ];
+      for (const { que, filas, marca, primero } of casos) {
+        control('editar-configuracion').click();
+        crear('kruskal', taller, '', '', que);
+        // Al crear se ve el primer paso: la explicación, o el árbol ya hecho.
+        control('siguiente').click();
+        const marcadas = document.querySelectorAll(`.grafo__arista--${marca}`).length;
+        afirmar(filasLlenas() === 1 && marcadas === primero, `${que}: el primero señalado en el grafo y su fila en la matriz (${filasLlenas()} fila, ${marcadas} aristas)`);
+        agotarTraza(20);
+        afirmar(filasLlenas() === filas, `${que}: ${filas} filas, como en el taller (${filasLlenas()})`);
+        if (window.innerWidth >= 1280) afirmarGrafoCabe(`${que} del taller`);
+      }
+      afirmar(document.querySelectorAll('.matriz-grafo--representacion').length === 1, 'los cortes fundamentales, sin matriz por vértices');
+      control('editar-configuracion').click();
+      crear('kruskal', taller, '', '', 'fundamentales');
+      agotarTraza(20);
+      afirmar(!!document.querySelector('.matriz-grafo--por-vertices'), 'los circuitos fundamentales también por vértices, como en el taller');
       document.querySelector('.pantalla-tema__volver').click();
     }
 

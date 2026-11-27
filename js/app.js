@@ -2366,13 +2366,25 @@
       const conCuerdas = (paso) => Boolean(paso && paso.nulidad !== undefined);
       // Con las distancias del árbol, las cuatro casillas dicen sus conceptos.
       const conCentro = (paso) => Boolean(paso && paso.conceptos);
+      // Qué se halla (2026-11-26). Vacío en los guardados de antes: el árbol.
+      const { HALLAR } = algoritmos.expansion;
+      const hallarDe = (estructura) => (estructura && estructura.parametros.hallar) || HALLAR.ARBOL;
+      const NOMBRES_HALLAR = {
+        [HALLAR.ARBOL]: 'árbol', [HALLAR.CENTRO]: 'centro', [HALLAR.CIRCUITOS]: 'circuitos',
+        [HALLAR.FUNDAMENTALES]: 'circuitos fundamentales', [HALLAR.CORTES]: 'conjuntos de corte',
+        [HALLAR.CORTES_FUNDAMENTALES]: 'cortes fundamentales'
+      };
+      const sinArbol = [HALLAR.CIRCUITOS, HALLAR.CORTES];
+      const conArbol = Object.values(HALLAR).filter((h) => !sinArbol.includes(h));
+      // Con circuitos o cortes, lo que se lleva y de cuántos.
+      const filas = (paso) => Boolean(paso && paso.representacion);
       // Sin espacio tras la coma: con él, un bicentro se partía en dos
       // renglones en el panel de 340 px.
       const conjunto = (vertices) => `{${vertices.join(',')}}`;
       // Cada valor aparece con su paso, no antes.
       const siSeVe = (paso, cual, texto) => (paso.conceptos.mostrar.includes(cual) ? texto : '—');
       return {
-        descripcion: 'Prim y Kruskal: el árbol de menor o de mayor peso que toca todos los vértices de un grafo conexo, con sus ramas y cuerdas, y su centro o bicentro',
+        descripcion: 'Prim y Kruskal: el árbol de menor o de mayor peso que toca todos los vértices de un grafo conexo, con sus ramas y cuerdas; su centro o bicentro; y los circuitos y conjuntos de corte, con sus matrices',
         orientacion: 'grafo',
         expansion: true,
         leerGrafo: leer,
@@ -2395,26 +2407,54 @@
         mensajeCreacion: (estructura) => {
           const grafo = grafoDe(estructura);
           return `Grafo creado: ${grafo.vertices.length} vértices, ${grafo.aristas.length} aristas`
-            + `${grafo.conPesos ? '' : ', sin pesos (cada arista vale 1)'}. Árbol ${nombreObjetivo(estructura)}, método: ${nombreDe(estructura.parametros.metodo)}.`;
+            + `${grafo.conPesos ? '' : ', sin pesos (cada arista vale 1)'}. `
+            + (sinArbol.includes(hallarDe(estructura)) ? `Se hallan sus ${NOMBRES_HALLAR[hallarDe(estructura)]}.`
+              : `Árbol ${nombreObjetivo(estructura)}, método: ${nombreDe(estructura.parametros.metodo)}; se halla: ${NOMBRES_HALLAR[hallarDe(estructura)]}.`);
         },
-        detalleReciente: (estructura) => `${grafoDe(estructura).vertices.length} vértices · ${nombreObjetivo(estructura)} · ${nombreDe(estructura.parametros.metodo)}`,
+        detalleReciente: (estructura) => (sinArbol.includes(hallarDe(estructura))
+          ? `${grafoDe(estructura).vertices.length} vértices · ${NOMBRES_HALLAR[hallarDe(estructura)]}`
+          : `${grafoDe(estructura).vertices.length} vértices · ${nombreObjetivo(estructura)} · ${nombreDe(estructura.parametros.metodo)} · ${NOMBRES_HALLAR[hallarDe(estructura)]}`),
         alCrear: ({ estructura }) => {
           const { metodo, inicio, arbol } = estructura.parametros;
           return algoritmos.expansion.recorrer(grafoDe(estructura), {
-            metodo, inicio, objetivo: objetivoDe(estructura), arbol: String(arbol || '').split(/\s+/).filter(Boolean)
+            metodo, inicio, objetivo: objetivoDe(estructura), arbol: String(arbol || '').split(/\s+/).filter(Boolean),
+            hallar: hallarDe(estructura)
           });
         },
         conservarAlFinal: ['metodo', 'objetivo', 'T', 'dentro', 'descartadas', 'tabla', 'total', 'suma', 'propiedades',
-          'ramas', 'rango', 'cuerdas', 'nulidad', 'matriz', 'tituloMatriz', 'conceptos', 'fase', 'calculo', 'tituloCalculo'],
-        nombreArchivo: (estructura) => `expansion-${objetivoDe(estructura)}-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
+          'ramas', 'rango', 'cuerdas', 'nulidad', 'matriz', 'tituloMatriz', 'conceptos', 'fase', 'calculo', 'tituloCalculo',
+          'representacion', 'filasLlenas', 'porVertices'],
+        nombreArchivo: (estructura) => `expansion-${hallarDe(estructura)}-${objetivoDe(estructura)}-${estructura.parametros.metodo}-${grafoDe(estructura).vertices.length}v`,
         vistaPrevia: (datos) => {
           const lectura = leer(datos.get('aristas'));
           return lectura.valido ? lectura.grafo : null;
         },
         parametros: [
           {
+            nombre: 'hallar',
+            etiqueta: 'Qué hallar',
+            botones: 'chicos',
+            opciones: [
+              { valor: HALLAR.ARBOL, etiqueta: 'El árbol, con ramas y cuerdas', corta: 'Árbol', cifra: 'T', ayuda: 'Kruskal, Prim o el escrito, paso a paso, con sus ramas, rango, cuerdas y nulidad.' },
+              { valor: HALLAR.CENTRO, etiqueta: 'Centro o bicentro del árbol', corta: 'Centro', cifra: 'e(v)', ayuda: 'Sobre el árbol ya hecho: distancias, radio, diámetro, centro y mediana.' },
+              { valor: HALLAR.CIRCUITOS, etiqueta: 'Matriz de circuitos', corta: 'Circuitos', cifra: 'C', ayuda: 'Todos los circuitos del grafo, cada uno señalado y con su fila.' },
+              { valor: HALLAR.FUNDAMENTALES, etiqueta: 'Matriz de circuitos fundamentales', corta: 'Circuitos fund.', cifra: 'Cf', ayuda: 'Uno por cuerda: la cuerda y el camino del árbol entre sus extremos.' },
+              { valor: HALLAR.CORTES, etiqueta: 'Matriz de conjuntos de corte', corta: 'Conjuntos de corte', cifra: 'Cc', ayuda: 'Todos los conjuntos mínimos de aristas que parten el grafo en dos.' },
+              { valor: HALLAR.CORTES_FUNDAMENTALES, etiqueta: 'Matriz de cortes fundamentales', corta: 'Cortes fund.', cifra: 'Ccf', ayuda: 'Uno por rama: la rama y las cuerdas que cruzan entre las dos partes del árbol.' }
+            ],
+            ayuda: 'Cada opción es un ejercicio: el árbol, su centro, o los circuitos y cortes con sus matrices.',
+            // Vacío en los archivos guardados antes: el árbol.
+            validar: (entrada) => {
+              const valor = entrada || HALLAR.ARBOL;
+              return Object.values(HALLAR).includes(valor)
+                ? { valido: true, valor }
+                : { valido: false, mensaje: 'Elija qué hallar.' };
+            }
+          },
+          {
             nombre: 'objetivo',
             etiqueta: 'Árbol',
+            soloCon: { parametro: 'hallar', valor: conArbol },
             botones: 'chicos',
             opciones: [
               { valor: OBJETIVOS.MINIMO, etiqueta: 'De expansión mínimo', corta: 'Mínimo', icono: 'menor' },
@@ -2432,7 +2472,10 @@
           {
             nombre: 'metodo',
             etiqueta: 'Método',
-            botones: 'grandes',
+            soloCon: { parametro: 'hallar', valor: conArbol },
+            // Chicos desde que se elige qué hallar (2026-11-26): grandes, la
+            // cinta ya no cabía a 1366 px con Prim o el árbol escrito.
+            botones: 'chicos',
             opciones: [
               { valor: METODOS.KRUSKAL, etiqueta: 'Kruskal', icono: 'kruskal', ayuda: 'Revisa las aristas por orden de peso.' },
               { valor: METODOS.PRIM, etiqueta: 'Prim', icono: 'prim', ayuda: 'Hace crecer el árbol desde un vértice.' },
@@ -2452,11 +2495,17 @@
               maximo: VERTICES_MAXIMOS, dirigido: false, rotulos: true, porExtremos: true
             },
             ayuda: `Una por renglón: sus dos vértices, números o letras, y su peso. Sin peso vale 1. Con vértices numerados se nombran a, b, c… en el orden escrito; con letras, por sus extremos (ab). El grafo debe ser conexo. Hasta ${VERTICES_MAXIMOS} vértices.`,
-            validar: (entrada) => {
+            validar: (entrada, { parametros }) => {
               const lectura = leer(entrada);
-              return lectura.valido
-                ? { valido: true, valor: dominio.expansion.comoTexto(lectura.grafo) }
-                : { valido: false, mensaje: lectura.mensaje };
+              if (!lectura.valido) return { valido: false, mensaje: lectura.mensaje };
+              // Cada circuito o corte es un paso: con demasiados, no se siguen.
+              const { circuitos } = dominio;
+              const cuantos = parametros.hallar === HALLAR.CIRCUITOS ? circuitos.circuitos(lectura.grafo)
+                : parametros.hallar === HALLAR.CORTES ? circuitos.cortes(lectura.grafo) : null;
+              if (cuantos && cuantos.demasiados) {
+                return { valido: false, mensaje: `Este grafo tiene más de ${circuitos.MAXIMO} ${parametros.hallar === HALLAR.CIRCUITOS ? 'circuitos' : 'conjuntos de corte'}: demasiados para verlos uno por uno. Pruebe con menos aristas, o con los fundamentales.` };
+              }
+              return { valido: true, valor: dominio.expansion.comoTexto(lectura.grafo) };
             }
           },
           {
@@ -2464,7 +2513,7 @@
             etiqueta: 'Vértice inicial',
             corta: 'Inicial',
             grupo: 'Inicio',
-            soloCon: { parametro: 'metodo', valor: METODOS.PRIM },
+            soloCon: { parametro: 'metodo', valor: METODOS.PRIM, salvo: { parametro: 'hallar', valor: sinArbol } },
             marcador: '1',
             ayuda: 'Desde dónde crece el árbol. Vacío, el primero.',
             // Va después de las aristas: se valida contra el grafo.
@@ -2483,7 +2532,7 @@
             etiqueta: 'Ramas del árbol',
             corta: 'Ramas',
             grupo: 'Ramas',
-            soloCon: { parametro: 'metodo', valor: METODOS.DADO },
+            soloCon: { parametro: 'metodo', valor: METODOS.DADO, salvo: { parametro: 'hallar', valor: sinArbol } },
             marcador: 'a b e f',
             ayuda: 'Los nombres de sus n − 1 aristas, sin ciclos.',
             validar: (entrada, { parametros }) => {
@@ -2523,16 +2572,27 @@
             id: 'tamano',
             etiqueta: 'Aristas en el árbol',
             // Con las ramas, el mismo número tiene nombre: el rango.
-            etiquetaSegun: ({ paso }) => (conCentro(paso) ? (paso.conceptos.esBicentro && paso.conceptos.mostrar.includes('centro') ? 'Bicentro' : 'Centro')
-              : paso && paso.rango !== undefined ? 'Rango' : 'Aristas en el árbol'),
-            valor: ({ paso }) => (conCentro(paso) ? siSeVe(paso, 'centro', conjunto(paso.conceptos.centro)) : paso && paso.T ? String(paso.T.length) : '—')
+            etiquetaSegun: ({ paso, estructura }) => (filas(paso) || sinArbol.includes(hallarDe(estructura))
+              ? { circuitos: 'Circuitos', fundamentales: 'Circuitos fund.', cortes: 'Cortes', 'cortes-fundamentales': 'Cortes fund.' }[hallarDe(estructura)] || 'Filas'
+              : conCentro(paso) ? (paso.conceptos.esBicentro && paso.conceptos.mostrar.includes('centro') ? 'Bicentro' : 'Centro')
+                : paso && paso.rango !== undefined ? 'Rango' : 'Aristas en el árbol'),
+            valor: ({ paso }) => (filas(paso) ? `${paso.filasLlenas} de ${paso.total}`
+              : conCentro(paso) ? siSeVe(paso, 'centro', conjunto(paso.conceptos.centro)) : paso && paso.T ? String(paso.T.length) : '—')
           },
           {
             id: 'peso',
             etiqueta: 'Peso del árbol',
-            etiquetaSegun: ({ paso }) => (conCentro(paso) ? 'Mediana' : conCuerdas(paso) ? 'Nulidad' : 'Peso del árbol'),
+            etiquetaSegun: ({ paso, estructura }) => (filas(paso) || sinArbol.includes(hallarDe(estructura))
+              ? ([HALLAR.CORTES, HALLAR.CORTES_FUNDAMENTALES].includes(hallarDe(estructura)) ? 'Rango' : 'Nulidad')
+              : conCentro(paso) ? 'Mediana' : conCuerdas(paso) ? 'Nulidad' : 'Peso del árbol'),
             valor: ({ estructura, paso }) => {
               const grafo = grafoDe(estructura);
+              // Los fundamentales son tantos como la nulidad (circuitos) o el
+              // rango (cortes): el número que se lee al lado.
+              if (grafo && (filas(paso) || sinArbol.includes(hallarDe(estructura)))) {
+                const cortes = [HALLAR.CORTES, HALLAR.CORTES_FUNDAMENTALES].includes(hallarDe(estructura));
+                return String(cortes ? grafo.vertices.length - 1 : grafo.aristas.length - grafo.vertices.length + 1);
+              }
               if (!paso || !paso.T || !grafo) return '—';
               if (conCentro(paso)) return siSeVe(paso, 'mediana', conjunto(paso.conceptos.mediana));
               if (conCuerdas(paso)) return String(paso.nulidad);
